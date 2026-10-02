@@ -695,6 +695,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
             {prayerData.isRamadan && (
             <div className="shrink-0 flex items-center gap-3 px-5 py-2.5 rounded-2xl bg-emerald-950/50 border border-emerald-500/30 text-[22px] whitespace-nowrap">
               <Utensils className="w-6 h-6 text-emerald-400" />
+              {prayerData.ramadanDay && <span className="text-emerald-300 font-bold">{t('Ramadan {n}', { n: prayerData.ramadanDay })} •</span>}
               <span className="text-neutral-300">
                 {prayerData.nextFastingEvent.type === 'Iftar'
                   ? t('Iftar {time}', { time: i18n.time(prayerData.maghrib) })

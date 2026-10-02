@@ -14,7 +14,8 @@ export const PrayerRemindersCard: React.FC = () => {
 
   const update = async (patch: Partial<PrayerReminderSettings>) => {
     const next = { ...settings, ...patch };
-    const turningOn = (next.minutesBefore > 0 || next.beforeIqamah) && !(settings.minutesBefore > 0 || settings.beforeIqamah);
+    const anyOn = (s: PrayerReminderSettings) => s.minutesBefore > 0 || s.beforeIqamah || s.suhoorMinutes > 0 || s.iftar;
+    const turningOn = anyOn(next) && !anyOn(settings);
     if (turningOn && 'Notification' in window && Notification.permission !== 'granted') {
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') {
@@ -74,6 +75,27 @@ export const PrayerRemindersCard: React.FC = () => {
           className="w-4 h-4 accent-amber-400"
         />
       </label>
+
+      <div className="pt-2 border-t border-white/5 space-y-1.5">
+        <div className="text-xs text-neutral-300">{t('Ramadan: wake me for Suhoor')}</div>
+        <div className="flex flex-wrap gap-1.5">
+          {([0, 30, 45, 60, 90] as const).map((n) => (
+            <button
+              key={n}
+              onClick={() => update({ suhoorMinutes: n })}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                settings.suhoorMinutes === n ? 'bg-emerald-500 text-neutral-950' : 'bg-white/5 text-neutral-300 hover:bg-white/10'
+              }`}
+            >
+              {n === 0 ? t('Off') : t('{n} min before Fajr', { n })}
+            </button>
+          ))}
+        </div>
+        <label className="flex items-center justify-between gap-3 text-xs text-neutral-200 cursor-pointer">
+          <span>{t('Ramadan: notify me at Iftar')}</span>
+          <input type="checkbox" checked={settings.iftar} onChange={(e) => update({ iftar: e.target.checked })} className="w-4 h-4 accent-emerald-400" />
+        </label>
+      </div>
 
       <p className="text-[11px] text-neutral-500">
         {t('Reminders arrive while the app is open or installed and running in the background; phones may pause it to save battery.')}

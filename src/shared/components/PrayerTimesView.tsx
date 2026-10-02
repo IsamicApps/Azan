@@ -543,6 +543,9 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
               <Utensils className="w-3.5 h-3.5" />
               <span>{t('Fasting & Meal Schedule')}</span>
             </div>
+            {prayerData.ramadanDay && (
+              <div className="text-sm font-semibold text-emerald-300">{t('Ramadan, day {n} of 30', { n: prayerData.ramadanDay })}</div>
+            )}
 
             <div className="text-xl md:text-2xl font-serif font-bold text-white">
               {prayerData.nextFastingEvent.type === 'Iftar'
@@ -559,6 +562,26 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
                 {i18n.isArabic ? null : <>&ldquo;{iftarDuaTranslation}&rdquo; </>}<span className="text-neutral-500">({t('Abu Dawud #2357')})</span>
               </p>
             </div>
+
+            {/* The last ten nights: seek Laylat al-Qadr */}
+            {/* The coming night belongs to the next Islamic day (it starts at Maghrib) */}
+            {(() => {
+              const night = prayerData.ramadanDay === undefined ? 0 : prayerData.nextFastingEvent.type === 'Iftar' ? prayerData.ramadanDay + 1 : prayerData.ramadanDay;
+              return night >= 21 && night <= 30;
+            })() && (
+              <div className="mt-2 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-start space-y-1">
+                <div className="text-xs font-bold text-amber-300">
+                  {t('The last ten nights: seek Laylat al-Qadr')}
+                  {(() => {
+                    const night = prayerData.nextFastingEvent.type === 'Iftar' ? prayerData.ramadanDay! + 1 : prayerData.ramadanDay!;
+                    return night % 2 === 1 ? ` • ${t('Tonight is the {n}th night (odd)', { n: night })}` : ` • ${t('Tonight is the {n}th night', { n: night })}`;
+                  })()}
+                </div>
+                <div className="font-arabic text-sm text-amber-200">اللَّهُمَّ إِنَّكَ عَفُوٌّ تُحِبُّ الْعَفْوَ فَاعْفُ عَنِّي</div>
+                {!i18n.isArabic && <p className="text-[11px] text-neutral-300 italic">&ldquo;O Allah, You are Pardoning and love to pardon, so pardon me.&rdquo;</p>}
+                <p className="text-[10px] text-neutral-500">{t("Jami' at-Tirmidhi #3513 (Sahih, Al-Albani)")}</p>
+              </div>
+            )}
           </div>
 
           <div className="flex flex-col items-center space-y-2 w-full md:w-auto">

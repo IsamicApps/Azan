@@ -49,6 +49,8 @@ export interface PrayerTimesResult {
   timesSource: 'awqat' | 'calculated';
   /** True while the next Suhoor/Iftar belongs to a Ramadan fast (from Maghrib before 1 Ramadan until Iftar on its last day) */
   isRamadan: boolean;
+  /** Day of Ramadan (1-30) of the fast the next Suhoor/Iftar belongs to */
+  ramadanDay?: number;
   nextFastingEvent: {
     type: 'Suhoor' | 'Iftar';
     time: string;
@@ -394,7 +396,8 @@ export function calculateMosquePrayerTimes(
 
   // The fast the next Suhoor/Iftar belongs to: tomorrow's once Maghrib has passed, otherwise today's
   const fastDay = new Date(clock.year, clock.month - 1, clock.day + (currentMinutes >= mObj.totalMinutes ? 1 : 0));
-  const isRamadan = getHijriDate(fastDay).month === 'Ramadan';
+  const fastHijri = getHijriDate(fastDay);
+  const isRamadan = fastHijri.month === 'Ramadan';
 
   fastDiffSec = realSeconds(fastDiffSec);
   const fHours = Math.floor(fastDiffSec / 3600);
@@ -427,6 +430,7 @@ export function calculateMosquePrayerTimes(
     timesSource: awqat ? 'awqat' : 'calculated',
     isFriday: new Date(Date.UTC(clock.year, clock.month - 1, clock.day)).getUTCDay() === 5,
     isRamadan,
+    ramadanDay: isRamadan ? fastHijri.day : undefined,
     nextFastingEvent: {
       type: fastType,
       time: fastTime,

@@ -9,6 +9,10 @@ export interface PrayerReminderSettings {
   minutesBefore: 0 | 5 | 10 | 15 | 30;
   prayers: Record<IqamaPrayer, boolean>;
   beforeIqamah: boolean;
+  /** Ramadan: minutes before Fajr to wake for Suhoor (0 = off) */
+  suhoorMinutes: 0 | 30 | 45 | 60 | 90;
+  /** Ramadan: notify at Maghrib for Iftar */
+  iftar: boolean;
 }
 
 export const REMINDER_PRAYERS: IqamaPrayer[] = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
@@ -19,7 +23,9 @@ export const REMINDER_SETTINGS_EVENT = 'prayer-reminders-change';
 const DEFAULTS: PrayerReminderSettings = {
   minutesBefore: 0,
   prayers: { Fajr: true, Dhuhr: true, Asr: true, Maghrib: true, Isha: true },
-  beforeIqamah: false
+  beforeIqamah: false,
+  suhoorMinutes: 0,
+  iftar: false
 };
 
 export function getReminderSettings(): PrayerReminderSettings {
@@ -50,12 +56,25 @@ function claim(key: string): boolean {
 /** Called every second by the app-wide watcher; sends any reminder that is due this minute. */
 export function checkPrayerReminders(result: PrayerTimesResult, mosque: Mosque): void {
   const settings = getReminderSettings();
-  if (!settings.minutesBefore && !settings.beforeIqamah) return;
+  if (!settings.minutesBefore && !settings.beforeIqamah && !(result.isRamadan && (settings.suhoorMinutes || settings.iftar))) return;
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
 
   const [h, m] = result.localTime24.split(':').map(Number);
   const now = h * 60 + m;
   const i18n = currentI18n();
+
+  if (result.isRamadan) {
+    if (settings.suhoorMinutes && now === result.adhanMinutes.Fajr - settings.suhoorMinutes && claim(`${result.localDateKey}-suhoor`)) {
+      showNotification(i18n.t('Suhoor: {n} minutes until Fajr', { n: settings.suhoorMinutes }), {
+        body: i18n.t('Suhoor ends at {time} ({mosque})', { time: i18n.time(result.fajr), mosque: mosque.name })
+      });
+    }
+    if (settings.iftar && now === result.adhanMinutes.Maghrib && claim(`${result.localDateKey}-iftar`)) {
+      showNotification(i18n.t('Iftar time'), {
+        body: `${i18n.t('Maghrib {time}', { time: i18n.time(result.maghrib) })} • ذَهَبَ الظَّمَأُ وَابْتَلَّتِ الْعُرُوقُ وَثَبَتَ الأَجْرُ إِنْ شَاءَ اللَّهُ`
+      });
+    }
+  }
 
   for (const prayer of REMINDER_PRAYERS) {
     if (!settings.prayers[prayer]) continue;
