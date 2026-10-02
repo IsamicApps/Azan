@@ -1,22 +1,22 @@
-// Service Worker for Daily Hadith & Azan Offline Cache
-const CACHE_NAME = 'daily-hadith-azan-v2';
+// Service Worker for Daily Hadith & Azan (v4 Network-First)
+const CACHE_NAME = 'daily-hadith-azan-v4';
 
-const ASSETS_TO_CACHE = [
+const ESSENTIAL_ASSETS = [
   './',
   './index.html',
-  './manifest.webmanifest',
-  './audio/adhan_makkah.mp3',
-  './audio/adhan_madinah.mp3',
-  './audio/adhan_alafasy.mp3',
-  './audio/adhan_alaqsa.mp3',
-  './audio/adhan_abdulbasit.mp3'
+  './favicon.svg',
+  './logo.svg',
+  './manifest.webmanifest'
 ];
 
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
-    }).then(() => self.skipWaiting())
+      return cache.addAll(ESSENTIAL_ASSETS).catch((err) => {
+        console.warn('Cache addAll non-critical skip:', err);
+      });
+    })
   );
 });
 
@@ -26,6 +26,7 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME) {
+            console.log('Purging old cache:', key);
             return caches.delete(key);
           }
         })
@@ -37,23 +38,38 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
+  const url = new URL(event.request.url);
+
+  // Network-First for HTML navigation and JS/CSS assets so updates reflect immediately
+  if (event.request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname.endsWith('.js') || url.pathname.endsWith('.css')) {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const copy = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          }
+          return networkResponse;
+        })
+        .catch(() => {
+          return caches.match(event.request).then((cached) => cached || caches.match('./index.html'));
+        })
+    );
+    return;
+  }
+
+  // Cache-First for static images and audio
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
+      if (cachedResponse) return cachedResponse;
       return fetch(event.request).then((networkResponse) => {
-        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-          return networkResponse;
+        if (networkResponse && networkResponse.status === 200) {
+          const copy = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
         }
-        const responseToCache = networkResponse.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache);
-        });
         return networkResponse;
       }).catch(() => {
-        // Fallback
-        return caches.match('./index.html');
+        return new Response('', { status: 408, statusText: 'Offline' });
       });
     })
   );
