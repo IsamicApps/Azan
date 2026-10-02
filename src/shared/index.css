@@ -73,3 +73,21 @@
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(217, 171, 61, 0.6);
 }
+
+/* Monthly timetable: print only the table */
+@media print {
+  body.printing-timetable > *:not(.timetable-portal) {
+    display: none !important;
+  }
+  body.printing-timetable {
+    background: #fff !important;
+    overflow: visible !important;
+  }
+  body.printing-timetable .timetable-portal {
+    position: static !important;
+    overflow: visible !important;
+  }
+  @page {
+    margin: 12mm;
+  }
+}

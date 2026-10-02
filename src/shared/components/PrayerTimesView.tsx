@@ -28,6 +28,8 @@ import { speakDua, stopSpeaking, isSpeaking } from '../utils/speech';
 import { IslamicPattern, IslamicCornerOrnament } from './IslamicPattern';
 import { AzanLiveModal } from './AzanLiveModal';
 import { useI18n } from '../i18n';
+import { PrayerRemindersCard } from './PrayerRemindersCard';
+import { MonthlyTimetable } from './MonthlyTimetable';
 import {
   Clock,
   Compass,
@@ -75,6 +77,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
   const [showMosqueSelector, setShowMosqueSelector] = useState(false);
   const [showAddCustomModal, setShowAddCustomModal] = useState(false);
   const [showAzanLiveModal, setShowAzanLiveModal] = useState(false);
+  const [showTimetable, setShowTimetable] = useState(false);
   const [activeAzanPrayer, setActiveAzanPrayer] = useState({ name: 'Asr', time: '03:43 PM' });
 
   // Fasting Du'a recitation state
@@ -791,6 +794,17 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
           );
         })}
       </div>
+
+      <button
+        onClick={() => setShowTimetable(true)}
+        className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-sm font-semibold text-amber-300 cursor-pointer"
+      >
+        <Calendar className="w-4 h-4" />
+        <span>{t('Monthly Timetable')}</span>
+      </button>
+      {showTimetable && <MonthlyTimetable mosque={selectedMosque} onClose={() => setShowTimetable(false)} />}
+
+      <PrayerRemindersCard />
 
       {/* 7. INTERACTIVE QIBLA COMPASS & DIGITAL TASBIH DHIKR COUNTER */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

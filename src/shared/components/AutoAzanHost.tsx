@@ -17,6 +17,7 @@ import {
 } from '../utils/azanAudio';
 import { showNotification } from '../utils/notify';
 import { currentI18n } from '../i18n';
+import { checkPrayerReminders } from '../utils/prayerReminders';
 import { AzanLiveModal } from './AzanLiveModal';
 
 /**
@@ -44,6 +45,7 @@ export const AutoAzanHost: React.FC = () => {
   useEffect(() => {
     const timer = setInterval(() => {
       const result = calculateMosquePrayerTimes(selectedMosque, new Date());
+      checkPrayerReminders(result, selectedMosque);
       const azanSettings = getAzanSettings();
       const duePrayer = azanSettings.autoAzanEnabled ? getDuePrayer(result) : null;
       if (!duePrayer || !claimAzanTrigger(`${result.localDateKey}_${duePrayer.name}`)) return;
