@@ -7,6 +7,16 @@ a:focus,
   box-shadow: 0 0 24px rgba(251, 191, 36, 0.55);
 }
 
+/* Follow the TV theme's accent colour where supported */
+@supports (color: color-mix(in oklab, red, blue)) {
+  button:focus,
+  a:focus,
+  [tabindex]:focus {
+    outline-color: var(--color-amber-400, #fbbf24);
+    box-shadow: 0 0 24px color-mix(in oklab, var(--color-amber-400, #fbbf24) 55%, transparent);
+  }
+}
+
 html,
 body {
   overflow: hidden;

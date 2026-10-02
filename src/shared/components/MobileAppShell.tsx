@@ -28,7 +28,7 @@ import { PrayerTimesView } from './PrayerTimesView';
 import { DailyReminderModal } from './DailyReminderModal';
 import { VerificationModal } from './VerificationModal';
 import {
-  Sparkles,
+  BookOpenText,
   Search,
   Calendar,
   Bookmark,
@@ -391,7 +391,7 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
       {/* Native Mobile Bottom Navigation Bar */}
       <nav className="shrink-0 border-t border-white/10 bg-[#0b0d14]/98 backdrop-blur-xl px-1 py-1 flex items-center justify-around z-30 pb-[max(0.25rem,env(safe-area-inset-bottom))] overflow-x-auto scrollbar-none">
         {[
-          { id: 'today', label: 'Today', icon: Sparkles },
+          { id: 'today', label: 'Today', icon: BookOpenText },
           { id: 'prayer', label: 'Awqat', icon: Clock },
           { id: 'names', label: '99 Names', icon: Heart },
           { id: 'adhkar', label: 'Adhkar', icon: ShieldCheck },

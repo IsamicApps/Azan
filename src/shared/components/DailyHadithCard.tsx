@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Hadith } from '../types/hadith';
-import { Bookmark, BookmarkCheck, Volume2, VolumeX, Share2, ExternalLink, Sparkles, BookOpen, ChevronDown, ChevronUp, Check, Copy } from 'lucide-react';
+import { Bookmark, BookmarkCheck, Volume2, VolumeX, Share2, ExternalLink, BookOpen, BookOpenText, ChevronDown, ChevronUp, Check, Copy } from 'lucide-react';
 import { IslamicPattern, IslamicCornerOrnament } from './IslamicPattern';
 import { speakHadith, stopSpeaking, isSpeaking } from '../utils/speech';
 import { ShareModal } from './ShareModal';
@@ -80,7 +80,7 @@ export const DailyHadithCard: React.FC<DailyHadithCardProps> = ({
           <div className="flex flex-col">
             <div className="flex items-center space-x-2">
               <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold tracking-wider uppercase">
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                <BookOpenText className="w-3.5 h-3.5 text-amber-400" />
                 <span>Hadith of the Day</span>
               </span>
               <GradeBadge hadith={hadith} />
