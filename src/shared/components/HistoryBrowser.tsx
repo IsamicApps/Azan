@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Hadith, DailySelection } from '../types/hadith';
-import { getRecentDailyHadiths, getDailyHadith } from '../utils/dailyEngine';
+import { loadDailyHadithOrBundled, describeHadith } from '../utils/hadithLibrary';
 import { Calendar, ChevronRight, ChevronLeft, BookOpen, Clock, Sparkles } from 'lucide-react';
 
 interface HistoryBrowserProps {
@@ -12,15 +12,27 @@ export const HistoryBrowser: React.FC<HistoryBrowserProps> = ({
   onSelectHadith,
   currentDateStr
 }) => {
-  const [selectedOffsetDays, setSelectedOffsetDays] = useState(0);
-  const recentDays = getRecentDailyHadiths(30, new Date());
+  const [recentDays, setRecentDays] = useState<DailySelection[] | null>(null);
 
-  const handleCustomDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // The last 30 days' Hadiths, loaded from the sunnah.com library
+  useEffect(() => {
+    let cancelled = false;
+    const now = new Date();
+    const days = Array.from({ length: 30 }, (_, i) => new Date(now.getFullYear(), now.getMonth(), now.getDate() - i));
+    Promise.all(days.map((d) => loadDailyHadithOrBundled(d))).then((list) => {
+      if (!cancelled) setRecentDays(list);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentDateStr]);
+
+  const handleCustomDateChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     if (val) {
       const parts = val.split('-');
       const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-      const selection = getDailyHadith(d);
+      const selection = await loadDailyHadithOrBundled(d);
       onSelectHadith(selection.hadith, selection.dateString, selection.hijriDate);
     }
   };
@@ -53,8 +65,11 @@ export const HistoryBrowser: React.FC<HistoryBrowserProps> = ({
       </div>
 
       {/* 30-Day Timeline List */}
+      {!recentDays && (
+        <div className="p-8 text-center text-sm text-neutral-400 animate-pulse">Loading the last 30 days…</div>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {recentDays.map((item, idx) => {
+        {(recentDays ?? []).map((item, idx) => {
           const isToday = item.dateString === currentDateStr;
           const displayDate = new Date(item.dateString + 'T00:00:00').toLocaleDateString(undefined, {
             weekday: 'short',
@@ -95,13 +110,16 @@ export const HistoryBrowser: React.FC<HistoryBrowserProps> = ({
                 </div>
               )}
 
-              <p className="font-serif text-sm leading-snug text-neutral-200 line-clamp-2">
-                &ldquo;{item.hadith.excerpt}&rdquo;
+              <p
+                dir={item.hadith.isArabic ? 'rtl' : undefined}
+                className={`${item.hadith.isArabic ? 'font-arabic' : 'font-serif'} text-sm leading-snug text-neutral-200 line-clamp-2`}
+              >
+                {item.hadith.isArabic ? item.hadith.excerpt : <>&ldquo;{item.hadith.excerpt}&rdquo;</>}
               </p>
 
               <div className="pt-2 border-t border-white/5 flex items-center justify-between text-xs text-neutral-400">
                 <span className="truncate max-w-[220px]">
-                  Book {item.hadith.bookNumber}: {item.hadith.bookName} • #{item.hadith.hadithNumber}
+                  {describeHadith(item.hadith).collection} • {item.hadith.bookName}
                 </span>
                 <span className="text-amber-400 flex items-center group-hover:translate-x-1 transition-transform">
                   <span>View</span>

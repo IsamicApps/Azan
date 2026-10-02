@@ -3,6 +3,8 @@
  * Integrated with Islamic Network API (https://islamic.network/api/)
  */
 
+import { SITE_ROOT } from './siteRoot';
+
 export type MuezzinId = 'makkah' | 'madinah' | 'alafasy' | 'alaqsa' | 'abdulbasit' | 'chime';
 
 export type AzanPrayer = 'Fajr' | 'Dhuhr' | 'Asr' | 'Maghrib' | 'Isha';
@@ -29,10 +31,7 @@ export const DEFAULT_AZAN_SETTINGS: AzanSettings = {
   notifyBrowser: true
 };
 
-// Audio lives at the site root (audio/…). The build uses relative paths, so a plain
-// './audio/' would point at /tv/audio/ on the TV page. Built scripts sit in
-// <site root>/assets/, so the root is one level up from this module.
-const cleanBase = import.meta.env.DEV ? import.meta.env.BASE_URL : new URL('../', import.meta.url).href;
+const cleanBase = SITE_ROOT;
 
 export const MUEZZIN_SOURCES: Record<MuezzinId, { name: string; subtitle: string; location: string; url: string }> = {
   makkah: {

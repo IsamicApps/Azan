@@ -15,12 +15,17 @@ export function speakHadith(
 
   const fullText = `${narrator ? narrator + '. ' : ''}${hadithText}`;
   const utterance = new SpeechSynthesisUtterance(fullText);
-  
-  // Find a serene English voice if available
+  // Some collections have no English translation; read those in Arabic
+  const isArabic = /[\u0600-\u06FF]/.test(hadithText) && !/[A-Za-z]{3}/.test(hadithText);
+  if (isArabic) utterance.lang = 'ar-SA';
+
+  // Find a serene voice in the text's language if available
   const voices = window.speechSynthesis.getVoices();
-  const preferredVoice = voices.find(v => 
-    (v.lang.startsWith('en') && (v.name.includes('Natural') || v.name.includes('Serena') || v.name.includes('Daniel') || v.name.includes('Oliver') || v.name.includes('Google')))
-  ) || voices.find(v => v.lang.startsWith('en'));
+  const preferredVoice = isArabic
+    ? voices.find(v => v.lang.startsWith('ar'))
+    : voices.find(v =>
+        (v.lang.startsWith('en') && (v.name.includes('Natural') || v.name.includes('Serena') || v.name.includes('Daniel') || v.name.includes('Oliver') || v.name.includes('Google')))
+      ) || voices.find(v => v.lang.startsWith('en'));
 
   if (preferredVoice) {
     utterance.voice = preferredVoice;

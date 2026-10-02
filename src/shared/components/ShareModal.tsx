@@ -3,6 +3,7 @@ import { Hadith } from '../types/hadith';
 import { X, Copy, Check, Download, Share2 } from 'lucide-react';
 import { IslamicPattern, IslamicCornerOrnament } from './IslamicPattern';
 import { toPng } from 'html-to-image';
+import { describeHadith, citeHadith } from '../utils/hadithLibrary';
 
 interface ShareModalProps {
   hadith: Hadith;
@@ -25,7 +26,8 @@ export const ShareModal: React.FC<ShareModalProps> = ({
 
   if (!isOpen) return null;
 
-  const formattedText = `"${hadith.text}"\n\n— ${hadith.narrator || 'Sahih al-Bukhari'}\n[${hadith.collection}, Vol. ${hadith.volume}, Book ${hadith.bookNumber} (${hadith.bookName}), Hadith #${hadith.hadithNumber}, PDF p. ${hadith.pdfPage}]\nSource: ${hadith.sourceUrl}`;
+  const formattedText = `"${hadith.text}"\n\n— ${hadith.narrator || hadith.collection}\n[${citeHadith(hadith)}]\nSource: ${hadith.sourceUrl}`;
+  const info = describeHadith(hadith);
 
   const handleCopyText = async () => {
     try {
@@ -44,7 +46,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
       setIsExporting(true);
       const dataUrl = await toPng(cardRef.current, { quality: 0.95, pixelRatio: 2 });
       const link = document.createElement('a');
-      link.download = `DailyHadith-Bukhari-v${hadith.volume}-b${hadith.bookNumber}-n${hadith.hadithNumber}.png`;
+      link.download = `DailyHadith-${hadith.id}.png`;
       link.href = dataUrl;
       link.click();
     } catch (err) {
@@ -88,7 +90,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
               <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs tracking-wider uppercase font-sans font-medium">
                 <span>Daily Hadith</span>
                 <span>•</span>
-                <span>Sahih al-Bukhari</span>
+                <span>{info.collection}</span>
               </div>
               {hijriDate && (
                 <span className="text-[11px] text-amber-200/60 mt-1 font-sans">{hijriDate}</span>
@@ -104,18 +106,21 @@ export const ShareModal: React.FC<ShareModalProps> = ({
 
             {/* Hadith Main Text */}
             <div className="relative z-10 my-auto py-2">
-              <p className="font-serif text-lg md:text-xl leading-relaxed text-neutral-100 font-normal">
-                &ldquo;{hadith.text}&rdquo;
+              <p
+                dir={hadith.isArabic ? 'rtl' : undefined}
+                className={`${hadith.isArabic ? 'font-arabic' : 'font-serif'} text-lg md:text-xl leading-relaxed text-neutral-100 font-normal`}
+              >
+                {hadith.isArabic ? hadith.text : <>&ldquo;{hadith.text}&rdquo;</>}
               </p>
             </div>
 
             {/* Source Reference Footer */}
             <div className="relative z-10 mt-6 pt-4 border-t border-amber-500/20 text-xs text-neutral-400 flex flex-col items-center space-y-1">
               <div className="font-medium text-amber-400">
-                Book {hadith.bookNumber}: {hadith.bookName} • Hadith #{hadith.hadithNumber}
+                {info.reference}
               </div>
               <div className="text-[11px] text-neutral-500">
-                Volume {hadith.volume} • PDF Page {hadith.pdfPage} (Verified Text)
+                {info.detail} • {info.sourceLabel}
               </div>
             </div>
           </div>

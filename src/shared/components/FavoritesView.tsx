@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Hadith, FavoriteItem } from '../types/hadith';
 import { BookmarkCheck, Trash2, Search, Share2, Download, BookOpen, ExternalLink, MessageSquare } from 'lucide-react';
+import { describeHadith, citeHadith } from '../utils/hadithLibrary';
 
 interface FavoritesViewProps {
   favorites: FavoriteItem[];
@@ -30,7 +31,7 @@ export const FavoritesView: React.FC<FavoritesViewProps> = ({
     const text = favorites
       .map(
         (f, i) =>
-          `[${i + 1}] "${f.hadith.text}"\n— ${f.hadith.narrator}\nSahih al-Bukhari, Book ${f.hadith.bookNumber} (${f.hadith.bookName}), Hadith #${f.hadith.hadithNumber} (PDF p. ${f.hadith.pdfPage})\n`
+          `[${i + 1}] "${f.hadith.text}"\n— ${f.hadith.narrator}\n${citeHadith(f.hadith)}\n`
       )
       .join('\n---\n\n');
 
@@ -102,7 +103,7 @@ export const FavoritesView: React.FC<FavoritesViewProps> = ({
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1">
                   <span className="text-xs font-sans font-semibold text-amber-400">
-                    Book {item.hadith.bookNumber}: {item.hadith.bookName} • #{item.hadith.hadithNumber}
+                    {describeHadith(item.hadith).collection} • {describeHadith(item.hadith).reference}
                   </span>
                   {item.hadith.narrator && (
                     <p className="text-xs text-neutral-300 font-medium italic">{item.hadith.narrator}</p>
@@ -126,8 +127,11 @@ export const FavoritesView: React.FC<FavoritesViewProps> = ({
                 </div>
               </div>
 
-              <p className="font-serif text-sm md:text-base leading-relaxed text-neutral-100">
-                &ldquo;{item.hadith.text}&rdquo;
+              <p
+                dir={item.hadith.isArabic ? 'rtl' : undefined}
+                className={`${item.hadith.isArabic ? 'font-arabic' : 'font-serif'} text-sm md:text-base leading-relaxed text-neutral-100`}
+              >
+                {item.hadith.isArabic ? item.hadith.text : <>&ldquo;{item.hadith.text}&rdquo;</>}
               </p>
 
               <div className="pt-2 border-t border-white/5 flex items-center justify-between text-xs text-neutral-400">
@@ -138,7 +142,7 @@ export const FavoritesView: React.FC<FavoritesViewProps> = ({
                   rel="noopener noreferrer"
                   className="inline-flex items-center space-x-1 text-emerald-400 hover:text-emerald-300 text-[11px]"
                 >
-                  <span>PDF Page {item.hadith.pdfPage}</span>
+                  <span>{item.hadith.source === 'sunnah.com' ? 'sunnah.com' : `PDF Page ${item.hadith.pdfPage}`}</span>
                   <ExternalLink className="w-3 h-3" />
                 </a>
               </div>

@@ -4,6 +4,7 @@ import { Bookmark, BookmarkCheck, Volume2, VolumeX, Share2, ExternalLink, Sparkl
 import { IslamicPattern, IslamicCornerOrnament } from './IslamicPattern';
 import { speakHadith, stopSpeaking, isSpeaking } from '../utils/speech';
 import { ShareModal } from './ShareModal';
+import { describeHadith, citeHadith } from '../utils/hadithLibrary';
 
 interface DailyHadithCardProps {
   hadith: Hadith;
@@ -28,6 +29,7 @@ export const DailyHadithCard: React.FC<DailyHadithCardProps> = ({
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const info = describeHadith(hadith);
 
   const handleAudioToggle = () => {
     if (isPlayingAudio || isSpeaking()) {
@@ -45,7 +47,7 @@ export const DailyHadithCard: React.FC<DailyHadithCardProps> = ({
   };
 
   const handleCopyCitation = async () => {
-    const textToCopy = `"${hadith.text}"\n\n— ${hadith.narrator}\n[Sahih al-Bukhari, Vol. ${hadith.volume}, Book ${hadith.bookNumber} (${hadith.bookName}), Hadith #${hadith.hadithNumber}, PDF p. ${hadith.pdfPage}]\nSource: ${hadith.sourceUrl}`;
+    const textToCopy = `"${hadith.text}"\n\n— ${hadith.narrator}\n[${citeHadith(hadith)}]\nSource: ${hadith.sourceUrl}`;
     try {
       await navigator.clipboard.writeText(textToCopy);
       setCopiedLink(true);
@@ -73,7 +75,7 @@ export const DailyHadithCard: React.FC<DailyHadithCardProps> = ({
             <div className="flex items-center space-x-2">
               <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold tracking-wider uppercase">
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>Today&apos;s Verified Hadith</span>
+                <span>Hadith of the Day</span>
               </span>
               {hadith.isLong && !showFull && (
                 <span className="text-[11px] px-2 py-0.5 rounded bg-white/10 text-neutral-300">
@@ -146,14 +148,20 @@ export const DailyHadithCard: React.FC<DailyHadithCardProps> = ({
         {/* Main Hadith Content */}
         <div className="relative z-10 py-4">
           <p
-            className={`font-serif leading-relaxed text-neutral-100 font-normal tracking-wide transition-all ${
+            dir={hadith.isArabic ? 'rtl' : undefined}
+            className={`${hadith.isArabic ? 'font-arabic text-right' : 'font-serif'} leading-relaxed text-neutral-100 font-normal tracking-wide transition-all ${
               textSize === 'large'
                 ? 'text-2xl md:text-3xl lg:text-3xl leading-relaxed md:leading-loose'
                 : 'text-xl md:text-2xl lg:text-2xl leading-relaxed md:leading-loose'
             }`}
           >
-            &ldquo;{showFull ? hadith.text : hadith.excerpt}&rdquo;
+            {hadith.isArabic ? (showFull ? hadith.text : hadith.excerpt) : <>&ldquo;{showFull ? hadith.text : hadith.excerpt}&rdquo;</>}
           </p>
+          {hadith.isArabic && (
+            <p className="mt-3 text-xs text-neutral-500 font-sans">
+              sunnah.com has no English translation of this collection yet; the original Arabic is shown.
+            </p>
+          )}
 
           {/* Long Hadith Excerpt / Full Toggle */}
           {hadith.isLong && (
@@ -173,17 +181,17 @@ export const DailyHadithCard: React.FC<DailyHadithCardProps> = ({
         {/* Source Citation & Verification Footer */}
         <div className="relative z-10 mt-6 pt-5 border-t border-amber-500/15 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
-            <div className="text-sm font-sans font-semibold text-neutral-200 flex items-center space-x-2">
-              <span className="text-amber-400">Sahih al-Bukhari</span>
+            <div className="text-sm font-sans font-semibold text-neutral-200 flex flex-wrap items-center gap-x-2">
+              <span className="text-amber-400">{info.collection}</span>
               <span className="text-neutral-500">•</span>
-              <span>Book {hadith.bookNumber}: {hadith.bookName}</span>
+              <span>{info.reference}</span>
             </div>
-            <div className="text-xs text-neutral-400 flex items-center space-x-3">
-              <span>Vol. {hadith.volume}, Hadith #{hadith.hadithNumber}</span>
+            <div className="text-xs text-neutral-400 flex flex-wrap items-center gap-x-3">
+              <span>{info.detail}</span>
               <span>•</span>
               <span className="text-emerald-400 flex items-center space-x-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-ping"></span>
-                <span>Verified PDF Page {hadith.pdfPage}</span>
+                <span>{info.sourceLabel}</span>
               </span>
             </div>
           </div>
@@ -203,7 +211,7 @@ export const DailyHadithCard: React.FC<DailyHadithCardProps> = ({
               rel="noopener noreferrer"
               className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs font-medium border border-amber-500/25 transition"
             >
-              <span>Source PDF</span>
+              <span>{hadith.source === 'sunnah.com' ? 'View on sunnah.com' : 'Source PDF'}</span>
               <ExternalLink className="w-3 h-3" />
             </a>
           </div>

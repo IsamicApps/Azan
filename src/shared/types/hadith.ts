@@ -14,6 +14,14 @@ export interface Hadith {
   endPage: number;
   sourceUrl: string;
   pdfPage: number;
+  /** 'sunnah.com' for the daily library; absent for the Bukhari PDF edition */
+  source?: 'sunnah.com';
+  /** sunnah.com collection slug, e.g. "muslim" */
+  collectionSlug?: string;
+  /** sunnah.com's in-book reference, e.g. "In-book reference: Book 12, Hadith 102" */
+  reference?: string;
+  /** True when sunnah.com has no English translation and `text` is the Arabic */
+  isArabic?: boolean;
 }
 
 export interface BookMeta {

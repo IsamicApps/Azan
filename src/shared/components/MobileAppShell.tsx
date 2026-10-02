@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Hadith, DailySelection, FavoriteItem, ReminderConfig } from '../types/hadith';
-import { getDailyHadith } from '../utils/dailyEngine';
+import { formatDateKey } from '../utils/dailyEngine';
+import { getHijriDate } from '../utils/hijri';
+import { useDailyHadith } from '../hooks/useDailyHadith';
 import {
   getFavorites,
   saveFavorite,
@@ -85,9 +87,9 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
   };
 
   const selectedDate = computeSelectedDate();
-  const currentDailySelection: DailySelection = getDailyHadith(selectedDate);
-  const displayedHadith = activeHadithOverride || currentDailySelection.hadith;
-  const isFav = isFavorite(displayedHadith.id);
+  const currentDailySelection: DailySelection | null = useDailyHadith(selectedDate);
+  const displayedHadith: Hadith | null = activeHadithOverride || currentDailySelection?.hadith || null;
+  const isFav = displayedHadith ? isFavorite(displayedHadith.id) : false;
 
   useEffect(() => {
     if (initialHadith) {
@@ -96,7 +98,8 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
     }
   }, [initialHadith]);
 
-  const handleToggleFavorite = (target: Hadith = displayedHadith) => {
+  const handleToggleFavorite = (target: Hadith | null = displayedHadith) => {
+    if (!target) return;
     if (isFavorite(target.id)) {
       removeFavorite(target.id);
     } else {
@@ -110,13 +113,14 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
   };
 
   const handleAudioToggle = () => {
+    if (!displayedHadith) return;
     if (isPlayingAudio || isSpeaking()) {
       stopSpeaking();
       setIsPlayingAudio(false);
       if (onHadithPlayStatusChange) onHadithPlayStatusChange(false, '');
     } else {
       setIsPlayingAudio(true);
-      const title = `Bukhari #${displayedHadith.hadithNumber} • ${displayedHadith.narrator || 'Hadith'}`;
+      const title = `${displayedHadith.collection} • ${displayedHadith.narrator || 'Hadith'}`;
       if (onHadithPlayStatusChange) onHadithPlayStatusChange(true, title);
       speakHadith(
         displayedHadith.narrator,
@@ -283,14 +287,21 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
             </div>
 
             {/* Daily Hadith Main Card */}
-            <DailyHadithCard
-              hadith={displayedHadith}
-              isFav={isFav}
-              onToggleFav={() => handleToggleFavorite(displayedHadith)}
-              dateLabel={currentDailySelection.dateString}
-              hijriDate={currentDailySelection.hijriDate}
-              onOpenScreensaver={onOpenScreensaver}
-            />
+            {displayedHadith ? (
+              <DailyHadithCard
+                key={displayedHadith.id}
+                hadith={displayedHadith}
+                isFav={isFav}
+                onToggleFav={() => handleToggleFavorite(displayedHadith)}
+                dateLabel={currentDailySelection?.dateString ?? formatDateKey(selectedDate)}
+                hijriDate={currentDailySelection?.hijriDate ?? getHijriDate(selectedDate).formatted}
+                onOpenScreensaver={onOpenScreensaver}
+              />
+            ) : (
+              <div className="rounded-3xl border border-amber-500/25 bg-[#0e111a] p-10 text-center text-sm text-neutral-400 animate-pulse">
+                Loading the Hadith of the Day…
+              </div>
+            )}
 
             {/* Quick Banner: Prayer Times at Closest Mosque */}
             <div
@@ -345,7 +356,7 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
         {activeTab === 'history' && (
           <HistoryBrowser
             onSelectHadith={(h) => handleSelectHadith(h)}
-            currentDateStr={currentDailySelection.dateString}
+            currentDateStr={formatDateKey(new Date())}
           />
         )}
 
@@ -366,7 +377,7 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
         <div className="shrink-0 px-4 py-2 bg-amber-500 text-neutral-950 flex items-center justify-between text-xs font-medium animate-pulse shadow-lg z-20">
           <div className="flex items-center space-x-2 truncate">
             <Volume2 className="w-4 h-4 shrink-0" />
-            <span className="truncate">Reciting: Bukhari #{displayedHadith.hadithNumber}</span>
+            <span className="truncate">Reciting: {displayedHadith?.collection}</span>
           </div>
           <button
             onClick={handleAudioToggle}

@@ -4,6 +4,7 @@ import { getScreensaverConfig, saveScreensaverConfig } from '../utils/storage';
 import { IslamicPattern, IslamicCornerOrnament } from './IslamicPattern';
 import { X, Settings2, Sun, Type, Palette, Shield, Info, Volume2, VolumeX } from 'lucide-react';
 import { speakHadith, stopSpeaking, isSpeaking } from '../utils/speech';
+import { describeHadith } from '../utils/hadithLibrary';
 
 interface ScreensaverViewProps {
   hadith: Hadith;
@@ -311,19 +312,20 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
         {/* Hadith Main Text */}
         <div className="my-2 max-w-4xl">
           <p
-            className={`font-serif text-neutral-100 font-normal tracking-wide transition-all ${fontClasses}`}
+            dir={hadith.isArabic ? 'rtl' : undefined}
+            className={`${hadith.isArabic ? 'font-arabic' : 'font-serif'} text-neutral-100 font-normal tracking-wide transition-all ${fontClasses}`}
           >
-            &ldquo;{hadith.text}&rdquo;
+            {hadith.isArabic ? hadith.text : <>&ldquo;{hadith.text}&rdquo;</>}
           </p>
         </div>
 
         {/* Hadith Canonical Reference */}
         <div className="mt-8 pt-6 border-t border-white/10 flex flex-col items-center space-y-1.5">
           <div className={`font-serif text-base md:text-lg ${currentTheme.accent} font-medium`}>
-            Sahih al-Bukhari • Book {hadith.bookNumber}: {hadith.bookName}
+            {describeHadith(hadith).collection} • {describeHadith(hadith).reference}
           </div>
           <div className="text-xs md:text-sm font-sans text-neutral-400">
-            Volume {hadith.volume}, Hadith #{hadith.hadithNumber} • PDF Page {hadith.pdfPage}
+            {describeHadith(hadith).detail} • {describeHadith(hadith).sourceLabel}
           </div>
         </div>
       </main>

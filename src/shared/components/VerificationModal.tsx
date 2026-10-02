@@ -1,13 +1,18 @@
 import React, { useState } from 'react';
-import { Hadith } from '../types/hadith';
-import { getDailyHadith, getDailyPoolSize } from '../utils/dailyEngine';
-import dailyPoolData from '../data/daily_pool.json';
-import booksData from '../data/books.json';
-import { CheckCircle2, ShieldCheck, Play, RefreshCw, X, FileCheck, Layers, Globe, Database } from 'lucide-react';
+import { getDaysSinceEpoch } from '../utils/dailyEngine';
+import { loadLibraryIndex, loadDailyHadith, shuffledPosition, chunkUrlFor } from '../utils/hadithLibrary';
+import { CheckCircle2, XCircle, ShieldCheck, Play, RefreshCw, X, FileCheck, Layers, Globe, Database } from 'lucide-react';
 
 interface VerificationModalProps {
   isOpen: boolean;
   onClose: () => void;
+}
+
+interface TestResult {
+  title: string;
+  passed: boolean;
+  details: string;
+  icon: React.FC<{ className?: string }>;
 }
 
 export const VerificationModal: React.FC<VerificationModalProps> = ({
@@ -15,89 +20,75 @@ export const VerificationModal: React.FC<VerificationModalProps> = ({
   onClose
 }) => {
   const [isRunningTests, setIsRunningTests] = useState(false);
-  const [testResults, setTestResults] = useState<{
-    fidelity: { passed: boolean; details: string };
-    nonRepeat: { passed: boolean; details: string };
-    rollover: { passed: boolean; details: string };
-    offline: { passed: boolean; details: string };
-    widgets: { passed: boolean; details: string };
-  } | null>(null);
+  const [testResults, setTestResults] = useState<TestResult[] | null>(null);
+  const [summary, setSummary] = useState({ total: 50884, collections: 17 });
 
   if (!isOpen) return null;
 
   const runFullVerification = async () => {
     setIsRunningTests(true);
-
-    try {
-      const fullModule = await import('../data/bukhari_full.json');
-      const fullBukhariData = fullModule.default as Hadith[];
-
-      // 1. Fidelity Test
-      const fullCount = fullBukhariData.length;
-      const booksCount = booksData.length;
-      const sampleHadith = fullBukhariData[0];
-      const hasCorrectSource = sampleHadith.sourceUrl.includes('d1.islamhouse.com');
-      const fidelityPassed = fullCount === 6720 && booksCount === 92 && hasCorrectSource;
-
-      // 2. Non-Repeat Cycle Test (Test 1000 consecutive days)
-      const seenHadiths = new Set<string>();
-      let repeatsIn1000Days = 0;
-      const baseDate = new Date(2026, 0, 1);
-      for (let i = 0; i < 1000; i++) {
-        const d = new Date(baseDate);
-        d.setDate(baseDate.getDate() + i);
-        const sel = getDailyHadith(d);
-        if (seenHadiths.has(sel.hadith.id)) {
-          repeatsIn1000Days++;
-        }
-        seenHadiths.add(sel.hadith.id);
+    const results: TestResult[] = [];
+    const run = async (title: string, icon: TestResult['icon'], test: () => Promise<{ passed: boolean; details: string }>) => {
+      try {
+        results.push({ title, icon, ...(await test()) });
+      } catch (err) {
+        results.push({ title, icon, passed: false, details: `Could not run: ${err instanceof Error ? err.message : String(err)}` });
       }
-      const poolSize = getDailyPoolSize();
-      const nonRepeatPassed = repeatsIn1000Days === 0;
+    };
 
-      // 3. Date Rollover & Timezone Test
+    await run('1. sunnah.com Library', FileCheck, async () => {
+      const index = await loadLibraryIndex();
+      const counted = index.collections.reduce((sum, c) => sum + c.count, 0);
+      setSummary({ total: index.total, collections: index.collections.length });
+      return {
+        passed: counted === index.total && index.total > 0,
+        details: `${index.total.toLocaleString()} Hadiths from ${index.collections.length} sunnah.com collections: ${index.collections.map((c) => c.name).join(', ')}.`
+      };
+    });
+
+    await run('2. Random Order Without Repeats', RefreshCw, async () => {
+      const { total } = await loadLibraryIndex();
+      const start = getDaysSinceEpoch(new Date());
+      const seen = new Set<number>();
+      for (let i = 0; i < 1000; i++) seen.add(shuffledPosition((start + i) % total, total));
+      return {
+        passed: seen.size === 1000,
+        details: `The next 1,000 days give ${seen.size.toLocaleString()} different Hadiths. Every one of the ${total.toLocaleString()} Hadiths appears once (about ${Math.round(total / 365.25)} years) before any repeats.`
+      };
+    });
+
+    await run('3. Midnight Date Rollover', Globe, async () => {
       const today = new Date();
-      const selToday = getDailyHadith(today);
-      const tomorrow = new Date(today);
-      tomorrow.setDate(today.getDate() + 1);
-      const selTomorrow = getDailyHadith(tomorrow);
-      const rolloverPassed = selToday.hadith.id !== selTomorrow.hadith.id;
+      const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+      const [a, b] = await Promise.all([loadDailyHadith(today), loadDailyHadith(tomorrow)]);
+      return {
+        passed: a.hadith.id !== b.hadith.id,
+        details: `Today (${a.dateString}): ${a.hadith.collection}. Tomorrow (${b.dateString}): ${b.hadith.collection}.`
+      };
+    });
 
-      // 4. Offline Test
-      const offlinePassed = (dailyPoolData as Hadith[]).length > 4000;
+    await run('4. Offline Copy of Today\'s Hadith', Database, async () => {
+      const today = await loadDailyHadith(new Date());
+      const saved = 'caches' in window ? await caches.match(await chunkUrlFor(today.index)) : undefined;
+      return {
+        passed: !!saved,
+        details: saved
+          ? "Today's Hadith is saved on this device and works without internet."
+          : 'Not saved yet. It is stored for offline use after the app has loaded it once while online (installed app / service worker).'
+      };
+    });
 
-      // 5. Widget Layout Safety
-      const allExcerptLengths = (dailyPoolData as Hadith[]).map(h => h.excerpt.length);
-      const maxExcerpt = Math.max(...allExcerptLengths);
-      const widgetSafe = maxExcerpt < 600;
+    await run('5. Long-Text Excerpt Handling', Layers, async () => {
+      const { hadith } = await loadDailyHadith(new Date());
+      const words = hadith.excerpt.split(/\s+/).length;
+      return {
+        passed: words <= 61,
+        details: `Today's Hadith has ${hadith.wordCount} words; ${hadith.isLong ? `long texts show a ${words}-word excerpt with "Read Full Hadith".` : 'it is short enough to show in full.'}`
+      };
+    });
 
-      setTestResults({
-        fidelity: {
-          passed: fidelityPassed,
-          details: `Verified 6,720 / 6,720 Hadiths across 92 Books with 100% fidelity to PDF source pages.`
-        },
-        nonRepeat: {
-          passed: nonRepeatPassed,
-          details: `Simulated 1,000 consecutive days: 0 duplicate selections found across ${poolSize.toLocaleString()} curated pool items (~12.2 years before repeat).`
-        },
-        rollover: {
-          passed: rolloverPassed,
-          details: `Midnight date rollover verified: Today (${selToday.dateString}) seamlessly rolls over to distinct Hadith on Tomorrow (${selTomorrow.dateString}).`
-        },
-        offline: {
-          passed: offlinePassed,
-          details: `100% offline dataset pre-cached with zero network dependencies required for daily rotation or full-text lookup.`
-        },
-        widgets: {
-          passed: widgetSafe,
-          details: `Small, Medium, Large, and Lock Screen widgets excerpt metrics verified within safe viewport character bounds.`
-        }
-      });
-    } catch (err) {
-      console.error('Verification error:', err);
-    } finally {
-      setIsRunningTests(false);
-    }
+    setTestResults(results);
+    setIsRunningTests(false);
   };
 
   return (
@@ -109,7 +100,7 @@ export const VerificationModal: React.FC<VerificationModalProps> = ({
             <ShieldCheck className="w-6 h-6 text-emerald-400" />
             <div>
               <h3 className="font-serif text-xl font-semibold">Verification & Source Integrity Suite</h3>
-              <p className="text-xs text-neutral-400">Strict PDF validation against Sahih al-Bukhari (IslamHouse)</p>
+              <p className="text-xs text-neutral-400">Checks the Daily Hadith library from sunnah.com</p>
             </div>
           </div>
           <button
@@ -125,19 +116,19 @@ export const VerificationModal: React.FC<VerificationModalProps> = ({
           {/* Summary Overview */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
             <div className="p-3.5 rounded-2xl bg-neutral-900/80 border border-white/10">
-              <div className="text-2xl font-bold text-amber-400 font-mono">6,720</div>
+              <div className="text-2xl font-bold text-amber-400 font-mono">{summary.total.toLocaleString()}</div>
               <div className="text-[11px] text-neutral-400 uppercase tracking-wider mt-1">Total Hadiths</div>
             </div>
             <div className="p-3.5 rounded-2xl bg-neutral-900/80 border border-white/10">
-              <div className="text-2xl font-bold text-emerald-400 font-mono">4,460</div>
-              <div className="text-[11px] text-neutral-400 uppercase tracking-wider mt-1">Daily Pool</div>
+              <div className="text-2xl font-bold text-emerald-400 font-mono">{summary.collections}</div>
+              <div className="text-[11px] text-neutral-400 uppercase tracking-wider mt-1">Collections</div>
             </div>
             <div className="p-3.5 rounded-2xl bg-neutral-900/80 border border-white/10">
-              <div className="text-2xl font-bold text-sky-400 font-mono">1,700</div>
-              <div className="text-[11px] text-neutral-400 uppercase tracking-wider mt-1">PDF Pages</div>
+              <div className="text-xl font-bold text-sky-400 font-mono leading-8">sunnah.com</div>
+              <div className="text-[11px] text-neutral-400 uppercase tracking-wider mt-1">Source</div>
             </div>
             <div className="p-3.5 rounded-2xl bg-neutral-900/80 border border-white/10">
-              <div className="text-2xl font-bold text-purple-400 font-mono">12.2 Yrs</div>
+              <div className="text-2xl font-bold text-purple-400 font-mono">{Math.round(summary.total / 365.25)} Yrs</div>
               <div className="text-[11px] text-neutral-400 uppercase tracking-wider mt-1">Non-Repeat</div>
             </div>
           </div>
@@ -145,26 +136,24 @@ export const VerificationModal: React.FC<VerificationModalProps> = ({
           {/* Test Results */}
           {testResults ? (
             <div className="space-y-3">
-              {[
-                { title: '1. Source Text & Volume/Book Fidelity', data: testResults.fidelity, icon: FileCheck },
-                { title: '2. Non-Repeating Daily Cycle (1,000-Day Simulation)', data: testResults.nonRepeat, icon: RefreshCw },
-                { title: '3. Midnight Date Rollover & Timezone Sync', data: testResults.rollover, icon: Globe },
-                { title: '4. Offline Access & Local Cache Verification', data: testResults.offline, icon: Database },
-                { title: '5. Widget Viewport & Long-Text Excerpt Handling', data: testResults.widgets, icon: Layers }
-              ].map((t, idx) => (
+              {testResults.map((t) => (
                 <div
-                  key={idx}
-                  className="p-4 rounded-xl bg-neutral-900/90 border border-emerald-500/30 flex items-start space-x-3"
+                  key={t.title}
+                  className={`p-4 rounded-xl bg-neutral-900/90 border flex items-start space-x-3 ${t.passed ? 'border-emerald-500/30' : 'border-rose-500/40'}`}
                 >
-                  <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+                  {t.passed ? (
+                    <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+                  ) : (
+                    <XCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+                  )}
                   <div className="space-y-1">
                     <div className="text-sm font-semibold text-neutral-100 flex items-center space-x-2">
                       <span>{t.title}</span>
-                      <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono font-bold">
-                        PASSED
+                      <span className={`text-[10px] px-2 py-0.5 rounded font-mono font-bold ${t.passed ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}`}>
+                        {t.passed ? 'PASSED' : 'CHECK'}
                       </span>
                     </div>
-                    <p className="text-xs text-neutral-300 leading-relaxed">{t.data.details}</p>
+                    <p className="text-xs text-neutral-300 leading-relaxed">{t.details}</p>
                   </div>
                 </div>
               ))}
@@ -173,7 +162,7 @@ export const VerificationModal: React.FC<VerificationModalProps> = ({
             <div className="text-center py-8 p-6 rounded-2xl bg-neutral-900/40 border border-white/5 space-y-3">
               <ShieldCheck className="w-12 h-12 text-amber-400 mx-auto opacity-80" />
               <p className="text-sm text-neutral-300">
-                Click below to execute the comprehensive test suite verifying text fidelity, cycle determinism, offline functionality, and widget layouts.
+                Run the checks to confirm the sunnah.com library loads, the daily order is random without repeats, and today's Hadith is available offline.
               </p>
             </div>
           )}

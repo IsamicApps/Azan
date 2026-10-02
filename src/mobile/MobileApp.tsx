@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { getDailyHadith } from '../shared/utils/dailyEngine';
+import { useDailyHadith } from '../shared/hooks/useDailyHadith';
 import { MobileAppShell } from '../shared/components/MobileAppShell';
 import { ScreensaverView } from '../shared/components/ScreensaverView';
 import { AutoAzanHost } from '../shared/components/AutoAzanHost';
@@ -10,13 +10,13 @@ export function MobileApp() {
 
   useDailyReminder();
 
-  const today = getDailyHadith(new Date());
+  const today = useDailyHadith(new Date());
 
   return (
     <div className="w-full h-[100dvh] flex flex-col bg-[#080a0f]">
       <MobileAppShell onOpenScreensaver={() => setIsScreensaverOpen(true)} />
 
-      {isScreensaverOpen && (
+      {isScreensaverOpen && today && (
         <ScreensaverView
           hadith={today.hadith}
           hijriDate={today.hijriDate}

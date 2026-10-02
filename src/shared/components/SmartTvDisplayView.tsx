@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { Hadith } from '../types/hadith';
-import { getDailyHadith } from '../utils/dailyEngine';
 import dailyPoolData from '../data/daily_pool.json';
+import { getHijriDate } from '../utils/hijri';
+import { loadDailyHadithOrBundled, loadRandomHadith, describeHadith } from '../utils/hadithLibrary';
 import {
   Mosque,
   PrayerTimesResult,
@@ -59,7 +60,21 @@ interface SmartTvDisplayViewProps {
   onClose?: () => void;
 }
 
+// Offline fallback when the sunnah.com library can't be downloaded
 const pool = dailyPoolData as Hadith[];
+
+const CROSS_REFERENCE = /^[\s(\["]*(as above|see (the )?(previous|above|next) hadith|see hadith)/i;
+
+/** A random Hadith from the whole sunnah.com library (skipping "As above" stubs). */
+async function pickRandomHadith(): Promise<Hadith> {
+  try {
+    for (let i = 0; i < 5; i++) {
+      const h = await loadRandomHadith();
+      if (!(h.text.length < 80 && CROSS_REFERENCE.test(h.text))) return h;
+    }
+  } catch {}
+  return pool[Math.floor(Math.random() * pool.length)];
+}
 
 export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose }) => {
   const [selectedMosque, setSelectedMosque] = useState<Mosque>(getSelectedMosque());
@@ -72,7 +87,11 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
   const [currentDateStr, setCurrentDateStr] = useState('');
   const [currentHijriStr, setCurrentHijriStr] = useState('');
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [hadithIndex, setHadithIndex] = useState(0);
+  // Starts on the Hadith of the Day, then shows random Hadiths from all of sunnah.com
+  const [activeHadith, setActiveHadith] = useState<Hadith | null>(null);
+  const [isDailyHadith, setIsDailyHadith] = useState(true);
+  const [showExcerpt, setShowExcerpt] = useState(false);
+  const shownHadithsRef = useRef<{ hadith: Hadith; isDaily: boolean }[]>([]);
   const [isAutoCycling, setIsAutoCycling] = useState(true);
   const [tvTheme, setTvTheme] = useState<'obsidian' | 'emerald' | 'sapphire' | 'royal-gold'>('obsidian');
   const [driftOffset, setDriftOffset] = useState({ x: 0, y: 0 });
@@ -143,8 +162,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
         })
       );
 
-      const daily = getDailyHadith(now);
-      setCurrentHijriStr(daily.hijriDate);
+      setCurrentHijriStr(getHijriDate(now).formatted);
     };
 
     updateTime();
@@ -163,12 +181,37 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
     return () => clearInterval(driftInterval);
   }, []);
 
+  useEffect(() => {
+    loadDailyHadithOrBundled(new Date()).then((daily) => {
+      setActiveHadith((current) => current ?? daily.hadith);
+    });
+  }, []);
+
+  const showHadith = (hadith: Hadith, isDaily: boolean) => {
+    setShowExcerpt(false);
+    setActiveHadith(hadith);
+    setIsDailyHadith(isDaily);
+  };
+
+  const activeHadithRef = useRef<{ hadith: Hadith | null; isDaily: boolean }>({ hadith: null, isDaily: true });
+  activeHadithRef.current = { hadith: activeHadith, isDaily: isDailyHadith };
+
+  const showNextHadith = async () => {
+    const next = await pickRandomHadith();
+    const { hadith, isDaily } = activeHadithRef.current;
+    if (hadith) shownHadithsRef.current = [...shownHadithsRef.current.slice(-49), { hadith, isDaily }];
+    showHadith(next, false);
+  };
+
+  const showPreviousHadith = () => {
+    const previous = shownHadithsRef.current.pop();
+    if (previous) showHadith(previous.hadith, previous.isDaily);
+  };
+
   // Auto-rotate Hadiths every 25 seconds
   useEffect(() => {
-    if (!isAutoCycling || pool.length === 0) return;
-    const hadithTimer = setInterval(() => {
-      setHadithIndex((prev) => (prev + 1) % pool.length);
-    }, 25000);
+    if (!isAutoCycling) return;
+    const hadithTimer = setInterval(showNextHadith, 25000);
     return () => clearInterval(hadithTimer);
   }, [isAutoCycling]);
 
@@ -178,9 +221,9 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
       if (e.key === 'f' || e.key === 'F') {
         toggleFullscreen();
       } else if (e.key === 'MediaTrackNext' || e.key === 'ChannelUp' || e.key === 'MediaFastForward') {
-        setHadithIndex((prev) => (prev + 1) % pool.length);
+        showNextHadith();
       } else if (e.key === 'MediaTrackPrevious' || e.key === 'ChannelDown' || e.key === 'MediaRewind') {
-        setHadithIndex((prev) => (prev - 1 + pool.length) % pool.length);
+        showPreviousHadith();
       } else if (e.key === 'm' || e.key === 'M') {
         const next = !azanSettings.autoAzanEnabled;
         const updated = { ...azanSettings, autoAzanEnabled: next };
@@ -301,7 +344,6 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
     .slice()
     .sort((a, b) => a.state.localeCompare(b.state) || a.name.localeCompare(b.name));
 
-  const activeHadith = pool[hadithIndex] || pool[0];
 
   // Largest font (52px down to 24px) at which the whole Hadith fits its panel,
   // whatever the screen's shape — re-fitted when the Hadith or the screen changes.
@@ -317,13 +359,15 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
         size -= 2;
         text.style.fontSize = `${size}px`;
       }
+      // Some Hadiths are pages long; show the excerpt when even the smallest size won't fit
+      if (content.offsetHeight > box.clientHeight && activeHadith?.isLong && !showExcerpt) setShowExcerpt(true);
     };
     fit();
     // Web fonts arrive after the first paint and change the text's height
     document.fonts?.ready.then(fit).catch(() => {});
     window.addEventListener('resize', fit);
     return () => window.removeEventListener('resize', fit);
-  }, [activeHadith.id]);
+  }, [activeHadith?.id, showExcerpt]);
 
   const themes = {
     obsidian: {
@@ -429,20 +473,20 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
           <div className="relative z-10 shrink-0 flex items-center justify-between gap-6">
             <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[20px] font-bold uppercase tracking-wider whitespace-nowrap">
               <Sparkles className="w-6 h-6" />
-              <span>Sahih al-Bukhari</span>
+              <span>{activeHadith?.collection ?? 'sunnah.com'}</span>
             </div>
 
             <div className="flex items-center gap-3 text-[20px] text-neutral-400">
-              <span className="whitespace-nowrap">{hadithIndex + 1} of {pool.length}</span>
+              <span className="whitespace-nowrap">{isDailyHadith ? 'Hadith of the Day' : 'From all of sunnah.com'}</span>
               <button
-                onClick={() => setHadithIndex((prev) => (prev - 1 + pool.length) % pool.length)}
+                onClick={showPreviousHadith}
                 title="Previous Hadith"
                 className="p-3 rounded-xl bg-white/10 hover:bg-white/20 text-white cursor-pointer"
               >
                 <ChevronLeft className="w-6 h-6" />
               </button>
               <button
-                onClick={() => setHadithIndex((prev) => (prev + 1) % pool.length)}
+                onClick={showNextHadith}
                 title="Next Hadith"
                 className="p-3 rounded-xl bg-white/10 hover:bg-white/20 text-white cursor-pointer"
               >
@@ -453,22 +497,36 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
 
           <div ref={hadithBoxRef} className="relative z-10 flex-1 min-h-0 flex flex-col justify-center overflow-hidden my-6">
             <div ref={hadithContentRef}>
-              {activeHadith.narrator && (
+              {activeHadith?.narrator && (
                 <div className="font-serif text-[34px] font-bold text-amber-300 mb-5">
                   {activeHadith.narrator}
                 </div>
               )}
-              <blockquote ref={hadithTextRef} data-hadith-text className="font-serif text-[52px] leading-[1.45] text-neutral-100">
-                &ldquo;{activeHadith.text}&rdquo;
+              <blockquote
+                ref={hadithTextRef}
+                data-hadith-text
+                dir={activeHadith?.isArabic ? 'rtl' : undefined}
+                className={`${activeHadith?.isArabic ? 'font-arabic' : 'font-serif'} text-[52px] leading-[1.45] text-neutral-100`}
+              >
+                {!activeHadith
+                  ? 'Loading the Hadith of the Day…'
+                  : activeHadith.isArabic
+                    ? (showExcerpt ? activeHadith.excerpt : activeHadith.text)
+                    : <>&ldquo;{showExcerpt ? activeHadith.excerpt : activeHadith.text}&rdquo;</>}
               </blockquote>
             </div>
           </div>
 
           <div className="relative z-10 shrink-0 pt-6 border-t border-white/10 flex items-center justify-between gap-6">
             <div className="text-[22px] text-neutral-300 font-mono flex flex-wrap items-center gap-x-4 gap-y-1 min-w-0">
-              <span className="text-amber-400 font-semibold">Book {activeHadith.bookNumber}: {activeHadith.bookName}</span>
-              <span className="text-neutral-500">•</span>
-              <span>Hadith #{activeHadith.hadithNumber}</span>
+              {activeHadith && (
+                <>
+                  <span className="text-amber-400 font-semibold">{describeHadith(activeHadith).reference}</span>
+                  <span className="text-neutral-500">•</span>
+                  <span>{describeHadith(activeHadith).detail}</span>
+                  {showExcerpt && <span className="text-neutral-500">(excerpt)</span>}
+                </>
+              )}
             </div>
 
             <div className="shrink-0 flex items-center gap-3 px-5 py-2.5 rounded-2xl bg-emerald-950/50 border border-emerald-500/30 text-[22px] whitespace-nowrap">

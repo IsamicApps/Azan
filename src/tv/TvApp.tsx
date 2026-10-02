@@ -5,6 +5,7 @@ import { AppLogo } from '../shared/components/AppLogo';
 import { unlockAudio } from '../shared/utils/azanAudio';
 import { useSpatialNavigation } from './useSpatialNavigation';
 import { TvStage } from './TvStage';
+import { loadDailyHadithOrBundled } from '../shared/utils/hadithLibrary';
 
 export function TvApp() {
   const [hasStarted, setHasStarted] = useState(false);
@@ -15,6 +16,11 @@ export function TvApp() {
   useEffect(() => {
     if (!hasStarted) startButtonRef.current?.focus();
   }, [hasStarted]);
+
+  // Download today's Hadith while the start screen is showing
+  useEffect(() => {
+    loadDailyHadithOrBundled(new Date());
+  }, []);
 
   // The remote's OK press is the user gesture browsers require before
   // the Azan may play automatically and before fullscreen is allowed.
