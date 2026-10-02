@@ -60,16 +60,23 @@ export function getAwqatPage(mosqueId: string): string | null {
 }
 
 /** Offset of `timeZone` from UTC in minutes at the given instant */
+const zoneFormatters = new Map<string, Intl.DateTimeFormat>();
+
 function zoneOffsetMinutes(instant: number, timeZone: string): number {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    hourCycle: 'h23',
-    year: 'numeric',
-    month: 'numeric',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: 'numeric'
-  }).formatToParts(new Date(instant));
+  let formatter = zoneFormatters.get(timeZone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      hourCycle: 'h23',
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric'
+    });
+    zoneFormatters.set(timeZone, formatter);
+  }
+  const parts = formatter.formatToParts(new Date(instant));
   const get = (type: string) => Number(parts.find((p) => p.type === type)?.value);
   return Math.round((Date.UTC(get('year'), get('month') - 1, get('day'), get('hour') % 24, get('minute')) - instant) / 60000);
 }

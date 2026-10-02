@@ -5,6 +5,7 @@ import { ScreensaverView } from '../shared/components/ScreensaverView';
 import { AutoAzanHost } from '../shared/components/AutoAzanHost';
 import { useDailyReminder } from '../shared/hooks/useDailyReminder';
 import { useDocumentLanguage } from '../shared/i18n';
+import { getHijriDate } from '../shared/utils/hijri';
 
 export function MobileApp() {
   const [isScreensaverOpen, setIsScreensaverOpen] = useState(false);
@@ -21,7 +22,7 @@ export function MobileApp() {
       {isScreensaverOpen && today && (
         <ScreensaverView
           hadith={today.hadith}
-          hijriDate={today.hijriDate}
+          hijriDate={getHijriDate(new Date()).formatted}
           onClose={() => setIsScreensaverOpen(false)}
         />
       )}

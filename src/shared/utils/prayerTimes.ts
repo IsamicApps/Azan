@@ -143,19 +143,26 @@ interface ZonedClock {
  * Wall-clock time in the mosque's own time zone (falls back to the device
  * time zone for custom mosques outside the known Australian states).
  */
+const clockFormatters = new Map<string, Intl.DateTimeFormat>();
+
 function getZonedClock(date: Date, timeZone?: string): ZonedClock {
   if (timeZone) {
     try {
-      const parts = new Intl.DateTimeFormat('en-US', {
-        timeZone,
-        hourCycle: 'h23',
-        year: 'numeric',
-        month: 'numeric',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: 'numeric',
-        second: 'numeric'
-      }).formatToParts(date);
+      let formatter = clockFormatters.get(timeZone);
+      if (!formatter) {
+        formatter = new Intl.DateTimeFormat('en-US', {
+          timeZone,
+          hourCycle: 'h23',
+          year: 'numeric',
+          month: 'numeric',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: 'numeric',
+          second: 'numeric'
+        });
+        clockFormatters.set(timeZone, formatter);
+      }
+      const parts = formatter.formatToParts(date);
       const get = (type: string) => Number(parts.find(p => p.type === type)?.value);
       const clock = {
         year: get('year'),
@@ -325,6 +332,14 @@ export function calculateMosquePrayerTimes(
     { name: 'Isha' as const, mins: iObj.totalMinutes, time: iObj.formatted, iqama: iqamaFor.Isha }
   ];
 
+  // Wall-clock gaps are off by an hour when the clocks change in between (the
+  // night daylight saving starts or ends); measure the real time instead
+  const realSeconds = (wallSeconds: number): number => {
+    if (!timeZone) return wallSeconds;
+    const later = getZonedClock(new Date(date.getTime() + wallSeconds * 1000), timeZone);
+    return Math.max(0, wallSeconds - Math.round((later.offsetHours - clock.offsetHours) * 3600));
+  };
+
   let next = schedule.find(p => p.mins > currentMinutes);
   let currentPrayerName = 'Isha';
   let diffSec = 0;
@@ -338,6 +353,7 @@ export function calculateMosquePrayerTimes(
     diffSec = Math.round((1440 - currentMinutes + next.mins) * 60);
     currentPrayerName = 'Isha';
   }
+  diffSec = realSeconds(diffSec);
 
   const remHours = Math.floor(diffSec / 3600);
   const remMins = Math.floor((diffSec % 3600) / 60);
@@ -372,6 +388,7 @@ export function calculateMosquePrayerTimes(
   const fastDay = new Date(clock.year, clock.month - 1, clock.day + (currentMinutes >= mObj.totalMinutes ? 1 : 0));
   const isRamadan = getHijriDate(fastDay).month === 'Ramadan';
 
+  fastDiffSec = realSeconds(fastDiffSec);
   const fHours = Math.floor(fastDiffSec / 3600);
   const fMins = Math.floor((fastDiffSec % 3600) / 60);
   const fSecs = fastDiffSec % 60;

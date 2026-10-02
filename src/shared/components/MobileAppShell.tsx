@@ -305,7 +305,7 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
                 isFav={isFav}
                 onToggleFav={() => handleToggleFavorite(displayedHadith)}
                 dateLabel={currentDailySelection?.dateString ?? formatDateKey(selectedDate)}
-                hijriDate={currentDailySelection?.hijriDate ?? getHijriDate(selectedDate).formatted}
+                hijriDate={getHijriDate(selectedDate).formatted /* fresh: follows the selected mosque's Awqat offset */}
                 onOpenScreensaver={onOpenScreensaver}
               />
             ) : (

@@ -4,6 +4,7 @@ import { loadDailyHadithOrBundled, describeHadith } from '../utils/hadithLibrary
 import { GradeBadge } from './GradeBadge';
 import { useDisplayedHadith } from '../hooks/useHadithLanguage';
 import { useI18n } from '../i18n';
+import { getHijriDate } from '../utils/hijri';
 import { Calendar, ChevronRight, ChevronLeft, BookOpen, Clock, Sparkles } from 'lucide-react';
 
 interface HistoryBrowserProps {
@@ -129,7 +130,7 @@ const HistoryCard: React.FC<HistoryCardProps> = ({ item, daysAgo, isToday, onSel
           )}
           <span className="text-xs text-neutral-300 font-medium">{displayDate}</span>
         </div>
-        <span className="text-[11px] text-amber-300/80 font-sans">{i18n.hijri(item.hijriDate)}</span>
+        <span className="text-[11px] text-amber-300/80 font-sans">{i18n.hijri(getHijriDate(new Date(item.dateString + 'T00:00:00')).formatted)}</span>
       </div>
 
       {hadith.narrator && <div className="text-xs font-sans font-medium text-amber-400/90 truncate">{hadith.narrator}</div>}

@@ -80,14 +80,16 @@ export const NamesOfAllahView: React.FC = () => {
     } catch {}
   };
 
+  // Arabic is matched without vowel marks, so "الرحمن" finds "الرَّحْمَنُ"
+  const plainArabic = (text: string) => text.replace(/[\u064B-\u065F\u0670\u0640]/g, '').replace(/[أإآٱ]/g, 'ا');
   const filteredNames = (namesData as NameOfAllah[]).filter((n) => {
     if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase();
+    const q = searchQuery.toLowerCase().trim();
     return (
       n.transliteration.toLowerCase().includes(q) ||
       n.meaning.toLowerCase().includes(q) ||
       n.explanation.toLowerCase().includes(q) ||
-      n.arabic.includes(q) ||
+      plainArabic(n.arabic).includes(plainArabic(q)) ||
       String(n.id) === q
     );
   });

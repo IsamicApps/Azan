@@ -1,3 +1,4 @@
+import { getHadithLanguage } from '../hooks/useHadithLanguage';
 /**
  * Calm and dignified speech synthesis helper for reading Hadith text.
  */
@@ -84,9 +85,16 @@ export function speakDua(
       if (onStart) onStart();
     };
 
-    arUtterance.onend = () => {
-      window.speechSynthesis.speak(enUtterance);
+    const finish = () => {
+      currentUtterance = null;
+      if (onEnd) onEnd();
     };
+    // In the Arabic interface the Arabic is enough; otherwise the English follows
+    arUtterance.onend = () => {
+      if (getHadithLanguage() === 'ar' || !englishTranslation.trim()) finish();
+      else window.speechSynthesis.speak(enUtterance);
+    };
+    arUtterance.onerror = finish;
 
     enUtterance.onend = () => {
       currentUtterance = null;
