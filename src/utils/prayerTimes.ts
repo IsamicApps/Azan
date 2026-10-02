@@ -14,6 +14,7 @@ export interface Mosque {
   iqamaOffsets: Record<string, number>;
   jumuah: string;
   distanceKm?: number;
+  isCustom?: boolean;
 }
 
 export interface PrayerTimesResult {
@@ -28,6 +29,14 @@ export interface PrayerTimesResult {
   asr24: string;
   maghrib24: string;
   isha24: string;
+  suhoorEndTime: string;
+  iftarTime: string;
+  nextFastingEvent: {
+    type: 'Suhoor' | 'Iftar';
+    time: string;
+    remainingFormatted: string;
+    remainingSeconds: number;
+  };
   nextPrayer: {
     name: 'Fajr' | 'Sunrise' | 'Dhuhr' | 'Asr' | 'Maghrib' | 'Isha';
     time: string;
@@ -40,11 +49,41 @@ export interface PrayerTimesResult {
   mosque: Mosque;
 }
 
-export const ALL_MOSQUES: Mosque[] = mosquesData as Mosque[];
+export const INITIAL_MOSQUES: Mosque[] = mosquesData as Mosque[];
 
-/**
- * Calculates Haversine distance between two GPS coordinates in kilometers.
- */
+const CUSTOM_MOSQUES_KEY = 'daily_hadith_custom_mosques_v1';
+const SELECTED_MOSQUE_KEY = 'daily_hadith_selected_mosque_id_v2';
+
+export function getAllMosques(): Mosque[] {
+  try {
+    const raw = localStorage.getItem(CUSTOM_MOSQUES_KEY);
+    const custom: Mosque[] = raw ? JSON.parse(raw) : [];
+    return [...custom, ...INITIAL_MOSQUES];
+  } catch {
+    return INITIAL_MOSQUES;
+  }
+}
+
+export function saveCustomMosque(mosque: Omit<Mosque, 'id'>): Mosque {
+  const id = `custom-${Date.now()}`;
+  const newMosque: Mosque = {
+    ...mosque,
+    id,
+    isCustom: true,
+    link: mosque.link || 'https://www.awqat.com.au/'
+  };
+
+  try {
+    const raw = localStorage.getItem(CUSTOM_MOSQUES_KEY);
+    const custom: Mosque[] = raw ? JSON.parse(raw) : [];
+    custom.unshift(newMosque);
+    localStorage.setItem(CUSTOM_MOSQUES_KEY, JSON.stringify(custom));
+  } catch {}
+
+  saveSelectedMosque(id);
+  return newMosque;
+}
+
 export function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371; // Earth radius in km
   const dLat = (lat2 - lat1) * (Math.PI / 180);
@@ -57,19 +96,14 @@ export function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lo
   return Math.round(R * c * 10) / 10;
 }
 
-/**
- * Returns mosques sorted by distance from user coordinates.
- */
 export function getMosquesSortedByDistance(userLat: number, userLng: number): Mosque[] {
-  return ALL_MOSQUES.map(m => ({
+  const all = getAllMosques();
+  return all.map(m => ({
     ...m,
     distanceKm: calculateDistanceKm(userLat, userLng, m.lat, m.lng)
   })).sort((a, b) => (a.distanceKm ?? 9999) - (b.distanceKm ?? 9999));
 }
 
-/**
- * Calculates Qibla direction in degrees from north towards Makkah (21.4225° N, 39.8262° E).
- */
 export function calculateQiblaBearing(lat: number, lng: number): number {
   const mLat = 21.422487 * (Math.PI / 180);
   const mLon = 39.826206 * (Math.PI / 180);
@@ -82,28 +116,23 @@ export function calculateQiblaBearing(lat: number, lng: number): number {
   return (qibla + 360) % 360;
 }
 
-/**
- * Computes exact daily prayer times using astronomical solar equations matching Awqat.com.au.
- */
 export function calculateMosquePrayerTimes(
-  mosque: Mosque = ALL_MOSQUES[0],
+  mosque?: Mosque,
   date: Date = new Date(),
   fajrAngle: number = 18.0,
   ishaAngle: number = 18.0
 ): PrayerTimesResult {
-  const lat = mosque.lat;
-  const lng = mosque.lng;
+  const currentMosque = mosque || getSelectedMosque();
+  const lat = currentMosque.lat;
+  const lng = currentMosque.lng;
   
-  // Timezone offset in hours (automatically respects device DST)
   const tzOffset = -date.getTimezoneOffset() / 60;
 
-  // Day of year calculation
   const startOfYear = new Date(date.getFullYear(), 0, 0);
   const diff = (date.getTime() - startOfYear.getTime()) + ((startOfYear.getTimezoneOffset() - date.getTimezoneOffset()) * 60 * 1000);
   const oneDay = 1000 * 60 * 60 * 24;
   const N = Math.floor(diff / oneDay);
 
-  // Solar calculations
   const M = (357.5291 + 0.98560028 * N) % 360;
   const M_rad = (M * Math.PI) / 180;
   const C = 1.9148 * Math.sin(M_rad) + 0.02 * Math.sin(2 * M_rad) + 0.0003 * Math.sin(3 * M_rad);
@@ -172,15 +201,14 @@ export function calculateMosquePrayerTimes(
   const mObj = formatDecTime(maghrib_val);
   const iObj = formatDecTime(isha_val);
 
-  // Compute Next Prayer and Countdown
   const currentMinutes = date.getHours() * 60 + date.getMinutes() + date.getSeconds() / 60;
   const schedule = [
-    { name: 'Fajr' as const, mins: fObj.totalMinutes, time: fObj.formatted, offset: mosque.iqamaOffsets?.Fajr || 20 },
+    { name: 'Fajr' as const, mins: fObj.totalMinutes, time: fObj.formatted, offset: currentMosque.iqamaOffsets?.Fajr || 20 },
     { name: 'Sunrise' as const, mins: sObj.totalMinutes, time: sObj.formatted, offset: 0 },
-    { name: 'Dhuhr' as const, mins: dObj.totalMinutes, time: dObj.formatted, offset: mosque.iqamaOffsets?.Dhuhr || 15 },
-    { name: 'Asr' as const, mins: aObj.totalMinutes, time: aObj.formatted, offset: mosque.iqamaOffsets?.Asr || 15 },
-    { name: 'Maghrib' as const, mins: mObj.totalMinutes, time: mObj.formatted, offset: mosque.iqamaOffsets?.Maghrib || 5 },
-    { name: 'Isha' as const, mins: iObj.totalMinutes, time: iObj.formatted, offset: mosque.iqamaOffsets?.Isha || 10 }
+    { name: 'Dhuhr' as const, mins: dObj.totalMinutes, time: dObj.formatted, offset: currentMosque.iqamaOffsets?.Dhuhr || 15 },
+    { name: 'Asr' as const, mins: aObj.totalMinutes, time: aObj.formatted, offset: currentMosque.iqamaOffsets?.Asr || 15 },
+    { name: 'Maghrib' as const, mins: mObj.totalMinutes, time: mObj.formatted, offset: currentMosque.iqamaOffsets?.Maghrib || 5 },
+    { name: 'Isha' as const, mins: iObj.totalMinutes, time: iObj.formatted, offset: currentMosque.iqamaOffsets?.Isha || 10 }
   ];
 
   let next = schedule.find(p => p.mins > currentMinutes);
@@ -192,7 +220,6 @@ export function calculateMosquePrayerTimes(
     const idx = schedule.indexOf(next);
     currentPrayerName = idx === 0 ? 'Isha' : schedule[idx - 1].name;
   } else {
-    // Past Isha -> Next is Tomorrow's Fajr
     next = schedule[0];
     diffSec = Math.round((1440 - currentMinutes + next.mins) * 60);
     currentPrayerName = 'Isha';
@@ -205,7 +232,33 @@ export function calculateMosquePrayerTimes(
     ? `${remHours}h ${remMins}m`
     : `${remMins}m ${remSecs}s`;
 
-  // Compute Iqamah time
+  // Fasting Iftar & Suhoor logic
+  let fastType: 'Suhoor' | 'Iftar' = 'Iftar';
+  let fastTime = mObj.formatted;
+  let fastDiffSec = 0;
+
+  if (currentMinutes < fObj.totalMinutes) {
+    // Before Fajr -> Suhoor ends at Fajr
+    fastType = 'Suhoor';
+    fastTime = fObj.formatted;
+    fastDiffSec = Math.round((fObj.totalMinutes - currentMinutes) * 60);
+  } else if (currentMinutes < mObj.totalMinutes) {
+    // Fasting during day -> Iftar at Maghrib
+    fastType = 'Iftar';
+    fastTime = mObj.formatted;
+    fastDiffSec = Math.round((mObj.totalMinutes - currentMinutes) * 60);
+  } else {
+    // Past Maghrib -> Next Suhoor ends at tomorrow's Fajr
+    fastType = 'Suhoor';
+    fastTime = fObj.formatted;
+    fastDiffSec = Math.round((1440 - currentMinutes + fObj.totalMinutes) * 60);
+  }
+
+  const fHours = Math.floor(fastDiffSec / 3600);
+  const fMins = Math.floor((fastDiffSec % 3600) / 60);
+  const fSecs = fastDiffSec % 60;
+  const fastRemFormatted = fHours > 0 ? `${fHours}h ${fMins}m` : `${fMins}m ${fSecs}s`;
+
   const iqamaMins = next.mins + next.offset;
   const iqamaFormatted = formatDecTime(iqamaMins / 60).formatted;
 
@@ -223,6 +276,14 @@ export function calculateMosquePrayerTimes(
     asr24: aObj.formatted24,
     maghrib24: mObj.formatted24,
     isha24: iObj.formatted24,
+    suhoorEndTime: fObj.formatted,
+    iftarTime: mObj.formatted,
+    nextFastingEvent: {
+      type: fastType,
+      time: fastTime,
+      remainingFormatted: fastRemFormatted,
+      remainingSeconds: fastDiffSec
+    },
     nextPrayer: {
       name: next.name,
       time: next.time,
@@ -232,21 +293,20 @@ export function calculateMosquePrayerTimes(
     },
     currentPrayer: currentPrayerName,
     qiblaBearing: Math.round(qibla),
-    mosque
+    mosque: currentMosque
   };
 }
 
-const SELECTED_MOSQUE_KEY = 'daily_hadith_selected_mosque_id_v1';
-
 export function getSelectedMosque(): Mosque {
+  const all = getAllMosques();
   try {
     const savedId = localStorage.getItem(SELECTED_MOSQUE_KEY);
     if (savedId) {
-      const found = ALL_MOSQUES.find(m => m.id === savedId);
+      const found = all.find(m => m.id === savedId);
       if (found) return found;
     }
   } catch {}
-  return ALL_MOSQUES[0]; // AMSSA North Melbourne default
+  return all[0] || INITIAL_MOSQUES[0];
 }
 
 export function saveSelectedMosque(mosqueId: string): void {

@@ -22,36 +22,39 @@ export const DEFAULT_AZAN_SETTINGS: AzanSettings = {
   notifyBrowser: true
 };
 
+const baseUrl = import.meta.env.BASE_URL || './';
+const cleanBase = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
+
 export const MUEZZIN_SOURCES: Record<MuezzinId, { name: string; subtitle: string; location: string; url: string }> = {
   makkah: {
     name: 'Makkah Al-Mukarramah',
     subtitle: 'Sheikh Ali Ahmed Mulla (Grand Mosque Chief Muezzin)',
     location: 'Masjid al-Haram, Makkah',
-    url: '/audio/adhan_makkah.mp3'
+    url: `${cleanBase}audio/adhan_makkah.mp3`
   },
   madinah: {
     name: 'Al-Madinah Al-Munawwarah',
     subtitle: 'Sheikh Essam Bukhari (Prophet\'s Mosque Muezzin)',
     location: 'Masjid an-Nabawi, Madinah',
-    url: '/audio/adhan_madinah.mp3'
+    url: `${cleanBase}audio/adhan_madinah.mp3`
   },
   alafasy: {
     name: 'Mishary Rashid Alafasy',
     subtitle: 'Sheikh Mishary Rashid Alafasy',
     location: 'Grand Mosque, Kuwait',
-    url: '/audio/adhan_alafasy.mp3'
+    url: `${cleanBase}audio/adhan_alafasy.mp3`
   },
   alaqsa: {
     name: 'Masjid Al-Aqsa (Jerusalem)',
     subtitle: 'Sheikh Najee Qazaz (Al-Aqsa Muezzin)',
     location: 'Al-Aqsa Mosque, Jerusalem',
-    url: '/audio/adhan_alaqsa.mp3'
+    url: `${cleanBase}audio/adhan_alaqsa.mp3`
   },
   abdulbasit: {
     name: 'Sheikh Abdul Basit Abdul Samad',
     subtitle: 'Classic Historic Egyptian Adhan',
     location: 'Cairo, Egypt',
-    url: '/audio/adhan_abdulbasit.mp3'
+    url: `${cleanBase}audio/adhan_abdulbasit.mp3`
   },
   chime: {
     name: 'Gentle Acoustic Adhan Chime',

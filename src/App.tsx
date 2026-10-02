@@ -17,6 +17,15 @@ import {
   calculateMosquePrayerTimes,
   getSelectedMosque
 } from './utils/prayerTimes';
+import {
+  playAzan,
+  stopAzan,
+  isAzanPlaying,
+  getAzanSettings,
+  saveAzanSettings,
+  AzanSettings
+} from './utils/azanAudio';
+import { AzanLiveModal } from './components/AzanLiveModal';
 import { DailyHadithCard } from './components/DailyHadithCard';
 import { ScreensaverView } from './components/ScreensaverView';
 import { WidgetSimulator } from './components/WidgetSimulator';
@@ -60,16 +69,62 @@ export function App() {
   const [isVerificationOpen, setIsVerificationOpen] = useState(false);
   const [textSize, setTextSize] = useState<'normal' | 'large'>('normal');
 
-  // Prayer times state
+  // Prayer times & Global Auto-Azan state
   const [selectedMosque, setSelectedMosque] = useState<Mosque>(getSelectedMosque());
   const [prayerData, setPrayerData] = useState<PrayerTimesResult>(
     calculateMosquePrayerTimes(selectedMosque, new Date())
   );
+  const [showGlobalAzanModal, setShowGlobalAzanModal] = useState(false);
+  const [globalAzanPrayer, setGlobalAzanPrayer] = useState({ name: 'Fajr', time: '05:00 AM' });
 
+  // Global Prayer Watcher and Auto-Azan
   useEffect(() => {
     const timer = setInterval(() => {
-      setPrayerData(calculateMosquePrayerTimes(selectedMosque, new Date()));
+      const now = new Date();
+      const currentResult = calculateMosquePrayerTimes(selectedMosque, now);
+      setPrayerData(currentResult);
+
+      const azanSettings = getAzanSettings();
+      if (azanSettings.autoAzanEnabled) {
+        const schedule = [
+          { name: 'Fajr', time: currentResult.fajr },
+          { name: 'Dhuhr', time: currentResult.dhuhr },
+          { name: 'Asr', time: currentResult.asr },
+          { name: 'Maghrib', time: currentResult.maghrib },
+          { name: 'Isha', time: currentResult.isha }
+        ];
+
+        const currentTimeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+        const dateKey = now.toISOString().split('T')[0];
+
+        for (const prayer of schedule) {
+          if (prayer.time.trim() === currentTimeStr.trim()) {
+            const triggerKey = `${dateKey}_${prayer.name}`;
+            if (azanSettings.lastPlayedPrayerKey !== triggerKey && !isAzanPlaying()) {
+              const updated = { ...azanSettings, lastPlayedPrayerKey: triggerKey };
+              saveAzanSettings(updated);
+
+              setGlobalAzanPrayer({ name: prayer.name, time: prayer.time });
+              setShowGlobalAzanModal(true);
+
+              playAzan(
+                undefined,
+                () => {},
+                azanSettings.selectedMuezzin
+              );
+
+              if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification(`Allahu Akbar • Time for ${prayer.name} Prayer`, {
+                  body: `Prayer time has arrived at ${selectedMosque.name} (${selectedMosque.suburb}).`,
+                  icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="%23d4af37"/></svg>'
+                });
+              }
+            }
+          }
+        }
+      }
     }, 1000);
+
     return () => clearInterval(timer);
   }, [selectedMosque]);
 
@@ -429,6 +484,18 @@ export function App() {
       <VerificationModal
         isOpen={isVerificationOpen}
         onClose={() => setIsVerificationOpen(false)}
+      />
+
+      {/* Global Live Azan Modal */}
+      <AzanLiveModal
+        isOpen={showGlobalAzanModal}
+        prayerName={globalAzanPrayer.name}
+        prayerTime={globalAzanPrayer.time}
+        mosque={selectedMosque}
+        onClose={() => {
+          setShowGlobalAzanModal(false);
+          stopAzan();
+        }}
       />
     </div>
   );

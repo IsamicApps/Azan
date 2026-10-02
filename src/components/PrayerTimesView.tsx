@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import {
   Mosque,
   PrayerTimesResult,
-  ALL_MOSQUES,
+  getAllMosques,
+  saveCustomMosque,
   calculateMosquePrayerTimes,
   getMosquesSortedByDistance,
   getSelectedMosque,
@@ -18,6 +19,7 @@ import {
   MUEZZIN_SOURCES,
   MuezzinId
 } from '../utils/azanAudio';
+import { speakDua, stopSpeaking, isSpeaking } from '../utils/speech';
 import { IslamicPattern, IslamicCornerOrnament } from './IslamicPattern';
 import { AzanLiveModal } from './AzanLiveModal';
 import {
@@ -38,7 +40,11 @@ import {
   Play,
   Square,
   RotateCcw,
-  Volume1
+  Volume1,
+  PlusCircle,
+  X,
+  Heart,
+  Utensils
 } from 'lucide-react';
 
 interface PrayerTimesViewProps {
@@ -46,6 +52,7 @@ interface PrayerTimesViewProps {
 }
 
 export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange }) => {
+  const [allMosquesList, setAllMosquesList] = useState<Mosque[]>(getAllMosques());
   const [selectedMosque, setSelectedMosque] = useState<Mosque>(getSelectedMosque());
   const [prayerData, setPrayerData] = useState<PrayerTimesResult>(
     calculateMosquePrayerTimes(selectedMosque, new Date())
@@ -58,8 +65,29 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedState, setSelectedState] = useState<string>('ALL');
   const [showMosqueSelector, setShowMosqueSelector] = useState(false);
+  const [showAddCustomModal, setShowAddCustomModal] = useState(false);
   const [showAzanLiveModal, setShowAzanLiveModal] = useState(false);
   const [activeAzanPrayer, setActiveAzanPrayer] = useState({ name: 'Asr', time: '03:43 PM' });
+
+  // Fasting Du'a recitation state
+  const [isRecitingFastingDua, setIsRecitingFastingDua] = useState(false);
+  const [copiedFastingDua, setCopiedFastingDua] = useState(false);
+
+  // Custom Mosque Form state
+  const [customForm, setCustomForm] = useState({
+    name: '',
+    suburb: '',
+    state: '',
+    address: '',
+    lat: '',
+    lng: '',
+    jumuah: '1:15 PM & 2:15 PM',
+    fajrOffset: 20,
+    dhuhrOffset: 15,
+    asrOffset: 15,
+    maghribOffset: 5,
+    ishaOffset: 10
+  });
 
   // Digital Tasbih Counter State
   const [dhikrCount, setDhikrCount] = useState(0);
@@ -152,10 +180,67 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
       },
       () => {
         setIsLocating(false);
-        setLocationError('Could not retrieve GPS location. You can select your mosque manually below.');
+        setLocationError('Could not retrieve GPS location. You can select your mosque manually or add a custom one below.');
       },
       { timeout: 10000, enableHighAccuracy: true }
     );
+  };
+
+  const handleAutofillFormGPS = () => {
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by your browser.');
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setCustomForm((prev) => ({
+          ...prev,
+          lat: pos.coords.latitude.toFixed(6),
+          lng: pos.coords.longitude.toFixed(6)
+        }));
+      },
+      (err) => {
+        alert('Could not detect GPS coordinates. Please enter them manually.');
+      },
+      { enableHighAccuracy: true }
+    );
+  };
+
+  const handleSaveCustomMosqueSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const lat = parseFloat(customForm.lat);
+    const lng = parseFloat(customForm.lng);
+
+    if (!customForm.name.trim() || isNaN(lat) || isNaN(lng)) {
+      alert('Please provide a valid Mosque Name, Latitude, and Longitude.');
+      return;
+    }
+
+    const created = saveCustomMosque({
+      name: customForm.name.trim(),
+      loc: `${customForm.suburb.trim()}, ${customForm.state.trim()}`,
+      suburb: customForm.suburb.trim() || 'Custom Location',
+      state: customForm.state.trim().toUpperCase() || 'CUSTOM',
+      area: customForm.suburb.trim(),
+      address: customForm.address.trim() || `${customForm.suburb.trim()}, ${customForm.state.trim()}`,
+      lat,
+      lng,
+      link: 'https://www.awqat.com.au/',
+      jumuah: customForm.jumuah.trim() || '1:15 PM',
+      iqamaOffsets: {
+        Fajr: Number(customForm.fajrOffset) || 20,
+        Dhuhr: Number(customForm.dhuhrOffset) || 15,
+        Asr: Number(customForm.asrOffset) || 15,
+        Maghrib: Number(customForm.maghribOffset) || 5,
+        Isha: Number(customForm.ishaOffset) || 10
+      }
+    });
+
+    setAllMosquesList(getAllMosques());
+    setSelectedMosque(created);
+    setPrayerData(calculateMosquePrayerTimes(created, new Date()));
+    setShowAddCustomModal(false);
+    if (onMosqueChange) onMosqueChange(created);
   };
 
   const handleSelectMosque = (m: Mosque) => {
@@ -207,7 +292,33 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
     saveAzanSettings(updated);
   };
 
-  const filteredMosques = ALL_MOSQUES.filter((m) => {
+  const iftarDuaArabic = "ذَهَبَ الظَّمَأُ وَابْتَلَّتِ الْعُرُوقُ وَثَبَتَ الأَجْرُ إِنْ شَاءَ اللَّهُ";
+  const iftarDuaTranslation = "The thirst has gone, the veins are moistened, and the reward is confirmed, if Allah wills.";
+
+  const handleToggleFastingDua = () => {
+    if (isRecitingFastingDua || isSpeaking()) {
+      stopSpeaking();
+      setIsRecitingFastingDua(false);
+    } else {
+      setIsRecitingFastingDua(true);
+      speakDua(
+        iftarDuaArabic,
+        iftarDuaTranslation,
+        () => setIsRecitingFastingDua(true),
+        () => setIsRecitingFastingDua(false)
+      );
+    }
+  };
+
+  const handleCopyFastingDua = async () => {
+    try {
+      await navigator.clipboard.writeText(`${iftarDuaArabic}\n\n"${iftarDuaTranslation}"\n— Sunan Abi Dawud #2357`);
+      setCopiedFastingDua(true);
+      setTimeout(() => setCopiedFastingDua(false), 2000);
+    } catch {}
+  };
+
+  const filteredMosques = allMosquesList.filter((m) => {
     if (selectedState !== 'ALL' && m.state !== selectedState) return false;
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
@@ -245,7 +356,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
             <div className="flex items-center space-x-2">
               <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-semibold tracking-wide uppercase">
                 <Building2 className="w-3.5 h-3.5" />
-                <span>Selected Mosque (Awqat.com.au)</span>
+                <span>{selectedMosque.isCustom ? 'Custom Location' : 'Selected Mosque (Awqat.com.au)'}</span>
               </span>
               <span className="text-xs text-amber-300/80 font-medium">
                 {selectedMosque.state}
@@ -262,20 +373,28 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
             </p>
           </div>
 
-          {/* Action Buttons: Closest Mosque & Change Mosque */}
+          {/* Action Buttons: Closest Mosque, Add Custom & Directory */}
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={handleFindClosestMosque}
               disabled={isLocating}
-              className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-neutral-950 font-semibold text-xs shadow-lg transition disabled:opacity-50"
+              className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-neutral-950 font-semibold text-xs shadow-lg transition disabled:opacity-50 cursor-pointer"
             >
               <Navigation className={`w-4 h-4 ${isLocating ? 'animate-spin' : ''}`} />
               <span>{isLocating ? 'Locating...' : 'Closest Mosque (GPS)'}</span>
             </button>
 
             <button
+              onClick={() => setShowAddCustomModal(true)}
+              className="flex items-center space-x-1.5 px-3.5 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-semibold border border-amber-500/40 transition cursor-pointer"
+            >
+              <PlusCircle className="w-4 h-4" />
+              <span>Add Custom City/Mosque</span>
+            </button>
+
+            <button
               onClick={() => setShowMosqueSelector(!showMosqueSelector)}
-              className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-neutral-100 text-xs font-medium border border-white/10 transition"
+              className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-neutral-100 text-xs font-medium border border-white/10 transition cursor-pointer"
             >
               {showMosqueSelector ? 'Close Directory' : 'Change Mosque'}
             </button>
@@ -316,11 +435,11 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
 
             {/* State Filter */}
             <div className="flex space-x-1 overflow-x-auto pb-1">
-              {['ALL', 'VIC', 'NSW', 'QLD', 'WA', 'SA', 'TAS', 'ACT'].map((st) => (
+              {['ALL', 'CUSTOM', 'VIC', 'NSW', 'QLD', 'WA', 'SA', 'TAS', 'ACT'].map((st) => (
                 <button
                   key={st}
                   onClick={() => setSelectedState(st)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
                     selectedState === st
                       ? 'bg-amber-500 text-neutral-950 font-bold'
                       : 'bg-white/5 text-neutral-400 hover:text-white'
@@ -348,6 +467,11 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
                   <div className="space-y-1 truncate pr-2">
                     <div className="font-semibold text-sm text-white truncate flex items-center space-x-2">
                       <span>{m.name}</span>
+                      {m.isCustom && (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/30 text-purple-300 font-semibold uppercase">
+                          Custom
+                        </span>
+                      )}
                       <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-neutral-300 font-mono">
                         {m.state}
                       </span>
@@ -382,7 +506,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
         <div className="relative z-10 space-y-2 text-center md:text-left">
           <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold uppercase tracking-wider">
             <Clock className="w-3.5 h-3.5" />
-            <span>Next Prayer (Awqat.com.au)</span>
+            <span>Next Prayer ({selectedMosque.isCustom ? 'Custom Coords' : 'Awqat.com.au'})</span>
           </div>
 
           <h2 className="font-serif text-3xl md:text-5xl font-bold text-white">
@@ -430,7 +554,68 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
         </div>
       </div>
 
-      {/* 4. AUTHENTIC VOCAL MUEZZIN SOUND SELECTOR & PREVIEW */}
+      {/* 4. FASTING / IFTAR & SUHOOR (IMSAK) COUNTDOWN CARD */}
+      <div className="relative rounded-3xl bg-gradient-to-r from-emerald-950/40 via-[#101918] to-[#0c1214] border border-emerald-500/30 p-6 shadow-xl overflow-hidden">
+        <IslamicPattern opacity={12} color="#10b981" />
+        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="space-y-2 text-center md:text-left">
+            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold uppercase tracking-wider">
+              <Utensils className="w-3.5 h-3.5" />
+              <span>Fasting & Meal Schedule</span>
+            </div>
+
+            <div className="text-xl md:text-2xl font-serif font-bold text-white">
+              {prayerData.nextFastingEvent.type === 'Iftar'
+                ? `Iftar (Fast Breaking) at Maghrib (${prayerData.maghrib})`
+                : `Suhoor / Imsak End at Fajr (${prayerData.fajr})`}
+            </div>
+
+            {/* Fasting Du'a */}
+            <div className="pt-2 text-left space-y-1">
+              <div className="text-xs font-arabic text-amber-300 font-semibold">
+                {iftarDuaArabic}
+              </div>
+              <p className="text-[11px] text-neutral-300 italic">
+                &ldquo;{iftarDuaTranslation}&rdquo; <span className="text-neutral-500">(Abu Dawud #2357)</span>
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center space-y-2 w-full md:w-auto">
+            <div className="p-4 px-6 rounded-2xl bg-black/60 border border-emerald-500/30 text-center w-full">
+              <div className="text-[10px] uppercase tracking-widest text-emerald-400/80 font-semibold">
+                Remaining to {prayerData.nextFastingEvent.type}
+              </div>
+              <div className="text-2xl md:text-3xl font-mono font-bold text-emerald-300 mt-0.5">
+                {prayerData.nextFastingEvent.remainingFormatted}
+              </div>
+            </div>
+
+            <div className="flex space-x-2 w-full">
+              <button
+                onClick={handleToggleFastingDua}
+                className={`flex-1 flex items-center justify-center space-x-1.5 py-2 px-3 rounded-xl text-xs font-semibold transition cursor-pointer ${
+                  isRecitingFastingDua
+                    ? 'bg-emerald-500 text-neutral-950 animate-pulse font-bold'
+                    : 'bg-white/10 hover:bg-white/20 text-neutral-200'
+                }`}
+              >
+                {isRecitingFastingDua ? <Square className="w-3.5 h-3.5 fill-current" /> : <Volume2 className="w-3.5 h-3.5" />}
+                <span>{isRecitingFastingDua ? 'Stop Du\'a' : 'Recite Du\'a'}</span>
+              </button>
+
+              <button
+                onClick={handleCopyFastingDua}
+                className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-white text-xs font-medium border border-white/10 transition cursor-pointer"
+              >
+                {copiedFastingDua ? 'Copied' : 'Copy'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 5. AUTHENTIC VOCAL MUEZZIN SOUND SELECTOR & PREVIEW */}
       <div className="p-6 rounded-3xl bg-[#11131c] border border-white/10 space-y-4 shadow-xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-white/10">
           <div className="flex items-center space-x-2">
@@ -507,7 +692,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
                 <div className="flex items-center space-x-2 pt-2 border-t border-white/5">
                   <button
                     onClick={() => updateAzanSetting({ selectedMuezzin: mId })}
-                    className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-medium transition ${
+                    className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-medium transition cursor-pointer ${
                       isSelected
                         ? 'bg-amber-500 text-neutral-950 font-bold'
                         : 'bg-white/5 hover:bg-white/10 text-neutral-300'
@@ -518,7 +703,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
 
                   <button
                     onClick={() => handlePlayMuezzin(mId)}
-                    className={`p-2 rounded-lg transition ${
+                    className={`p-2 rounded-lg transition cursor-pointer ${
                       isPlayingThis
                         ? 'bg-rose-500 text-white animate-pulse'
                         : 'bg-white/10 hover:bg-white/20 text-white'
@@ -534,7 +719,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
         </div>
       </div>
 
-      {/* 5. DAILY PRAYER TIMETABLE GRID */}
+      {/* 6. DAILY PRAYER TIMETABLE GRID */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
         {prayerCards.map((p) => {
           const isCurrent = prayerData.currentPrayer === p.name;
@@ -573,7 +758,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
         })}
       </div>
 
-      {/* 6. INTERACTIVE QIBLA COMPASS & DIGITAL TASBIH DHIKR COUNTER */}
+      {/* 7. INTERACTIVE QIBLA COMPASS & DIGITAL TASBIH DHIKR COUNTER */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Friday Jumu'ah Card */}
         <div className="p-5 rounded-3xl bg-[#11131c] border border-white/10 flex items-center space-x-4">
@@ -620,7 +805,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
                   e.stopPropagation();
                   setDhikrCount(0);
                 }}
-                className="p-1 rounded text-neutral-500 hover:text-white"
+                className="p-1 rounded text-neutral-500 hover:text-white cursor-pointer"
                 title="Reset counter"
               >
                 <RotateCcw className="w-3 h-3" />
@@ -637,6 +822,177 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
           </div>
         </div>
       </div>
+
+      {/* 8. ADD CUSTOM MOSQUE MODAL */}
+      {showAddCustomModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
+          <div className="relative w-full max-w-lg rounded-3xl bg-[#11131c] border border-amber-500/40 p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <div className="flex items-center space-x-2">
+                <PlusCircle className="w-5 h-5 text-amber-400" />
+                <h3 className="font-serif text-lg font-bold text-white">Add Custom Mosque / Location</h3>
+              </div>
+              <button
+                onClick={() => setShowAddCustomModal(false)}
+                className="p-1.5 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCustomMosqueSubmit} className="space-y-3.5 text-xs">
+              <div>
+                <label className="block text-neutral-300 font-semibold mb-1">Mosque / Location Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. East London Mosque or Home Prayer Room"
+                  value={customForm.name}
+                  onChange={(e) => setCustomForm({ ...customForm, name: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/10 text-white placeholder-neutral-500 focus:outline-none focus:border-amber-400"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-neutral-300 font-semibold mb-1">City / Suburb</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. London or Auburn"
+                    value={customForm.suburb}
+                    onChange={(e) => setCustomForm({ ...customForm, suburb: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/10 text-white placeholder-neutral-500 focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-neutral-300 font-semibold mb-1">State / Region</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. UK, VIC, or CA"
+                    value={customForm.state}
+                    onChange={(e) => setCustomForm({ ...customForm, state: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/10 text-white placeholder-neutral-500 focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+              </div>
+
+              {/* Coordinates with Autofill button */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <label className="block text-neutral-300 font-semibold">GPS Coordinates *</label>
+                  <button
+                    type="button"
+                    onClick={handleAutofillFormGPS}
+                    className="text-amber-400 hover:underline flex items-center space-x-1 cursor-pointer"
+                  >
+                    <Navigation className="w-3 h-3" />
+                    <span>Auto-detect GPS</span>
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    type="number"
+                    step="any"
+                    required
+                    placeholder="Latitude (e.g. 51.5186)"
+                    value={customForm.lat}
+                    onChange={(e) => setCustomForm({ ...customForm, lat: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/10 text-white placeholder-neutral-500 focus:outline-none focus:border-amber-400"
+                  />
+                  <input
+                    type="number"
+                    step="any"
+                    required
+                    placeholder="Longitude (e.g. -0.0664)"
+                    value={customForm.lng}
+                    onChange={(e) => setCustomForm({ ...customForm, lng: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/10 text-white placeholder-neutral-500 focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-neutral-300 font-semibold mb-1">Friday Jumu&apos;ah Times</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 1:15 PM & 2:15 PM"
+                  value={customForm.jumuah}
+                  onChange={(e) => setCustomForm({ ...customForm, jumuah: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/10 text-white placeholder-neutral-500 focus:outline-none focus:border-amber-400"
+                />
+              </div>
+
+              {/* Iqamah Offsets */}
+              <div>
+                <label className="block text-neutral-300 font-semibold mb-1">Iqamah Offsets (Minutes after Azan)</label>
+                <div className="grid grid-cols-5 gap-2">
+                  <div>
+                    <span className="text-[10px] text-neutral-400">Fajr</span>
+                    <input
+                      type="number"
+                      value={customForm.fajrOffset}
+                      onChange={(e) => setCustomForm({ ...customForm, fajrOffset: parseInt(e.target.value) || 0 })}
+                      className="w-full p-2 rounded-lg bg-black/50 border border-white/10 text-white text-center"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-neutral-400">Dhuhr</span>
+                    <input
+                      type="number"
+                      value={customForm.dhuhrOffset}
+                      onChange={(e) => setCustomForm({ ...customForm, dhuhrOffset: parseInt(e.target.value) || 0 })}
+                      className="w-full p-2 rounded-lg bg-black/50 border border-white/10 text-center text-white"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-neutral-400">Asr</span>
+                    <input
+                      type="number"
+                      value={customForm.asrOffset}
+                      onChange={(e) => setCustomForm({ ...customForm, asrOffset: parseInt(e.target.value) || 0 })}
+                      className="w-full p-2 rounded-lg bg-black/50 border border-white/10 text-center text-white"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-neutral-400">Maghrib</span>
+                    <input
+                      type="number"
+                      value={customForm.maghribOffset}
+                      onChange={(e) => setCustomForm({ ...customForm, maghribOffset: parseInt(e.target.value) || 0 })}
+                      className="w-full p-2 rounded-lg bg-black/50 border border-white/10 text-center text-white"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-neutral-400">Isha</span>
+                    <input
+                      type="number"
+                      value={customForm.ishaOffset}
+                      onChange={(e) => setCustomForm({ ...customForm, ishaOffset: parseInt(e.target.value) || 0 })}
+                      className="w-full p-2 rounded-lg bg-black/50 border border-white/10 text-center text-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2 flex justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddCustomModal(false)}
+                  className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-neutral-300 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold shadow-lg transition cursor-pointer"
+                >
+                  Save & Apply Mosque
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* LIVE AZAN PRAYER MODAL */}
       <AzanLiveModal

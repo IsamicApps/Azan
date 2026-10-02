@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { IslamicPattern, IslamicCornerOrnament } from './IslamicPattern';
 import { Mosque } from '../utils/prayerTimes';
-import { Volume2, VolumeX, X, Sparkles, Building2, Bell, Check } from 'lucide-react';
+import { Volume2, VolumeX, X, Sparkles, Building2, Bell, Check, Play, Square } from 'lucide-react';
 import { stopAzan, getAzanSettings, saveAzanSettings, AzanSettings } from '../utils/azanAudio';
+import { speakDua, stopSpeaking, isSpeaking } from '../utils/speech';
 
 interface AzanLiveModalProps {
   isOpen: boolean;
@@ -21,11 +22,14 @@ export const AzanLiveModal: React.FC<AzanLiveModalProps> = ({
 }) => {
   const [settings, setSettings] = useState<AzanSettings>(getAzanSettings());
   const [copiedDua, setCopiedDua] = useState(false);
+  const [isRecitingDua, setIsRecitingDua] = useState(false);
 
   if (!isOpen) return null;
 
   const handleStop = () => {
     stopAzan();
+    stopSpeaking();
+    setIsRecitingDua(false);
     onClose();
   };
 
@@ -38,6 +42,22 @@ export const AzanLiveModal: React.FC<AzanLiveModalProps> = ({
       setCopiedDua(true);
       setTimeout(() => setCopiedDua(false), 2000);
     } catch {}
+  };
+
+  const handleToggleReciteDua = () => {
+    if (isRecitingDua || isSpeaking()) {
+      stopSpeaking();
+      setIsRecitingDua(false);
+    } else {
+      stopAzan(); // Stop adhan if playing to hear du'a clearly
+      setIsRecitingDua(true);
+      speakDua(
+        duaAfterAdhanArabic,
+        duaTranslation,
+        () => setIsRecitingDua(true),
+        () => setIsRecitingDua(false)
+      );
+    }
   };
 
   return (
@@ -60,14 +80,14 @@ export const AzanLiveModal: React.FC<AzanLiveModalProps> = ({
 
           <button
             onClick={handleStop}
-            className="p-1.5 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition"
+            className="p-1.5 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Center Animated Azan Calligraphy */}
-        <div className="relative z-10 py-6 text-center space-y-4">
+        <div className="relative z-10 py-5 text-center space-y-4">
           <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-semibold">
             <Building2 className="w-3.5 h-3.5" />
             <span>{mosque.name} ({mosque.suburb}, {mosque.state})</span>
@@ -75,7 +95,7 @@ export const AzanLiveModal: React.FC<AzanLiveModalProps> = ({
 
           <div>
             <div className="text-xs uppercase tracking-widest text-neutral-400 font-medium">Time for</div>
-            <h2 className="font-serif text-4xl md:text-5xl font-bold text-white tracking-wide mt-1">
+            <h2 className="font-serif text-3xl md:text-5xl font-bold text-white tracking-wide mt-1">
               {prayerName} Prayer
             </h2>
             <div className="text-sm font-mono text-amber-400 font-semibold mt-0.5">{prayerTime}</div>
@@ -92,7 +112,7 @@ export const AzanLiveModal: React.FC<AzanLiveModalProps> = ({
           </div>
 
           {/* Animated Audio Equalizer Bars */}
-          <div className="flex items-center justify-center space-x-1.5 py-2">
+          <div className="flex items-center justify-center space-x-1.5 py-1">
             {[40, 75, 55, 90, 65, 80, 45, 95, 60, 85, 50].map((h, idx) => (
               <span
                 key={idx}
@@ -106,17 +126,32 @@ export const AzanLiveModal: React.FC<AzanLiveModalProps> = ({
             ))}
           </div>
 
-          {/* Du'a after Adhan */}
-          <div className="p-4 rounded-2xl bg-neutral-900/80 border border-white/10 text-left space-y-2">
+          {/* Du'a after Adhan with Recite Audio Button */}
+          <div className="p-4 rounded-2xl bg-neutral-900/80 border border-white/10 text-left space-y-2.5">
             <div className="flex items-center justify-between text-[11px] text-amber-400 font-semibold">
               <span>Du&apos;a after Azan (Bukhari #614)</span>
-              <button
-                onClick={handleCopyDua}
-                className="text-neutral-400 hover:text-white flex items-center space-x-1"
-              >
-                {copiedDua ? <Check className="w-3 h-3 text-emerald-400" /> : null}
-                <span>{copiedDua ? 'Copied' : 'Copy Du\'a'}</span>
-              </button>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={handleToggleReciteDua}
+                  className={`flex items-center space-x-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold transition cursor-pointer ${
+                    isRecitingDua
+                      ? 'bg-amber-500 text-neutral-950 font-bold animate-pulse'
+                      : 'bg-white/10 hover:bg-white/20 text-neutral-200'
+                  }`}
+                  title="Listen to Du'a recitation"
+                >
+                  {isRecitingDua ? <Square className="w-3 h-3 fill-current" /> : <Volume2 className="w-3 h-3" />}
+                  <span>{isRecitingDua ? 'Stop Du\'a' : 'Recite Du\'a'}</span>
+                </button>
+
+                <button
+                  onClick={handleCopyDua}
+                  className="text-neutral-400 hover:text-white flex items-center space-x-1 px-1.5 py-1 rounded cursor-pointer"
+                >
+                  {copiedDua ? <Check className="w-3 h-3 text-emerald-400" /> : null}
+                  <span>{copiedDua ? 'Copied' : 'Copy'}</span>
+                </button>
+              </div>
             </div>
             <p className="font-arabic text-sm text-neutral-200 leading-relaxed text-right dir-rtl">
               {duaAfterAdhanArabic}
@@ -135,7 +170,7 @@ export const AzanLiveModal: React.FC<AzanLiveModalProps> = ({
 
           <button
             onClick={handleStop}
-            className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold text-xs shadow-lg transition"
+            className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold text-xs shadow-lg transition cursor-pointer"
           >
             Dismiss Azan
           </button>
