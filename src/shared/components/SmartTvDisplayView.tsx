@@ -6,6 +6,7 @@ import { loadArabicText, loadDailyHadithOrBundled, loadRandomHadith, loadRandomT
 import { GradeBadge } from './GradeBadge';
 import { HijriAdjust } from './HijriAdjust';
 import { PrayerPhaseOverlay, getPrayerPhase } from './PrayerPhaseOverlay';
+import { IslamicFrame } from './IslamicFrame';
 import { QuranDialog, QuranNowPlaying, useQuranPlayer } from './QuranPlayer';
 import { getHadithLanguage, useDisplayedHadith, useHadithLanguage, useUiLanguage, setUiLanguage, HadithLanguage } from '../hooks/useHadithLanguage';
 import { useI18n } from '../i18n';
@@ -207,6 +208,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
   const hadithBoxRef = useRef<HTMLDivElement>(null);
   const hadithContentRef = useRef<HTMLDivElement>(null);
   const hadithTextRef = useRef<HTMLQuoteElement>(null);
+  const hadithNarratorRef = useRef<HTMLDivElement>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -557,11 +559,17 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
       const content = hadithContentRef.current;
       const text = hadithTextRef.current;
       if (!box || !content || !text) return;
+      // The narrator line (some are several sentences long) shrinks with the text
+      const narrator = hadithNarratorRef.current;
+      const setSize = (px: number) => {
+        text.style.fontSize = `${px}px`;
+        if (narrator) narrator.style.fontSize = `${Math.round(px * 0.65)}px`;
+      };
       let size = 52;
-      text.style.fontSize = `${size}px`;
+      setSize(size);
       while (size > 24 && content.offsetHeight > box.clientHeight) {
         size -= 2;
-        text.style.fontSize = `${size}px`;
+        setSize(size);
       }
       // Some Hadiths are pages long; show the excerpt when even the smallest size won't fit
       if (content.offsetHeight > box.clientHeight && shownHadith?.isLong && !showExcerpt) setShowExcerpt(true);
@@ -571,7 +579,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
     document.fonts?.ready.then(fit).catch(() => {});
     window.addEventListener('resize', fit);
     return () => window.removeEventListener('resize', fit);
-  }, [shownHadith?.text, showExcerpt]);
+  }, [shownHadith?.text, shownHadith?.narrator, showExcerpt]);
 
   // Each theme recolours the whole screen: background, pattern, accent colour (in place
   // of amber) and the tinted panels (--tv-* variables)
@@ -638,10 +646,13 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
       className={`fixed inset-0 z-50 w-full h-full ${currentTheme.bg} text-white flex flex-col px-[72px] py-[44px] select-none overflow-hidden transition-colors duration-700`}
     >
       <IslamicPattern opacity={12} color={currentTheme.patternColor} />
+      {isFullscreen && <IslamicFrame color={currentTheme.patternColor} />}
+      {!isFullscreen && <>
       <IslamicCornerOrnament color={currentTheme.patternColor} className="absolute top-4 left-4 rotate-0 opacity-40 scale-125" />
       <IslamicCornerOrnament color={currentTheme.patternColor} className="absolute top-4 right-4 rotate-90 opacity-40 scale-125" />
       <IslamicCornerOrnament color={currentTheme.patternColor} className="absolute bottom-4 left-4 -rotate-90 opacity-40 scale-125" />
       <IslamicCornerOrnament color={currentTheme.patternColor} className="absolute bottom-4 right-4 rotate-180 opacity-40 scale-125" />
+      </>}
 
       {/* 1. HEADER: brand & mosque | dates | clock */}
       <header className="relative z-20 shrink-0 grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-12 pb-6 border-b border-white/15">
@@ -751,7 +762,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
             {/* Its own direction: an English Hadith on an Arabic screen still reads left to right */}
             <div ref={hadithContentRef} dir={shownHadith ? (shownHadith.isArabic ? 'rtl' : 'ltr') : undefined} lang={shownHadith ? (shownHadith.isArabic ? 'ar' : 'en') : undefined}>
               {shownHadith?.narrator && (
-                <div className="font-serif text-[34px] font-bold text-amber-300 mb-5">
+                <div ref={hadithNarratorRef} className="font-serif text-[34px] font-bold text-amber-300 mb-5">
                   {shownHadith.narrator}
                 </div>
               )}
@@ -765,7 +776,9 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
                   ? t('Loading the Hadith of the Day…')
                   : shownHadith.isArabic
                     ? (showExcerpt ? shownHadith.excerpt : shownHadith.text)
-                    : <>&ldquo;{showExcerpt ? shownHadith.excerpt : shownHadith.text}&rdquo;</>}
+                    : /^\s*["“‘']/.test(shownHadith.text)
+                      ? (showExcerpt ? shownHadith.excerpt : shownHadith.text)
+                      : <>&ldquo;{showExcerpt ? shownHadith.excerpt : shownHadith.text}&rdquo;</>}
               </blockquote>
             </div>
           </div>
