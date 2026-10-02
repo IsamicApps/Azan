@@ -263,9 +263,21 @@ const dailyCache = new Map<string, DailySelection>();
 const arabicChunks = new Map<string, Promise<string[]>>();
 
 /** The original Arabic of a sunnah.com Hadith, or null for Hadiths outside the library or without Arabic. */
+// Arabic texts already downloaded, by Hadith id (null: this Hadith has none)
+const arabicTexts = new Map<string, string | null>();
+
+/** The Arabic text if it is already downloaded (undefined while it isn't), so it can be shown without a flash of English. */
+export function peekArabicText(h: Hadith): string | null | undefined {
+  if (h.isArabic) return h.text;
+  if (h.source !== 'sunnah.com' || !h.collectionSlug || h.localIndex === undefined) return null;
+  return arabicTexts.get(h.id);
+}
+
 export async function loadArabicText(h: Hadith): Promise<string | null> {
   if (h.source !== 'sunnah.com' || !h.collectionSlug || h.localIndex === undefined) return null;
   if (h.isArabic) return h.text;
+  const known = arabicTexts.get(h.id);
+  if (known !== undefined) return known;
   const { chunkSize } = await loadLibraryIndex();
   const key = `${h.collectionSlug}/${Math.floor(h.localIndex / chunkSize)}`;
   let promise = arabicChunks.get(key);
@@ -274,7 +286,9 @@ export async function loadArabicText(h: Hadith): Promise<string | null> {
     promise.catch(() => arabicChunks.delete(key));
     arabicChunks.set(key, promise);
   }
-  return (await promise)[h.localIndex % chunkSize] || null;
+  const text = (await promise)[h.localIndex % chunkSize] || null;
+  arabicTexts.set(h.id, text);
+  return text;
 }
 
 /** The Hadith with its text swapped for the Arabic original (the chain of narrators is part of the Arabic). */

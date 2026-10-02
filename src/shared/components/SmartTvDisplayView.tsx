@@ -2,12 +2,12 @@ import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { Hadith } from '../types/hadith';
 import dailyPoolData from '../data/daily_pool.json';
 import { getHijriDate } from '../utils/hijri';
-import { loadDailyHadithOrBundled, loadRandomHadith, loadRandomTopicHadith, loadTopics, HadithTopic, describeHadith } from '../utils/hadithLibrary';
+import { loadArabicText, loadDailyHadithOrBundled, loadRandomHadith, loadRandomTopicHadith, loadTopics, HadithTopic, describeHadith } from '../utils/hadithLibrary';
 import { GradeBadge } from './GradeBadge';
 import { HijriAdjust } from './HijriAdjust';
 import { PrayerPhaseOverlay, getPrayerPhase } from './PrayerPhaseOverlay';
 import { QuranDialog, QuranNowPlaying, useQuranPlayer } from './QuranPlayer';
-import { useDisplayedHadith, useHadithLanguage, useUiLanguage, setUiLanguage, HadithLanguage } from '../hooks/useHadithLanguage';
+import { getHadithLanguage, useDisplayedHadith, useHadithLanguage, useUiLanguage, setUiLanguage, HadithLanguage } from '../hooks/useHadithLanguage';
 import { useI18n } from '../i18n';
 import {
   Mosque,
@@ -98,14 +98,27 @@ const pool = dailyPoolData as Hadith[];
 
 const CROSS_REFERENCE = /^[\s(\["]*(as above|see (the )?(previous|above|next) hadith|see hadith)/i;
 
-/** A random Hadith from the whole sunnah.com library (skipping "As above" stubs). */
+/**
+ * With Arabic Hadiths, downloads the Arabic before the slide changes, so the new
+ * Hadith appears straight in Arabic instead of English first. False if it has none.
+ */
+async function prepareHadith(h: Hadith): Promise<boolean> {
+  if (getHadithLanguage() !== 'ar') return true;
+  return !!(await loadArabicText(h).catch(() => null));
+}
+
+/** A random Hadith from the whole sunnah.com library (skipping "As above" stubs, and ones without Arabic when Arabic is chosen). */
 async function pickRandomHadith(topic: string | null): Promise<Hadith> {
+  let fallback: Hadith | null = null;
   try {
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 6; i++) {
       const h = topic ? await loadRandomTopicHadith(topic) : await loadRandomHadith();
-      if (!(h.text.length < 80 && CROSS_REFERENCE.test(h.text))) return h;
+      if (h.text.length < 80 && CROSS_REFERENCE.test(h.text)) continue;
+      if (await prepareHadith(h)) return h;
+      fallback ??= h;
     }
   } catch {}
+  if (fallback) return fallback;
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
@@ -265,7 +278,8 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
   }, []);
 
   useEffect(() => {
-    loadDailyHadithOrBundled(new Date()).then((daily) => {
+    loadDailyHadithOrBundled(new Date()).then(async (daily) => {
+      await prepareHadith(daily.hadith);
       setActiveHadith((current) => current ?? daily.hadith);
     });
   }, []);
@@ -734,7 +748,8 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
           </div>
 
           <div ref={hadithBoxRef} className={`relative z-10 flex-1 min-h-0 flex flex-col justify-center overflow-hidden my-6 ${quran.active ? 'invisible' : ''}`}>
-            <div ref={hadithContentRef}>
+            {/* Its own direction: an English Hadith on an Arabic screen still reads left to right */}
+            <div ref={hadithContentRef} dir={shownHadith ? (shownHadith.isArabic ? 'rtl' : 'ltr') : undefined} lang={shownHadith ? (shownHadith.isArabic ? 'ar' : 'en') : undefined}>
               {shownHadith?.narrator && (
                 <div className="font-serif text-[34px] font-bold text-amber-300 mb-5">
                   {shownHadith.narrator}
@@ -1212,7 +1227,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
                       saveTvTopic(id);
                       closeDialog();
                       if (id) {
-                        loadRandomTopicHadith(id).then((h) => showHadith(h, false)).catch(() => {});
+                        pickRandomHadith(id).then((h) => showHadith(h, false));
                       }
                     }}
                     className={`px-6 py-5 rounded-3xl border text-[26px] font-semibold text-start cursor-pointer ${

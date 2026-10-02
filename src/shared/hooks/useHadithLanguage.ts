@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Hadith } from '../types/hadith';
-import { loadArabicText, withArabicText } from '../utils/hadithLibrary';
+import { loadArabicText, peekArabicText, withArabicText } from '../utils/hadithLibrary';
 
 export type HadithLanguage = 'en' | 'ar';
 
@@ -115,6 +115,10 @@ export function useDisplayedHadith<T extends Hadith | null>(hadith: T): { hadith
   }, [id, language]);
 
   if (!hadith || language !== 'ar') return { hadith, language, arabicUnavailable: false };
+  // Already downloaded (the TV fetches it before changing slide): no English in between
+  const known = peekArabicText(hadith);
+  if (known) return { hadith: withArabicText(hadith, known) as T, language, arabicUnavailable: false };
+  if (known === null) return { hadith, language, arabicUnavailable: true };
   if (arabic?.id === hadith.id && arabic.text) return { hadith: withArabicText(hadith, arabic.text) as T, language, arabicUnavailable: false };
   return { hadith, language, arabicUnavailable: arabic?.id === hadith.id };
 }
