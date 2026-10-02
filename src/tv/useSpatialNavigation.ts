@@ -13,7 +13,8 @@ const KEY_DIRECTIONS: Record<string, Direction> = {
 
 function isVisible(el: HTMLElement): boolean {
   const rect = el.getBoundingClientRect();
-  return rect.width > 0 && rect.height > 0;
+  // `invisible` (visibility: hidden) keeps its size but can't take focus
+  return rect.width > 0 && rect.height > 0 && getComputedStyle(el).visibility !== 'hidden';
 }
 
 /** Focusable elements in the topmost open dialog, or the whole page if none is open. */

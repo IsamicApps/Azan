@@ -420,12 +420,41 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
   }, [openDialog]);
 
   // The remote's Back button (and Esc in fullscreen) never reaches the page as a key;
-  // it navigates history. A history entry per open dialog lets Back close it.
+  // it navigates history. A history entry per open dialog lets Back close it, and one
+  // under it while the Quran plays lets Back stop the recitation:
+  // start page -> { tvQuran } -> { tvDialog }
   useEffect(() => {
-    const handlePopState = () => setOpenDialog(null);
+    const handlePopState = (e: PopStateEvent) => {
+      setOpenDialog(null);
+      if (!e.state?.tvQuran) quranRef.current.stop();
+      else if (!quranRef.current.active) window.history.back();
+    };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
+
+  // The recitation stopped (Stop, or the end of the surah): drop its history entry
+  useEffect(() => {
+    if (!quran.active && window.history.state?.tvQuran) window.history.back();
+  }, [quran.active]);
+
+  // A surah was picked: the dialog's history entry becomes the recitation's
+  // (one already exists if the Quran was playing)
+  const closeQuranDialogAndPlay = () => {
+    if (!quran.active && window.history.state?.tvDialog) {
+      window.history.replaceState({ tvQuran: true }, '');
+      setOpenDialog(null);
+    } else {
+      closeDialog();
+    }
+  };
+
+  const stopQuranFromDialog = () => {
+    const wasActive = quran.active;
+    quran.stop();
+    setOpenDialog(null);
+    if (window.history.state?.tvDialog) window.history.go(wasActive ? -2 : -1);
+  };
 
   // Stop any voice preview when the Azan dialog closes
   useEffect(() => {
@@ -1241,7 +1270,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
         </div>
       )}
 
-      {openDialog === 'quran' && <QuranDialog player={quran} i18n={i18n} onClose={closeDialog} />}
+      {openDialog === 'quran' && <QuranDialog player={quran} i18n={i18n} onClose={closeDialog} onPlay={closeQuranDialogAndPlay} onStop={stopQuranFromDialog} />}
 
       {/* Iqamah countdown after the Adhan, then "prayer in progress" (Friday Dhuhr is Jumu'ah) */}
       {(() => {

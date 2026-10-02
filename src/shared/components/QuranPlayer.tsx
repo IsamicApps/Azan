@@ -121,19 +121,33 @@ export function useQuranPlayer(): QuranPlayer {
     [updateSettings]
   );
 
+  // A TV can deliver one remote press both as a key and as a media-session action
+  const lastCommandRef = useRef({ name: '', at: 0 });
+  const isRepeat = (name: string) => {
+    const now = Date.now();
+    const repeat = lastCommandRef.current.name === name && now - lastCommandRef.current.at < 400;
+    lastCommandRef.current = { name, at: now };
+    return repeat;
+  };
+
   const toggle = useCallback(() => {
+    if (isRepeat('toggle')) return;
     const audio = audioRef.current;
-    if (!active || !audio?.src) {
+    if (!active || !audio?.src || error) {
       play();
       return;
     }
     setPausedForPrayer(false);
     if (audio.paused) audio.play().catch(() => {});
     else audio.pause();
-  }, [active, play]);
+  }, [active, error, play]);
 
-  const next = useCallback(() => play(settingsRef.current.surah >= 114 ? 1 : settingsRef.current.surah + 1), [play]);
-  const previous = useCallback(() => play(settingsRef.current.surah <= 1 ? 114 : settingsRef.current.surah - 1), [play]);
+  const next = useCallback(() => {
+    if (!isRepeat('next')) play(settingsRef.current.surah >= 114 ? 1 : settingsRef.current.surah + 1);
+  }, [play]);
+  const previous = useCallback(() => {
+    if (!isRepeat('previous')) play(settingsRef.current.surah <= 1 ? 114 : settingsRef.current.surah - 1);
+  }, [play]);
 
   const pauseForPrayer = useCallback(() => {
     const audio = audioRef.current;
@@ -160,10 +174,14 @@ export function useQuranPlayer(): QuranPlayer {
       const ms = audio.currentTime * 1000;
       const timing = timingsRef.current[verseAt(timingsRef.current, ms)];
       setVerseIndex(timing ? timing.verse - 1 : 0);
-      if (audio.duration) setProgress(audio.currentTime / audio.duration);
+      // Rounded so the screen re-renders only when the bar visibly moves
+      if (audio.duration) setProgress(Math.round((audio.currentTime / audio.duration) * 1000) / 1000);
     };
     const onEnded = () => {
-      if (settingsRef.current.continuous) nextRef.current();
+      if (settingsRef.current.continuous) {
+        lastCommandRef.current = { name: '', at: 0 };
+        nextRef.current();
+      }
       else stopRef.current();
     };
     const onError = () => {
@@ -195,7 +213,16 @@ export function useQuranPlayer(): QuranPlayer {
   // The remote's media keys (play/pause, next/previous track) through the Media Session API
   useEffect(() => {
     const session = typeof navigator !== 'undefined' ? navigator.mediaSession : undefined;
-    if (!session || !active) return;
+    if (!session) return;
+    const actions: MediaSessionAction[] = ['play', 'pause', 'nexttrack', 'previoustrack', 'stop'];
+    if (!active) {
+      // Stopped: the remote's media keys must not start it again
+      try {
+        session.metadata = null;
+        for (const action of actions) session.setActionHandler(action, null);
+      } catch {}
+      return;
+    }
     try {
       session.metadata = new MediaMetadata({ title: `${surah.ar} • ${surah.en}`, artist: reciter.name, album: 'Quran' });
       session.setActionHandler('play', toggle);
@@ -345,10 +372,13 @@ interface QuranDialogProps {
   player: QuranPlayer;
   i18n: I18n;
   onClose: () => void;
+  /** A surah was picked and is starting */
+  onPlay: () => void;
+  onStop: () => void;
 }
 
 /** Remote-friendly picker: reciter, "continue to the next surah", and the 114 surahs. */
-export const QuranDialog: React.FC<QuranDialogProps> = ({ player, i18n, onClose }) => {
+export const QuranDialog: React.FC<QuranDialogProps> = ({ player, i18n, onClose, onPlay, onStop }) => {
   const { t } = i18n;
   const currentRef = useRef<HTMLButtonElement>(null);
   const { settings } = player;
@@ -397,10 +427,7 @@ export const QuranDialog: React.FC<QuranDialogProps> = ({ player, i18n, onClose 
           </button>
           {player.active && (
             <button
-              onClick={() => {
-                player.stop();
-                onClose();
-              }}
+              onClick={onStop}
               className="flex items-center gap-3 px-7 py-5 rounded-3xl bg-rose-500/20 text-rose-200 border border-rose-500/40 text-[24px] font-semibold cursor-pointer"
             >
               <Square className="w-6 h-6" />
@@ -418,7 +445,7 @@ export const QuranDialog: React.FC<QuranDialogProps> = ({ player, i18n, onClose 
                 ref={selected ? currentRef : undefined}
                 onClick={() => {
                   player.play(s.n);
-                  onClose();
+                  onPlay();
                 }}
                 className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-start cursor-pointer border ${
                   selected ? 'bg-amber-500 text-neutral-950 border-amber-400' : 'bg-white/5 hover:bg-white/15 text-white border-white/10'
