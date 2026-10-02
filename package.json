@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "hadith:data": "node scripts/build-hadith-data.mjs",
-    "awqat:data": "node scripts/sync-awqat.mjs"
+    "awqat:data": "node scripts/sync-awqat.mjs",
+    "test": "TZ=Australia/Melbourne vitest run"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.4",
@@ -27,6 +28,7 @@
     "postcss": "^8.4.49",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.7.2",
-    "vite": "^6.0.7"
+    "vite": "^6.0.7",
+    "vitest": "^3.2.7"
   }
 }

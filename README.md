@@ -92,3 +92,7 @@ npm run build
 
 ## 📜 License
 MIT License. Content sourced from authentic public Islamic datasets.
+
+## Tests
+
+`npm test` checks prayer times for every mosque over a year, the match with Awqat, daylight saving, the Hijri calendar, the Arabic interface (every text translated, Arabic numerals) and the daily Hadith order. `.github/workflows/test.yml` runs them on every push.
