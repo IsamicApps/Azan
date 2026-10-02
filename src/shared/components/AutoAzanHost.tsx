@@ -6,7 +6,7 @@ import {
   getDuePrayer,
   MOSQUE_CHANGE_EVENT
 } from '../utils/prayerTimes';
-import { playAzan, stopAzan, getAzanSettings, claimAzanTrigger } from '../utils/azanAudio';
+import { playAzan, stopAzan, getAzanSettings, getMuezzinForPrayer, claimAzanTrigger } from '../utils/azanAudio';
 import { AzanLiveModal } from './AzanLiveModal';
 
 /**
@@ -32,7 +32,7 @@ export const AutoAzanHost: React.FC = () => {
       if (!duePrayer || !claimAzanTrigger(`${result.localDateKey}_${duePrayer.name}`)) return;
 
       setActivePrayer(duePrayer);
-      playAzan(undefined, () => {}, azanSettings.selectedMuezzin);
+      playAzan(undefined, () => {}, getMuezzinForPrayer(azanSettings, duePrayer.name));
 
       if ('Notification' in window && Notification.permission === 'granted') {
         new Notification(`Allahu Akbar • Time for ${duePrayer.name} Prayer`, {

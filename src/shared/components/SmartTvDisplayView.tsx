@@ -14,7 +14,14 @@ import {
   getAzanSettings,
   saveAzanSettings,
   AzanSettings,
-  MUEZZIN_SOURCES
+  MUEZZIN_SOURCES,
+  MuezzinId,
+  AZAN_PRAYERS,
+  AzanPrayer,
+  getMuezzinForPrayer,
+  withPrayerMuezzin,
+  playAzan,
+  stopAzan
 } from '../utils/azanAudio';
 import { speakHadith, stopSpeaking, isSpeaking } from '../utils/speech';
 import { IslamicPattern, IslamicCornerOrnament } from './IslamicPattern';
@@ -39,8 +46,13 @@ import {
   Eye,
   BookOpen,
   MapPin,
-  X
+  X,
+  Music,
+  Play,
+  Square
 } from 'lucide-react';
+
+const MUEZZIN_IDS = Object.keys(MUEZZIN_SOURCES) as MuezzinId[];
 
 interface SmartTvDisplayViewProps {
   onClose?: () => void;
@@ -63,7 +75,10 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
   const [isAutoCycling, setIsAutoCycling] = useState(true);
   const [tvTheme, setTvTheme] = useState<'obsidian' | 'emerald' | 'sapphire' | 'royal-gold'>('obsidian');
   const [driftOffset, setDriftOffset] = useState({ x: 0, y: 0 });
-  const [isMosquePickerOpen, setIsMosquePickerOpen] = useState(false);
+  const [openDialog, setOpenDialog] = useState<'mosque' | 'azan' | null>(null);
+  const isMosquePickerOpen = openDialog === 'mosque';
+  const [previewingRow, setPreviewingRow] = useState<string | null>(null);
+  const azanDialogFirstButtonRef = useRef<HTMLButtonElement>(null);
   const selectedMosqueButtonRef = useRef<HTMLButtonElement>(null);
   const hadithBoxRef = useRef<HTMLDivElement>(null);
   const hadithContentRef = useRef<HTMLDivElement>(null);
@@ -173,9 +188,9 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
         const nextIdx = (themes.indexOf(tvTheme) + 1) % themes.length;
         setTvTheme(themes[nextIdx]);
       } else if (e.key === 'Escape' || e.key === 'GoBack' || e.key === 'BrowserBack') {
-        if (isMosquePickerOpen) {
+        if (openDialog) {
           e.preventDefault();
-          closeMosquePicker();
+          closeDialog();
         } else if (onClose) {
           onClose();
         }
@@ -184,7 +199,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [azanSettings, tvTheme, onClose, isMosquePickerOpen]);
+  }, [azanSettings, tvTheme, onClose, openDialog]);
 
   useEffect(() => {
     const syncFullscreen = () => setIsFullscreen(!!document.fullscreenElement);
@@ -202,29 +217,38 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
     }
   };
 
-  // Focus the current mosque when the picker opens so the remote starts there
+  // Put the remote's focus inside a dialog when it opens
   useEffect(() => {
-    if (isMosquePickerOpen) selectedMosqueButtonRef.current?.focus();
-  }, [isMosquePickerOpen]);
+    if (openDialog === 'mosque') selectedMosqueButtonRef.current?.focus();
+    if (openDialog === 'azan') azanDialogFirstButtonRef.current?.focus();
+  }, [openDialog]);
 
   // The remote's Back button (and Esc in fullscreen) never reaches the page as a key;
-  // it navigates history. A history entry per open picker lets Back close it.
+  // it navigates history. A history entry per open dialog lets Back close it.
   useEffect(() => {
-    const handlePopState = () => setIsMosquePickerOpen(false);
+    const handlePopState = () => setOpenDialog(null);
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  const openMosquePicker = () => {
-    window.history.pushState({ tvMosquePicker: true }, '');
-    setIsMosquePickerOpen(true);
+  // Stop any voice preview when the Azan dialog closes
+  useEffect(() => {
+    if (openDialog !== 'azan' && previewingRow) {
+      stopAzan();
+      setPreviewingRow(null);
+    }
+  }, [openDialog, previewingRow]);
+
+  const openDialogOf = (kind: 'mosque' | 'azan') => {
+    window.history.pushState({ tvDialog: true }, '');
+    setOpenDialog(kind);
   };
 
-  const closeMosquePicker = () => {
-    if (window.history.state?.tvMosquePicker) {
+  const closeDialog = () => {
+    if (window.history.state?.tvDialog) {
       window.history.back();
     } else {
-      setIsMosquePickerOpen(false);
+      setOpenDialog(null);
     }
   };
 
@@ -232,8 +256,38 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
     setSelectedMosque(m);
     saveSelectedMosque(m.id);
     setPrayerData(calculateMosquePrayerTimes(m, new Date()));
-    closeMosquePicker();
+    closeDialog();
   };
+
+  const updateAzanSettings = (updated: AzanSettings) => {
+    setAzanSettings(updated);
+    saveAzanSettings(updated);
+  };
+
+  // OK on "Change" steps through the voices; a prayer's list also includes "Default"
+  const cycleDefaultMuezzin = () => {
+    const next = MUEZZIN_IDS[(MUEZZIN_IDS.indexOf(azanSettings.selectedMuezzin) + 1) % MUEZZIN_IDS.length];
+    updateAzanSettings({ ...azanSettings, selectedMuezzin: next });
+  };
+
+  const cyclePrayerMuezzin = (prayer: AzanPrayer) => {
+    const choices: (MuezzinId | null)[] = [null, ...MUEZZIN_IDS];
+    const current = azanSettings.prayerMuezzins?.[prayer] ?? null;
+    const next = choices[(choices.indexOf(current) + 1) % choices.length];
+    updateAzanSettings(withPrayerMuezzin(azanSettings, prayer, next));
+  };
+
+  const togglePreview = (row: string, muezzin: MuezzinId) => {
+    if (previewingRow === row) {
+      stopAzan();
+      setPreviewingRow(null);
+      return;
+    }
+    setPreviewingRow(row);
+    playAzan(undefined, () => setPreviewingRow((current) => (current === row ? null : current)), muezzin);
+  };
+
+  const hasCustomPrayerVoices = AZAN_PRAYERS.some((p) => azanSettings.prayerMuezzins?.[p]);
 
   const mosquesByState = getAllMosques()
     .slice()
@@ -512,18 +566,29 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
             <span>Screen kept awake</span>
           </span>
           <span>•</span>
-          <span>Muezzin: <strong className="text-amber-300">{MUEZZIN_SOURCES[azanSettings.selectedMuezzin]?.name}</strong></span>
+          <span>
+            Azan: <strong className="text-amber-300">{MUEZZIN_SOURCES[azanSettings.selectedMuezzin]?.name}</strong>
+            {hasCustomPrayerVoices && <span className="text-neutral-500"> (custom per prayer)</span>}
+          </span>
         </div>
 
         <div className="flex items-center gap-6">
           <span className="text-neutral-500 font-mono text-[16px] whitespace-nowrap">Ch +/−: Hadiths</span>
             <div className="flex items-center gap-3">
               <button
-                onClick={openMosquePicker}
+                onClick={() => openDialogOf('mosque')}
                 className="p-3 rounded-2xl bg-white/10 hover:bg-white/20 text-neutral-200 hover:text-white transition cursor-pointer"
                 title="Choose Mosque"
               >
                 <MapPin className="w-6 h-6" />
+              </button>
+
+              <button
+                onClick={() => openDialogOf('azan')}
+                className="p-3 rounded-2xl bg-white/10 hover:bg-white/20 text-neutral-200 hover:text-white transition cursor-pointer"
+                title="Azan Voices"
+              >
+                <Music className="w-6 h-6" />
               </button>
 
               <button
@@ -575,6 +640,69 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
         </div>
       </footer>
 
+      {/* Azan Voices (remote-friendly): default voice + one per prayer */}
+      {openDialog === 'azan' && (
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center px-[96px] py-[54px] bg-black/85 backdrop-blur-md">
+          <div className="w-full max-w-[1300px] max-h-full flex flex-col rounded-[36px] bg-[#10131d] border border-amber-500/30 p-10 shadow-2xl">
+            <div className="flex items-center justify-between pb-6 mb-4 border-b border-white/10">
+              <div>
+                <h3 className="font-serif text-[48px] leading-tight font-bold text-white">Azan Voices</h3>
+                <p className="text-[22px] text-neutral-400">Press OK on Change to pick a voice for each prayer</p>
+              </div>
+              <button
+                onClick={closeDialog}
+                className="p-4 rounded-2xl bg-white/10 hover:bg-white/20 text-neutral-200 cursor-pointer"
+                title="Close"
+              >
+                <X className="w-8 h-8" />
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-3 overflow-y-auto p-2">
+              {[{ key: 'default', label: 'Default (all prayers)' }, ...AZAN_PRAYERS.map((p) => ({ key: p, label: p }))].map((row, index) => {
+                const isDefaultRow = row.key === 'default';
+                const own = isDefaultRow ? null : azanSettings.prayerMuezzins?.[row.key as AzanPrayer];
+                const effective = isDefaultRow ? azanSettings.selectedMuezzin : getMuezzinForPrayer(azanSettings, row.key);
+                const isPreviewing = previewingRow === row.key;
+                return (
+                  <div
+                    key={row.key}
+                    className={`flex items-center gap-6 px-7 py-4 rounded-3xl border ${
+                      isDefaultRow ? 'bg-amber-500/10 border-amber-500/30' : 'bg-white/5 border-white/10'
+                    }`}
+                  >
+                    <div className="w-[300px] shrink-0 text-[28px] font-bold text-white">{row.label}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[26px] font-semibold text-amber-200 truncate">
+                        {MUEZZIN_SOURCES[effective].name}
+                      </div>
+                      <div className="text-[20px] text-neutral-400">
+                        {isDefaultRow ? 'Used by every prayer set to Default' : own ? MUEZZIN_SOURCES[own].location : 'Default'}
+                      </div>
+                    </div>
+                    <button
+                      ref={index === 0 ? azanDialogFirstButtonRef : undefined}
+                      onClick={() => (isDefaultRow ? cycleDefaultMuezzin() : cyclePrayerMuezzin(row.key as AzanPrayer))}
+                      className="px-7 py-4 rounded-2xl bg-white/10 hover:bg-white/20 text-[22px] font-bold text-white cursor-pointer"
+                      title={`Change ${row.label} voice`}
+                    >
+                      Change
+                    </button>
+                    <button
+                      onClick={() => togglePreview(row.key, effective)}
+                      className={`p-4 rounded-2xl cursor-pointer ${isPreviewing ? 'bg-rose-500 text-white' : 'bg-amber-500 text-neutral-950'}`}
+                      title={isPreviewing ? `Stop ${row.label} preview` : `Listen to ${row.label} voice`}
+                    >
+                      {isPreviewing ? <Square className="w-7 h-7 fill-current" /> : <Play className="w-7 h-7 fill-current" />}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Mosque Picker (remote-friendly) */}
       {isMosquePickerOpen && (
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center px-[96px] py-[54px] bg-black/85 backdrop-blur-md">
@@ -582,7 +710,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
             <div className="flex items-center justify-between pb-6 mb-6 border-b border-white/10">
               <h3 className="font-serif text-[48px] font-bold text-white">Choose Your Mosque</h3>
               <button
-                onClick={closeMosquePicker}
+                onClick={closeDialog}
                 className="p-4 rounded-2xl bg-white/10 hover:bg-white/20 text-neutral-200 cursor-pointer"
                 title="Close"
               >

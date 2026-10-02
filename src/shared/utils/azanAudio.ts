@@ -5,9 +5,16 @@
 
 export type MuezzinId = 'makkah' | 'madinah' | 'alafasy' | 'alaqsa' | 'abdulbasit' | 'chime';
 
+export type AzanPrayer = 'Fajr' | 'Dhuhr' | 'Asr' | 'Maghrib' | 'Isha';
+
+export const AZAN_PRAYERS: AzanPrayer[] = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+
 export interface AzanSettings {
   autoAzanEnabled: boolean;
+  /** Default voice for every prayer without its own choice */
   selectedMuezzin: MuezzinId;
+  /** Optional voice per prayer; a prayer left out uses selectedMuezzin */
+  prayerMuezzins?: Partial<Record<AzanPrayer, MuezzinId>>;
   volume: number; // 0.1 to 1.0
   notifyBrowser: boolean;
   lastPlayedPrayerKey?: string;
@@ -64,13 +71,35 @@ export const MUEZZIN_SOURCES: Record<MuezzinId, { name: string; subtitle: string
   }
 };
 
+function isMuezzinId(value: unknown): value is MuezzinId {
+  return typeof value === 'string' && value in MUEZZIN_SOURCES;
+}
+
 export function getAzanSettings(): AzanSettings {
   try {
     const raw = localStorage.getItem(AZAN_SETTINGS_KEY);
-    return raw ? { ...DEFAULT_AZAN_SETTINGS, ...JSON.parse(raw) } : DEFAULT_AZAN_SETTINGS;
+    const settings: AzanSettings = raw ? { ...DEFAULT_AZAN_SETTINGS, ...JSON.parse(raw) } : DEFAULT_AZAN_SETTINGS;
+    // Unknown or corrupted voice ids fall back to the Makkah default
+    if (!isMuezzinId(settings.selectedMuezzin)) settings.selectedMuezzin = DEFAULT_AZAN_SETTINGS.selectedMuezzin;
+    return settings;
   } catch {
     return DEFAULT_AZAN_SETTINGS;
   }
+}
+
+/** The voice that plays for a given prayer: its own choice, else the default (Makkah unless changed). */
+export function getMuezzinForPrayer(settings: AzanSettings, prayer: string): MuezzinId {
+  const own = settings.prayerMuezzins?.[prayer as AzanPrayer];
+  if (isMuezzinId(own)) return own;
+  return isMuezzinId(settings.selectedMuezzin) ? settings.selectedMuezzin : DEFAULT_AZAN_SETTINGS.selectedMuezzin;
+}
+
+/** Sets (or, with null, clears back to the default voice) the voice for one prayer. */
+export function withPrayerMuezzin(settings: AzanSettings, prayer: AzanPrayer, muezzin: MuezzinId | null): AzanSettings {
+  const prayerMuezzins = { ...settings.prayerMuezzins };
+  if (muezzin) prayerMuezzins[prayer] = muezzin;
+  else delete prayerMuezzins[prayer];
+  return { ...settings, prayerMuezzins };
 }
 
 export function saveAzanSettings(settings: AzanSettings): void {
@@ -111,7 +140,7 @@ export function playAzan(
   stopAzan();
 
   const settings = getAzanSettings();
-  const selectedKey = muezzinKey || settings.selectedMuezzin;
+  const selectedKey = muezzinKey || getMuezzinForPrayer(settings, '');
 
   if (selectedKey === 'chime') {
     playAcousticAdhanChime(onEnd);

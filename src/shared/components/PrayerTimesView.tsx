@@ -17,6 +17,10 @@ import {
   saveAzanSettings,
   AzanSettings,
   MUEZZIN_SOURCES,
+  AZAN_PRAYERS,
+  AzanPrayer,
+  getMuezzinForPrayer,
+  withPrayerMuezzin,
   MuezzinId
 } from '../utils/azanAudio';
 import { speakDua, stopSpeaking, isSpeaking } from '../utils/speech';
@@ -204,7 +208,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
     if (onMosqueChange) onMosqueChange(m);
   };
 
-  const handlePlayMuezzin = (muezzinId: MuezzinId) => {
+  const handlePlayMuezzin = (muezzinId: MuezzinId, prayer?: AzanPrayer) => {
     if (isPlayingAzan && currentlyPlayingMuezzin === muezzinId) {
       stopAzan();
       setIsPlayingAzan(false);
@@ -213,7 +217,11 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
     }
 
     setCurrentlyPlayingMuezzin(muezzinId);
-    setActiveAzanPrayer({ name: prayerData.nextPrayer.name, time: prayerData.nextPrayer.time });
+    setActiveAzanPrayer(
+      prayer
+        ? { name: prayer, time: prayerData[prayer.toLowerCase() as 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha'] }
+        : { name: prayerData.nextPrayer.name, time: prayerData.nextPrayer.time }
+    );
     setShowAzanLiveModal(true);
 
     playAzan(
@@ -669,6 +677,54 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
               </div>
             );
           })}
+        </div>
+
+        {/* Azan voice per prayer */}
+        <div className="space-y-2.5 pt-2">
+          <div>
+            <h4 className="text-sm font-bold text-white">Azan Voice for Each Prayer</h4>
+            <p className="text-[11px] text-neutral-400">
+              Prayers set to Default use {MUEZZIN_SOURCES[azanSettings.selectedMuezzin]?.name}.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2.5">
+            {AZAN_PRAYERS.map((prayer) => {
+              const own = azanSettings.prayerMuezzins?.[prayer];
+              const effective = getMuezzinForPrayer(azanSettings, prayer);
+              const isPlayingThis = isPlayingAzan && currentlyPlayingMuezzin === effective;
+              return (
+                <div key={prayer} className="p-3 rounded-xl bg-neutral-900/60 border border-white/5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-white">{prayer}</span>
+                    <button
+                      onClick={() => handlePlayMuezzin(effective, prayer)}
+                      className={`p-1.5 rounded-lg transition cursor-pointer ${
+                        isPlayingThis ? 'bg-rose-500 text-white animate-pulse' : 'bg-white/10 hover:bg-white/20 text-white'
+                      }`}
+                      title={isPlayingThis ? 'Stop' : `Listen to ${prayer} Azan`}
+                    >
+                      {isPlayingThis ? <Square className="w-3 h-3 fill-current" /> : <Play className="w-3 h-3 fill-current" />}
+                    </button>
+                  </div>
+                  <select
+                    value={own ?? ''}
+                    onChange={(e) => {
+                      const updated = withPrayerMuezzin(azanSettings, prayer, (e.target.value || null) as MuezzinId | null);
+                      setAzanSettings(updated);
+                      saveAzanSettings(updated);
+                    }}
+                    aria-label={`Azan voice for ${prayer}`}
+                    className="w-full bg-black/50 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-neutral-100 cursor-pointer"
+                  >
+                    <option value="">Default ({MUEZZIN_SOURCES[azanSettings.selectedMuezzin]?.name})</option>
+                    {(Object.keys(MUEZZIN_SOURCES) as MuezzinId[]).map((mId) => (
+                      <option key={mId} value={mId}>{MUEZZIN_SOURCES[mId].name}</option>
+                    ))}
+                  </select>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 
