@@ -413,7 +413,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
           {/* Bottom Hadith Reference Bar & Fasting Ribbon */}
           <div className="relative z-10 pt-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
             <div className="text-xs lg:text-sm text-neutral-300 font-mono space-x-3">
-              <span className="text-amber-400 font-semibold">Book {activeHadith.bookNumber}: {activeHadith.bookTitle}</span>
+              <span className="text-amber-400 font-semibold">Book {activeHadith.bookNumber}: {activeHadith.bookName}</span>
               <span>•</span>
               <span>Hadith #{activeHadith.hadithNumber}</span>
               <span>•</span>

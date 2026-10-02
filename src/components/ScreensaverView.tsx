@@ -58,7 +58,7 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
   const [driftOffset, setDriftOffset] = useState({ x: 0, y: 0 });
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
 
-  const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const hideTimerRef = useRef<number | null>(null);
   const wakeLockRef = useRef<any>(null);
 
   // Request WakeLock to keep screen on
