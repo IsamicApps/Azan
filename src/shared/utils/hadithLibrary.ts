@@ -22,13 +22,15 @@ interface LibraryIndex {
   chunkSize: number;
   /** [grade, category, graded by] */
   grades: [string, GradeCategory, string][];
+  /** Sorted positions graded other than Sahih or Hasan (Daʻif, Mawduʻ…); these are never shown */
+  excluded: number[];
   collections: LibraryCollection[];
 }
 
 /** [book index, number within book, narrator, English text, Arabic (only when there is no English), grade id] */
 type HadithRecord = [number, number, string, string, string?, number?];
 
-const LIBRARY_URL = `${SITE_ROOT}hadith/v2/`;
+const LIBRARY_URL = `${SITE_ROOT}hadith/v3/`;
 
 let indexPromise: Promise<LibraryIndex> | null = null;
 const chunkPromises = new Map<string, Promise<HadithRecord[]>>();
@@ -77,7 +79,7 @@ function inBookReference(collection: LibraryCollection, book: number, number: nu
   return `In-book reference: ${ref === 'introduction' ? 'Introduction' : `Book ${ref}`}, Hadith ${number}`;
 }
 
-function toHadith(index: LibraryIndex, collection: LibraryCollection, record: HadithRecord): Hadith {
+function toHadith(index: LibraryIndex, collection: LibraryCollection, record: HadithRecord, localIndex: number): Hadith {
   const [book, number, narrator, english, arabic, gradeId] = record;
   const grade = gradeId === undefined ? undefined : index.grades[gradeId];
   const isArabic = !english;
@@ -88,6 +90,7 @@ function toHadith(index: LibraryIndex, collection: LibraryCollection, record: Ha
     id: `${collection.slug}-${book + 1}-${number}`,
     collection: collection.name,
     collectionSlug: collection.slug,
+    localIndex,
     source: 'sunnah.com',
     isArabic,
     reference: inBookReference(collection, book, number),
@@ -115,11 +118,36 @@ export async function loadHadithAt(position: number): Promise<Hadith> {
   for (const collection of index.collections) {
     if (local < collection.count) {
       const records = await loadChunk(collection.slug, Math.floor(local / index.chunkSize));
-      return toHadith(index, collection, records[local % index.chunkSize]);
+      return toHadith(index, collection, records[local % index.chunkSize], local);
     }
     local -= collection.count;
   }
   throw new Error('Hadith position out of range');
+}
+
+/** How many Hadiths can be shown: Sahih, Hasan or ungraded. */
+export function shownCount(index: LibraryIndex): number {
+  return index.total - index.excluded.length;
+}
+
+/** Library position of the n-th shown Hadith (0 … shownCount-1), skipping the excluded ones. */
+export function shownPosition(index: LibraryIndex, rank: number): number {
+  const { excluded } = index;
+  const countUpTo = (p: number) => {
+    let lo = 0;
+    let hi = excluded.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (excluded[mid] <= p) lo = mid + 1;
+      else hi = mid;
+    }
+    return lo;
+  };
+  let position = rank;
+  for (let skipped = countUpTo(position); rank + skipped !== position; skipped = countUpTo(position)) {
+    position = rank + skipped;
+  }
+  return position;
 }
 
 /**
@@ -157,6 +185,38 @@ const CROSS_REFERENCE = /^[\s(\["]*(as above|see (the )?(previous|above|next) ha
 
 const dailyCache = new Map<string, DailySelection>();
 
+const arabicChunks = new Map<string, Promise<string[]>>();
+
+/** The original Arabic of a sunnah.com Hadith, or null for Hadiths outside the library or without Arabic. */
+export async function loadArabicText(h: Hadith): Promise<string | null> {
+  if (h.source !== 'sunnah.com' || !h.collectionSlug || h.localIndex === undefined) return null;
+  if (h.isArabic) return h.text;
+  const { chunkSize } = await loadLibraryIndex();
+  const key = `${h.collectionSlug}/${Math.floor(h.localIndex / chunkSize)}`;
+  let promise = arabicChunks.get(key);
+  if (!promise) {
+    promise = fetchJson<string[]>(`${LIBRARY_URL}ar/${key}.json`);
+    promise.catch(() => arabicChunks.delete(key));
+    arabicChunks.set(key, promise);
+  }
+  return (await promise)[h.localIndex % chunkSize] || null;
+}
+
+/** The Hadith with its text swapped for the Arabic original (the chain of narrators is part of the Arabic). */
+export function withArabicText(h: Hadith, arabic: string): Hadith {
+  const words = arabic.split(/\s+/).filter(Boolean);
+  const isLong = words.length > EXCERPT_WORDS + 20;
+  return {
+    ...h,
+    narrator: '',
+    text: arabic,
+    excerpt: isLong ? `${words.slice(0, EXCERPT_WORDS).join(' ')}…` : arabic,
+    isLong,
+    wordCount: words.length,
+    isArabic: true
+  };
+}
+
 /** Hadith of the Day from the full sunnah.com library — the same on every device. */
 export async function loadDailyHadith(date: Date = new Date()): Promise<DailySelection> {
   const dateString = formatDateKey(date);
@@ -164,12 +224,16 @@ export async function loadDailyHadith(date: Date = new Date()): Promise<DailySel
   if (cached) return cached;
 
   const index = await loadLibraryIndex();
-  const day = ((getDaysSinceEpoch(date) % index.total) + index.total) % index.total;
-  let position = shuffledPosition(day, index.total);
+  // Shuffle only the Hadiths that are shown (Sahih, Hasan or ungraded)
+  const count = shownCount(index);
+  const day = ((getDaysSinceEpoch(date) % count) + count) % count;
+  let rank = shuffledPosition(day, count);
+  let position = shownPosition(index, rank);
   let hadith = await loadHadithAt(position);
   // "As above" entries are replaced by the Hadith they point back to
   for (let i = 0; i < 5 && hadith.text.length < 80 && CROSS_REFERENCE.test(hadith.text); i++) {
-    position = (position - 1 + index.total) % index.total;
+    rank = (rank - 1 + count) % count;
+    position = shownPosition(index, rank);
     hadith = await loadHadithAt(position);
   }
 
@@ -199,10 +263,10 @@ export async function chunkUrlFor(position: number): Promise<string> {
   return `${LIBRARY_URL}index.json`;
 }
 
-/** Any Hadith from the whole library, chosen at random. */
+/** Any shown Hadith (Sahih, Hasan or ungraded) from the whole library, chosen at random. */
 export async function loadRandomHadith(): Promise<Hadith> {
   const index = await loadLibraryIndex();
-  return loadHadithAt(Math.floor(Math.random() * index.total));
+  return loadHadithAt(shownPosition(index, Math.floor(Math.random() * shownCount(index))));
 }
 
 /** Short human reference, e.g. "Sahih Muslim • The Book of Faith • In-book reference: Book 1, Hadith 12". */

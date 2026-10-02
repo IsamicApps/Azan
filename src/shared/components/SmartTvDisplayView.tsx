@@ -4,6 +4,8 @@ import dailyPoolData from '../data/daily_pool.json';
 import { getHijriDate } from '../utils/hijri';
 import { loadDailyHadithOrBundled, loadRandomHadith, describeHadith } from '../utils/hadithLibrary';
 import { GradeBadge } from './GradeBadge';
+import { LanguageToggle } from './LanguageToggle';
+import { useDisplayedHadith, getHadithLanguage, setHadithLanguage } from '../hooks/useHadithLanguage';
 import {
   Mosque,
   PrayerTimesResult,
@@ -230,6 +232,8 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
         const updated = { ...azanSettings, autoAzanEnabled: next };
         setAzanSettings(updated);
         saveAzanSettings(updated);
+      } else if (e.key === 'l' || e.key === 'L') {
+        setHadithLanguage(getHadithLanguage() === 'ar' ? 'en' : 'ar');
       } else if (e.key === 't' || e.key === 'T') {
         const themes: ('obsidian' | 'emerald' | 'sapphire' | 'royal-gold')[] = ['obsidian', 'emerald', 'sapphire', 'royal-gold'];
         const nextIdx = (themes.indexOf(tvTheme) + 1) % themes.length;
@@ -346,9 +350,20 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
     .sort((a, b) => a.state.localeCompare(b.state) || a.name.localeCompare(b.name));
 
 
+  // The Hadith in the chosen language; a language switch starts again from the full text
+  const { hadith: shownHadith } = useDisplayedHadith(activeHadith);
+  const fittedTextRef = useRef<string | undefined>(undefined);
+
   // Largest font (52px down to 24px) at which the whole Hadith fits its panel,
   // whatever the screen's shape — re-fitted when the Hadith or the screen changes.
   useLayoutEffect(() => {
+    if (fittedTextRef.current !== shownHadith?.text) {
+      fittedTextRef.current = shownHadith?.text;
+      if (showExcerpt) {
+        setShowExcerpt(false);
+        return;
+      }
+    }
     const fit = () => {
       const box = hadithBoxRef.current;
       const content = hadithContentRef.current;
@@ -361,14 +376,14 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
         text.style.fontSize = `${size}px`;
       }
       // Some Hadiths are pages long; show the excerpt when even the smallest size won't fit
-      if (content.offsetHeight > box.clientHeight && activeHadith?.isLong && !showExcerpt) setShowExcerpt(true);
+      if (content.offsetHeight > box.clientHeight && shownHadith?.isLong && !showExcerpt) setShowExcerpt(true);
     };
     fit();
     // Web fonts arrive after the first paint and change the text's height
     document.fonts?.ready.then(fit).catch(() => {});
     window.addEventListener('resize', fit);
     return () => window.removeEventListener('resize', fit);
-  }, [activeHadith?.id, showExcerpt]);
+  }, [shownHadith?.text, showExcerpt]);
 
   const themes = {
     obsidian: {
@@ -498,22 +513,22 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
 
           <div ref={hadithBoxRef} className="relative z-10 flex-1 min-h-0 flex flex-col justify-center overflow-hidden my-6">
             <div ref={hadithContentRef}>
-              {activeHadith?.narrator && (
+              {shownHadith?.narrator && (
                 <div className="font-serif text-[34px] font-bold text-amber-300 mb-5">
-                  {activeHadith.narrator}
+                  {shownHadith.narrator}
                 </div>
               )}
               <blockquote
                 ref={hadithTextRef}
                 data-hadith-text
-                dir={activeHadith?.isArabic ? 'rtl' : undefined}
-                className={`${activeHadith?.isArabic ? 'font-arabic' : 'font-serif'} text-[52px] leading-[1.45] text-neutral-100`}
+                dir={shownHadith?.isArabic ? 'rtl' : undefined}
+                className={`${shownHadith?.isArabic ? 'font-arabic' : 'font-serif'} text-[52px] leading-[1.45] text-neutral-100`}
               >
-                {!activeHadith
+                {!shownHadith
                   ? 'Loading the Hadith of the Day…'
-                  : activeHadith.isArabic
-                    ? (showExcerpt ? activeHadith.excerpt : activeHadith.text)
-                    : <>&ldquo;{showExcerpt ? activeHadith.excerpt : activeHadith.text}&rdquo;</>}
+                  : shownHadith.isArabic
+                    ? (showExcerpt ? shownHadith.excerpt : shownHadith.text)
+                    : <>&ldquo;{showExcerpt ? shownHadith.excerpt : shownHadith.text}&rdquo;</>}
               </blockquote>
             </div>
           </div>
@@ -647,6 +662,8 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
         <div className="flex items-center gap-6">
           <span className="text-neutral-500 font-mono text-[16px] whitespace-nowrap">Ch +/−: Hadiths</span>
             <div className="flex items-center gap-3">
+              <LanguageToggle size="tv" />
+
               <button
                 onClick={() => openDialogOf('mosque')}
                 className="p-3 rounded-2xl bg-white/10 hover:bg-white/20 text-neutral-200 hover:text-white transition cursor-pointer"

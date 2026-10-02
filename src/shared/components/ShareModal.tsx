@@ -5,6 +5,7 @@ import { IslamicPattern, IslamicCornerOrnament } from './IslamicPattern';
 import { toPng } from 'html-to-image';
 import { describeHadith, citeHadith } from '../utils/hadithLibrary';
 import { GradeBadge } from './GradeBadge';
+import { useDisplayedHadith } from '../hooks/useHadithLanguage';
 
 interface ShareModalProps {
   hadith: Hadith;
@@ -15,12 +16,13 @@ interface ShareModalProps {
 }
 
 export const ShareModal: React.FC<ShareModalProps> = ({
-  hadith,
+  hadith: sourceHadith,
   isOpen,
   onClose,
   dateString,
   hijriDate
 }) => {
+  const { hadith } = useDisplayedHadith(sourceHadith);
   const cardRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState(false);
   const [isExporting, setIsExporting] = useState(false);

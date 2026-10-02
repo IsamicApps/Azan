@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { getDaysSinceEpoch } from '../utils/dailyEngine';
-import { loadLibraryIndex, loadDailyHadith, shuffledPosition, chunkUrlFor } from '../utils/hadithLibrary';
+import { loadLibraryIndex, loadDailyHadith, shuffledPosition, shownCount, chunkUrlFor } from '../utils/hadithLibrary';
 import { CheckCircle2, XCircle, ShieldCheck, Play, RefreshCw, X, FileCheck, Layers, Globe, Database } from 'lucide-react';
 
 interface VerificationModalProps {
@@ -39,15 +39,15 @@ export const VerificationModal: React.FC<VerificationModalProps> = ({
     await run('1. sunnah.com Library', FileCheck, async () => {
       const index = await loadLibraryIndex();
       const counted = index.collections.reduce((sum, c) => sum + c.count, 0);
-      setSummary({ total: index.total, collections: index.collections.length });
+      setSummary({ total: shownCount(index), collections: index.collections.length });
       return {
         passed: counted === index.total && index.total > 0,
-        details: `${index.total.toLocaleString()} Hadiths from ${index.collections.length} sunnah.com collections: ${index.collections.map((c) => c.name).join(', ')}.`
+        details: `${index.total.toLocaleString()} Hadiths from ${index.collections.length} sunnah.com collections: ${index.collections.map((c) => c.name).join(', ')}. ${shownCount(index).toLocaleString()} are shown; ${index.excluded.length.toLocaleString()} graded Daʻif or Mawduʻ, or incomplete, are left out.`
       };
     });
 
     await run('2. Random Order Without Repeats', RefreshCw, async () => {
-      const { total } = await loadLibraryIndex();
+      const total = shownCount(await loadLibraryIndex());
       const start = getDaysSinceEpoch(new Date());
       const seen = new Set<number>();
       for (let i = 0; i < 1000; i++) seen.add(shuffledPosition((start + i) % total, total));
@@ -57,7 +57,25 @@ export const VerificationModal: React.FC<VerificationModalProps> = ({
       };
     });
 
-    await run('3. Midnight Date Rollover', Globe, async () => {
+    await run('3. Only Sahih, Hasan or Ungraded', ShieldCheck, async () => {
+      const start = new Date();
+      const days = await Promise.all(
+        Array.from({ length: 30 }, (_, i) => loadDailyHadith(new Date(start.getFullYear(), start.getMonth(), start.getDate() + i)))
+      );
+      const counts = { sahih: 0, hasan: 0, ungraded: 0, other: 0 };
+      for (const { hadith } of days) {
+        const category = hadith.grade?.category;
+        if (!category) counts.ungraded++;
+        else if (category === 'sahih' || category === 'hasan') counts[category]++;
+        else counts.other++;
+      }
+      return {
+        passed: counts.other === 0,
+        details: `The next 30 days: ${counts.sahih} Sahih, ${counts.hasan} Hasan, ${counts.ungraded} not graded${counts.other ? `, ${counts.other} with another grade` : ''}.`
+      };
+    });
+
+    await run('4. Midnight Date Rollover', Globe, async () => {
       const today = new Date();
       const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
       const [a, b] = await Promise.all([loadDailyHadith(today), loadDailyHadith(tomorrow)]);
@@ -67,7 +85,7 @@ export const VerificationModal: React.FC<VerificationModalProps> = ({
       };
     });
 
-    await run('4. Offline Copy of Today\'s Hadith', Database, async () => {
+    await run('5. Offline Copy of Today\'s Hadith', Database, async () => {
       const today = await loadDailyHadith(new Date());
       const saved = 'caches' in window ? await caches.match(await chunkUrlFor(today.index)) : undefined;
       return {
@@ -78,7 +96,7 @@ export const VerificationModal: React.FC<VerificationModalProps> = ({
       };
     });
 
-    await run('5. Long-Text Excerpt Handling', Layers, async () => {
+    await run('6. Long-Text Excerpt Handling', Layers, async () => {
       const { hadith } = await loadDailyHadith(new Date());
       const words = hadith.excerpt.split(/\s+/).length;
       return {

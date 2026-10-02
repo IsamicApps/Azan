@@ -6,6 +6,8 @@ import { speakHadith, stopSpeaking, isSpeaking } from '../utils/speech';
 import { ShareModal } from './ShareModal';
 import { describeHadith, citeHadith, describeGrade } from '../utils/hadithLibrary';
 import { GradeBadge } from './GradeBadge';
+import { LanguageToggle } from './LanguageToggle';
+import { useDisplayedHadith } from '../hooks/useHadithLanguage';
 
 interface DailyHadithCardProps {
   hadith: Hadith;
@@ -18,7 +20,7 @@ interface DailyHadithCardProps {
 }
 
 export const DailyHadithCard: React.FC<DailyHadithCardProps> = ({
-  hadith,
+  hadith: sourceHadith,
   isFav,
   onToggleFav,
   dateLabel,
@@ -26,7 +28,10 @@ export const DailyHadithCard: React.FC<DailyHadithCardProps> = ({
   onOpenScreensaver,
   textSize = 'normal'
 }) => {
-  const [showFull, setShowFull] = useState(!hadith.isLong);
+  // The Hadith in the chosen language (English or the Arabic original)
+  const { hadith, language, arabicUnavailable } = useDisplayedHadith(sourceHadith);
+  const [expanded, setExpanded] = useState(false);
+  const showFull = expanded || !hadith.isLong;
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -138,6 +143,11 @@ export const DailyHadithCard: React.FC<DailyHadithCardProps> = ({
           </div>
         </div>
 
+        {/* Language choice */}
+        <div className="relative z-10 pt-5 flex justify-end">
+          <LanguageToggle />
+        </div>
+
         {/* Narrator Section */}
         {hadith.narrator && (
           <div className="relative z-10 pt-6 pb-2">
@@ -159,7 +169,12 @@ export const DailyHadithCard: React.FC<DailyHadithCardProps> = ({
           >
             {hadith.isArabic ? (showFull ? hadith.text : hadith.excerpt) : <>&ldquo;{showFull ? hadith.text : hadith.excerpt}&rdquo;</>}
           </p>
-          {hadith.isArabic && (
+          {arabicUnavailable && (
+            <p className="mt-3 text-xs text-neutral-500 font-sans">
+              The Arabic text isn't available for this Hadith offline; the English is shown.
+            </p>
+          )}
+          {hadith.isArabic && language === 'en' && (
             <p className="mt-3 text-xs text-neutral-500 font-sans">
               sunnah.com has no English translation of this collection yet; the original Arabic is shown.
             </p>
@@ -169,7 +184,7 @@ export const DailyHadithCard: React.FC<DailyHadithCardProps> = ({
           {hadith.isLong && (
             <div className="mt-4 flex items-center">
               <button
-                onClick={() => setShowFull(!showFull)}
+                onClick={() => setExpanded(!showFull)}
                 className="inline-flex items-center space-x-2 text-sm font-sans font-semibold text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 px-4 py-2 rounded-xl border border-amber-500/30 transition-all"
               >
                 <BookOpen className="w-4 h-4" />

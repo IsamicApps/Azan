@@ -6,6 +6,7 @@ import { X, Settings2, Sun, Type, Palette, Shield, Info, Volume2, VolumeX } from
 import { speakHadith, stopSpeaking, isSpeaking } from '../utils/speech';
 import { describeHadith } from '../utils/hadithLibrary';
 import { GradeBadge } from './GradeBadge';
+import { useDisplayedHadith } from '../hooks/useHadithLanguage';
 
 interface ScreensaverViewProps {
   hadith: Hadith;
@@ -47,10 +48,11 @@ const THEME_STYLES: Record<ScreensaverTheme, { bg: string; accent: string; subAc
 };
 
 export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
-  hadith,
+  hadith: sourceHadith,
   hijriDate,
   onClose
 }) => {
+  const { hadith } = useDisplayedHadith(sourceHadith);
   const [config, setConfig] = useState<ScreensaverConfig>(getScreensaverConfig());
   const [showControls, setShowControls] = useState(true);
   const [showSettingsModal, setShowSettingsModal] = useState(false);

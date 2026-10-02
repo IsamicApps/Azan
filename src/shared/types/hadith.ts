@@ -22,6 +22,8 @@ export interface Hadith {
   reference?: string;
   /** True when sunnah.com has no English translation and `text` is the Arabic */
   isArabic?: boolean;
+  /** Position within its sunnah.com collection, used to fetch the Arabic text */
+  localIndex?: number;
   /** Authenticity grade; absent when the collection has no grades */
   grade?: HadithGrade;
 }
