@@ -6,7 +6,6 @@ import { loadArabicText, loadDailyHadithOrBundled, loadRandomHadith, loadRandomT
 import { GradeBadge } from './GradeBadge';
 import { HijriAdjust } from './HijriAdjust';
 import { PrayerPhaseOverlay, getPrayerPhase } from './PrayerPhaseOverlay';
-import { IslamicFrame } from './IslamicFrame';
 import { QuranDialog, QuranNowPlaying, useQuranPlayer } from './QuranPlayer';
 import { getHadithLanguage, useDisplayedHadith, useHadithLanguage, useUiLanguage, setUiLanguage, HadithLanguage } from '../hooks/useHadithLanguage';
 import { useI18n } from '../i18n';
@@ -646,13 +645,10 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
       className={`fixed inset-0 z-50 w-full h-full ${currentTheme.bg} text-white flex flex-col px-[72px] py-[44px] select-none overflow-hidden transition-colors duration-700`}
     >
       <IslamicPattern opacity={12} color={currentTheme.patternColor} />
-      {isFullscreen && <IslamicFrame color={currentTheme.patternColor} />}
-      {!isFullscreen && <>
       <IslamicCornerOrnament color={currentTheme.patternColor} className="absolute top-4 left-4 rotate-0 opacity-40 scale-125" />
       <IslamicCornerOrnament color={currentTheme.patternColor} className="absolute top-4 right-4 rotate-90 opacity-40 scale-125" />
       <IslamicCornerOrnament color={currentTheme.patternColor} className="absolute bottom-4 left-4 -rotate-90 opacity-40 scale-125" />
       <IslamicCornerOrnament color={currentTheme.patternColor} className="absolute bottom-4 right-4 rotate-180 opacity-40 scale-125" />
-      </>}
 
       {/* 1. HEADER: brand & mosque | dates | clock */}
       <header className="relative z-20 shrink-0 grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-12 pb-6 border-b border-white/15">
