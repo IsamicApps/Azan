@@ -20,9 +20,13 @@ export function translate(language: Language, text: string, vars?: Vars): string
 
 const ARABIC_DIGITS = '٠١٢٣٤٥٦٧٨٩';
 
-/** "04:22" -> "٠٤:٢٢", "40%" -> "٤٠٪" (Arabic-Indic numerals for the Arabic interface) */
+/** "04:22" -> "٤:٢٢", "40%" -> "٤٠٪" (Arabic-Indic numerals for the Arabic interface) */
 export function toArabicDigits(text: string): string {
-  return text.replace(/[0-9]/g, (d) => ARABIC_DIGITS[Number(d)]).replace(/%/g, '٪');
+  return text
+    // No leading zeros ("04:22" -> "4:22", "-02" -> "-2"); minutes and seconds keep theirs (":05")
+    .replace(/(^|[^0-9:.])0+([0-9])/g, '$1$2')
+    .replace(/[0-9]/g, (d) => ARABIC_DIGITS[Number(d)])
+    .replace(/%/g, '٪');
 }
 
 function toLatinDigits(text: string): string {
