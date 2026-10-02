@@ -27,6 +27,7 @@ import {
 } from './utils/azanAudio';
 import { AzanLiveModal } from './components/AzanLiveModal';
 import { AppLogo } from './components/AppLogo';
+import { SmartTvDisplayView } from './components/SmartTvDisplayView';
 import { NamesOfAllahView } from './components/NamesOfAllahView';
 import { AdhkarView } from './components/AdhkarView';
 import { HijriCalendarView } from './components/HijriCalendarView';
@@ -55,7 +56,8 @@ import {
   Clock,
   Building2,
   Heart,
-  Sun
+  Sun,
+  Tv
 } from 'lucide-react';
 
 type Tab =
@@ -82,6 +84,7 @@ export function App() {
   const [appTheme, setAppTheme] = useState<'dark' | 'light'>(getAppTheme());
 
   const [isScreensaverOpen, setIsScreensaverOpen] = useState(false);
+  const [isTvDisplayOpen, setIsTvDisplayOpen] = useState(false);
   const [isReminderOpen, setIsReminderOpen] = useState(false);
   const [isVerificationOpen, setIsVerificationOpen] = useState(false);
   const [textSize, setTextSize] = useState<'normal' | 'large'>('normal');
@@ -225,6 +228,16 @@ export function App() {
           {/* Quick Action Badges */}
           <div className="flex items-center space-x-2">
             <button
+              onClick={() => setIsTvDisplayOpen(true)}
+              className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-neutral-950 text-xs font-bold shadow-lg shadow-amber-500/20 transition cursor-pointer"
+              title="Launch Smart TV & Big Screen Landscape Mode"
+            >
+              <Tv className="w-4 h-4" />
+              <span className="hidden sm:inline">TV / Big Screen Mode</span>
+              <span className="sm:hidden">TV</span>
+            </button>
+
+            <button
               onClick={() => setActiveTab(activeTab === 'mobile-phone' ? 'today' : 'mobile-phone')}
               className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-xl border text-xs font-semibold shadow-md transition cursor-pointer ${
                 activeTab === 'mobile-phone'
@@ -234,7 +247,7 @@ export function App() {
               title="Toggle Mobile Phone Simulator"
             >
               <Smartphone className="w-4 h-4" />
-              <span>Mobile Phone View</span>
+              <span>Mobile View</span>
             </button>
 
             <button
@@ -512,6 +525,11 @@ export function App() {
           Source PDF: <a href="https://d1.islamhouse.com/data/en/ih_books/single/en_Sahih_Al-Bukhari.pdf" target="_blank" rel="noopener noreferrer" className="underline hover:text-amber-400">IslamHouse 1,700-page verified edition</a>
         </div>
       </footer>
+
+      {/* Full-Screen Smart TV & Big Screen Landscape View */}
+      {isTvDisplayOpen && (
+        <SmartTvDisplayView onClose={() => setIsTvDisplayOpen(false)} />
+      )}
 
       {/* Full-Screen Ambient Screensaver View */}
       {isScreensaverOpen && (
