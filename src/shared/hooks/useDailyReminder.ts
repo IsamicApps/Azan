@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { getReminderConfig } from '../utils/storage';
 import { getDailyHadith, formatDateKey } from '../utils/dailyEngine';
+import { showNotification } from '../utils/notify';
 
 const REMINDER_SENT_KEY = 'daily_hadith_reminder_last_sent_v1';
 
@@ -24,7 +25,7 @@ export function useDailyReminder(): void {
       } catch {}
 
       const today = getDailyHadith(now).hadith;
-      new Notification('Daily Hadith Reminder', {
+      showNotification('Daily Hadith Reminder', {
         body: today.excerpt.length > 180 ? `${today.excerpt.slice(0, 177)}...` : today.excerpt,
         icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><polygon points="50,5 61,35 95,35 68,57 79,91 50,70 21,91 32,57 5,35 39,35" fill="%23d9ab3d"/></svg>'
       });

@@ -21,7 +21,8 @@ import {
   getMuezzinForPrayer,
   withPrayerMuezzin,
   playAzan,
-  stopAzan
+  stopAzan,
+  getAzanPlayCount
 } from '../utils/azanAudio';
 import { speakHadith, stopSpeaking, isSpeaking } from '../utils/speech';
 import { IslamicPattern, IslamicCornerOrnament } from './IslamicPattern';
@@ -78,6 +79,8 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
   const [openDialog, setOpenDialog] = useState<'mosque' | 'azan' | null>(null);
   const isMosquePickerOpen = openDialog === 'mosque';
   const [previewingRow, setPreviewingRow] = useState<string | null>(null);
+  // playAzan() count of the running preview; a newer count means the real Azan took over
+  const previewPlayRef = useRef(0);
   const azanDialogFirstButtonRef = useRef<HTMLButtonElement>(null);
   const selectedMosqueButtonRef = useRef<HTMLButtonElement>(null);
   const hadithBoxRef = useRef<HTMLDivElement>(null);
@@ -234,10 +237,15 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
   // Stop any voice preview when the Azan dialog closes
   useEffect(() => {
     if (openDialog !== 'azan' && previewingRow) {
-      stopAzan();
-      setPreviewingRow(null);
+      stopPreview();
     }
   }, [openDialog, previewingRow]);
+
+  // Stops only the preview, never a prayer's Azan that started since
+  const stopPreview = () => {
+    if (getAzanPlayCount() === previewPlayRef.current) stopAzan();
+    setPreviewingRow(null);
+  };
 
   const openDialogOf = (kind: 'mosque' | 'azan') => {
     window.history.pushState({ tvDialog: true }, '');
@@ -279,12 +287,12 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
 
   const togglePreview = (row: string, muezzin: MuezzinId) => {
     if (previewingRow === row) {
-      stopAzan();
-      setPreviewingRow(null);
+      stopPreview();
       return;
     }
     setPreviewingRow(row);
     playAzan(undefined, () => setPreviewingRow((current) => (current === row ? null : current)), muezzin);
+    previewPlayRef.current = getAzanPlayCount();
   };
 
   const hasCustomPrayerVoices = AZAN_PRAYERS.some((p) => azanSettings.prayerMuezzins?.[p]);
@@ -311,6 +319,8 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
       }
     };
     fit();
+    // Web fonts arrive after the first paint and change the text's height
+    document.fonts?.ready.then(fit).catch(() => {});
     window.addEventListener('resize', fit);
     return () => window.removeEventListener('resize', fit);
   }, [activeHadith.id]);

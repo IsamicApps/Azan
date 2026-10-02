@@ -72,7 +72,7 @@ export const MUEZZIN_SOURCES: Record<MuezzinId, { name: string; subtitle: string
 };
 
 function isMuezzinId(value: unknown): value is MuezzinId {
-  return typeof value === 'string' && value in MUEZZIN_SOURCES;
+  return typeof value === 'string' && Object.prototype.hasOwnProperty.call(MUEZZIN_SOURCES, value);
 }
 
 export function getAzanSettings(): AzanSettings {
@@ -128,6 +128,12 @@ let activeAudio: HTMLAudioElement | null = null;
 let audioContextInstance: AudioContext | null = null;
 let chimeOscillators: OscillatorNode[] = [];
 let chimeEndTimer: ReturnType<typeof setTimeout> | null = null;
+// Increases with every playAzan() call, so a caller can tell whether its own Azan is still the one playing
+let playCount = 0;
+
+export function getAzanPlayCount(): number {
+  return playCount;
+}
 
 /**
  * Plays the authentic vocal Azan audio with callback handlers
@@ -138,6 +144,7 @@ export function playAzan(
   muezzinKey?: MuezzinId
 ): boolean {
   stopAzan();
+  playCount += 1;
 
   const settings = getAzanSettings();
   const selectedKey = muezzinKey || getMuezzinForPrayer(settings, '');

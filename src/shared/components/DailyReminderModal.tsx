@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ReminderConfig } from '../types/hadith';
 import { saveReminderConfig } from '../utils/storage';
+import { showNotification } from '../utils/notify';
 import { Bell, Clock, Check, X, Volume2, ShieldCheck, AlertCircle } from 'lucide-react';
 
 interface DailyReminderModalProps {
@@ -65,7 +66,7 @@ export const DailyReminderModal: React.FC<DailyReminderModalProps> = ({
 
   const triggerTestNotification = () => {
     if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification('Daily Hadith Reminder', {
+      showNotification('Daily Hadith Reminder', {
         body: 'Today\'s wisdom from Sahih al-Bukhari is ready for you.',
         icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><polygon points="50,5 61,35 95,35 68,57 79,91 50,70 21,91 32,57 5,35 39,35" fill="%23d9ab3d"/></svg>'
       });

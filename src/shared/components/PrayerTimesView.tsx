@@ -243,9 +243,12 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
       setIsPlayingAzan(false);
       setCurrentlyPlayingMuezzin(null);
     } else {
-      handlePlayMuezzin(azanSettings.selectedMuezzin);
+      handlePlayMuezzin(nextPrayerMuezzin);
     }
   };
+
+  // The voice that will play for the upcoming prayer (Sunrise has no Azan, so it shows the default)
+  const nextPrayerMuezzin = getMuezzinForPrayer(azanSettings, prayerData.nextPrayer.name);
 
   const updateAzanSetting = (patch: Partial<AzanSettings>) => {
     const updated = { ...azanSettings, ...patch };
@@ -483,7 +486,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
             <span className={`inline-block w-2 h-2 rounded-full ${azanSettings.autoAzanEnabled ? 'bg-emerald-400 animate-ping' : 'bg-neutral-500'}`} />
             <span className="text-neutral-300">
               {azanSettings.autoAzanEnabled
-                ? `Auto-Azan enabled (${MUEZZIN_SOURCES[azanSettings.selectedMuezzin]?.name})`
+                ? `Auto-Azan enabled (${MUEZZIN_SOURCES[nextPrayerMuezzin].name})`
                 : 'Auto Azan is paused'}
             </span>
           </div>
@@ -510,7 +513,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
             }`}
           >
             {isPlayingAzan ? <Square className="w-4 h-4 fill-current" /> : <Volume2 className="w-4 h-4" />}
-            <span>{isPlayingAzan ? 'Stop Playing Azan' : `Play Azan (${MUEZZIN_SOURCES[azanSettings.selectedMuezzin]?.name})`}</span>
+            <span>{isPlayingAzan ? 'Stop Playing Azan' : `Play Azan (${MUEZZIN_SOURCES[nextPrayerMuezzin].name})`}</span>
           </button>
         </div>
       </div>

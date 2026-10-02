@@ -1,5 +1,5 @@
-// Service Worker for Daily Hadith & Azan (v5 Network-First) — serves both the mobile and TV apps
-const CACHE_NAME = 'daily-hadith-azan-v5';
+// Service Worker for Daily Hadith & Azan (v6 Network-First) — serves both the mobile and TV apps
+const CACHE_NAME = 'daily-hadith-azan-v6';
 
 const ESSENTIAL_ASSETS = [
   './',
@@ -75,6 +75,17 @@ self.addEventListener('fetch', (event) => {
       }).catch(() => {
         return new Response('', { status: 408, statusText: 'Offline' });
       });
+    })
+  );
+});
+
+// Tapping a prayer or reminder notification brings the app back to the front
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
+      const open = windows.find((client) => 'focus' in client);
+      return open ? open.focus() : self.clients.openWindow(self.registration.scope);
     })
   );
 });

@@ -7,6 +7,7 @@ import {
   MOSQUE_CHANGE_EVENT
 } from '../utils/prayerTimes';
 import { playAzan, stopAzan, getAzanSettings, getMuezzinForPrayer, claimAzanTrigger } from '../utils/azanAudio';
+import { showNotification } from '../utils/notify';
 import { AzanLiveModal } from './AzanLiveModal';
 
 /**
@@ -34,12 +35,10 @@ export const AutoAzanHost: React.FC = () => {
       setActivePrayer(duePrayer);
       playAzan(undefined, () => {}, getMuezzinForPrayer(azanSettings, duePrayer.name));
 
-      if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification(`Allahu Akbar • Time for ${duePrayer.name} Prayer`, {
-          body: `Prayer time has arrived at ${selectedMosque.name} (${selectedMosque.suburb}).`,
-          icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="%23d4af37"/></svg>'
-        });
-      }
+      showNotification(`Allahu Akbar • Time for ${duePrayer.name} Prayer`, {
+        body: `Prayer time has arrived at ${selectedMosque.name} (${selectedMosque.suburb}).`,
+        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="%23d4af37"/></svg>'
+      });
     }, 1000);
 
     return () => clearInterval(timer);
