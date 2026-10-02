@@ -1,4 +1,4 @@
-import { getHadithLanguage } from '../hooks/useHadithLanguage';
+import { getUiLanguage } from '../hooks/useHadithLanguage';
 /**
  * Calm and dignified speech synthesis helper for reading Hadith text.
  */
@@ -91,7 +91,7 @@ export function speakDua(
     };
     // In the Arabic interface the Arabic is enough; otherwise the English follows
     arUtterance.onend = () => {
-      if (getHadithLanguage() === 'ar' || !englishTranslation.trim()) finish();
+      if (getUiLanguage() === 'ar' || !englishTranslation.trim()) finish();
       else window.speechSynthesis.speak(enUtterance);
     };
     arUtterance.onerror = finish;

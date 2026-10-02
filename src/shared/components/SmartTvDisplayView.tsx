@@ -4,10 +4,9 @@ import dailyPoolData from '../data/daily_pool.json';
 import { getHijriDate } from '../utils/hijri';
 import { loadDailyHadithOrBundled, loadRandomHadith, loadRandomTopicHadith, loadTopics, HadithTopic, describeHadith } from '../utils/hadithLibrary';
 import { GradeBadge } from './GradeBadge';
-import { LanguageToggle } from './LanguageToggle';
 import { HijriAdjust } from './HijriAdjust';
 import { PrayerPhaseOverlay, getPrayerPhase } from './PrayerPhaseOverlay';
-import { useDisplayedHadith, getHadithLanguage, setHadithLanguage } from '../hooks/useHadithLanguage';
+import { useDisplayedHadith, useHadithLanguage, useUiLanguage, setUiLanguage, HadithLanguage } from '../hooks/useHadithLanguage';
 import { useI18n } from '../i18n';
 import {
   Mosque,
@@ -81,6 +80,7 @@ import {
   Timer,
   SunDim,
   Megaphone,
+  Languages,
   Trash2,
   Plus
 } from 'lucide-react';
@@ -139,7 +139,11 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
   })();
   const [tvTheme, setTvTheme] = useState<TvTheme>(getTvTheme);
   const [driftOffset, setDriftOffset] = useState({ x: 0, y: 0 });
-  const [openDialog, setOpenDialog] = useState<'mosque' | 'azan' | 'notices' | 'topic' | null>(null);
+  const [openDialog, setOpenDialog] = useState<'mosque' | 'azan' | 'notices' | 'topic' | 'language' | null>(null);
+  // Screen and Hadith languages, chosen separately on the TV
+  const uiLanguage = useUiLanguage();
+  const [hadithLanguage, setHadithLanguage] = useHadithLanguage();
+  const languageFirstButtonRef = useRef<HTMLButtonElement>(null);
   // Slides from one topic (or the whole library)
   const [topic, setTopic] = useState<string | null>(getTvTopic);
   const topicRef = useRef(topic);
@@ -331,7 +335,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
         setAzanSettings(updated);
         saveAzanSettings(updated);
       } else if (e.key === 'l' || e.key === 'L') {
-        setHadithLanguage(getHadithLanguage() === 'ar' ? 'en' : 'ar');
+        openDialogOf('language');
       } else if (e.key === 's' || e.key === 'S') {
         cycleSlideSpeed();
       } else if (e.key === 'b' || e.key === 'B') {
@@ -374,6 +378,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
     if (openDialog === 'azan') azanDialogFirstButtonRef.current?.focus();
     if (openDialog === 'notices') noticeInputRef.current?.focus();
     if (openDialog === 'topic') topicButtonRef.current?.focus();
+    if (openDialog === 'language') languageFirstButtonRef.current?.focus();
   }, [openDialog]);
 
   // The remote's Back button (and Esc in fullscreen) never reaches the page as a key;
@@ -397,7 +402,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
     setPreviewingRow(null);
   };
 
-  const openDialogOf = (kind: 'mosque' | 'azan' | 'notices' | 'topic') => {
+  const openDialogOf = (kind: 'mosque' | 'azan' | 'notices' | 'topic' | 'language') => {
     window.history.pushState({ tvDialog: true }, '');
     setOpenDialog(kind);
   };
@@ -822,7 +827,16 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
 
         <div className="flex items-center gap-6">
             <div className="flex items-center gap-3">
-              <LanguageToggle size="tv" />
+              <button
+                onClick={() => openDialogOf('language')}
+                className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-neutral-200 hover:text-white text-[20px] font-semibold whitespace-nowrap transition cursor-pointer"
+                title={t('Language [L]')}
+              >
+                <Languages className="w-6 h-6" />
+                <span>{uiLanguage === 'ar' ? 'العربية' : 'English'}</span>
+                <span className="text-neutral-500">•</span>
+                <span className="text-amber-300">{t('Hadith')}: {hadithLanguage === 'ar' ? 'العربية' : 'English'}</span>
+              </button>
 
               <button
                 onClick={cycleSlideSpeed}
@@ -1037,6 +1051,50 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
                   >
                     <Trash2 className="w-7 h-7" />
                   </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Language: the screen and the Hadith text separately */}
+      {openDialog === 'language' && (
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center px-[96px] py-[54px] bg-black/85 backdrop-blur-md">
+          <div className="w-full max-w-[1100px] max-h-full flex flex-col rounded-[36px] bg-[var(--tv-dialog)] border border-amber-500/30 p-10 shadow-2xl">
+            <div className="flex items-center justify-between pb-6 mb-6 border-b border-white/10">
+              <div>
+                <h3 className="font-serif text-[48px] leading-tight font-bold text-white">{t('Language')}</h3>
+                <p className="text-[22px] text-neutral-400">{t('Choose what is shown in Arabic')}</p>
+              </div>
+              <button onClick={closeDialog} className="p-4 rounded-2xl bg-white/10 hover:bg-white/20 text-neutral-200 cursor-pointer" title={t('Close')}>
+                <X className="w-8 h-8" />
+              </button>
+            </div>
+            <div className="flex flex-col gap-6">
+              {(
+                [
+                  { label: t('Screen (menus, prayer times, dates)'), value: uiLanguage, set: setUiLanguage },
+                  { label: t('Hadith text'), value: hadithLanguage, set: setHadithLanguage }
+                ] as { label: string; value: HadithLanguage; set: (l: HadithLanguage) => void }[]
+              ).map((row, rowIndex) => (
+                <div key={rowIndex} className="flex items-center justify-between gap-6 px-7 py-5 rounded-3xl bg-white/5 border border-white/10">
+                  <span className="text-[28px] font-semibold text-white">{row.label}</span>
+                  <div className="flex gap-3">
+                    {(['en', 'ar'] as const).map((lang, i) => (
+                      <button
+                        key={lang}
+                        ref={rowIndex === 0 && i === 0 ? languageFirstButtonRef : undefined}
+                        onClick={() => row.set(lang)}
+                        aria-pressed={row.value === lang}
+                        className={`px-8 py-4 rounded-2xl text-[26px] font-bold cursor-pointer ${lang === 'ar' ? 'font-arabic' : ''} ${
+                          row.value === lang ? 'bg-amber-500 text-neutral-950' : 'bg-white/10 hover:bg-white/20 text-white'
+                        }`}
+                      >
+                        {lang === 'ar' ? 'العربية' : 'English'}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>

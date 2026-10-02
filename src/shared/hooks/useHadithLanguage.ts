@@ -41,6 +41,58 @@ export function useHadithLanguage(): [HadithLanguage, (language: HadithLanguage)
 }
 
 /**
+ * Interface (screen) language. On the phone it is the same as the Hadith language;
+ * on the TV it can be chosen separately (an Arabic Hadith on an English screen, or
+ * the other way round); it starts as the language the TV already had.
+ */
+const UI_KEY = 'daily_hadith_tv_ui_language';
+const UI_EVENT = 'ui-language-change';
+let separateUiLanguage = false;
+
+/** Called by the TV app before it renders. */
+export function enableSeparateUiLanguage(): void {
+  separateUiLanguage = true;
+  // Start from the current language, then the two are independent
+  try {
+    if (!localStorage.getItem(UI_KEY)) localStorage.setItem(UI_KEY, getHadithLanguage());
+  } catch {}
+}
+
+export function getUiLanguage(): HadithLanguage {
+  if (separateUiLanguage) {
+    try {
+      const saved = localStorage.getItem(UI_KEY);
+      if (saved === 'ar' || saved === 'en') return saved;
+    } catch {}
+  }
+  return getHadithLanguage();
+}
+
+export function setUiLanguage(language: HadithLanguage): void {
+  try {
+    localStorage.setItem(UI_KEY, language);
+  } catch {}
+  window.dispatchEvent(new CustomEvent(UI_EVENT, { detail: language }));
+}
+
+/** The interface language, updated when either choice changes. */
+export function useUiLanguage(): HadithLanguage {
+  const [language, setLanguage] = useState<HadithLanguage>(getUiLanguage);
+  useEffect(() => {
+    const sync = () => setLanguage(getUiLanguage());
+    window.addEventListener(UI_EVENT, sync);
+    window.addEventListener(CHANGE_EVENT, sync);
+    window.addEventListener('storage', sync);
+    return () => {
+      window.removeEventListener(UI_EVENT, sync);
+      window.removeEventListener(CHANGE_EVENT, sync);
+      window.removeEventListener('storage', sync);
+    };
+  }, []);
+  return language;
+}
+
+/**
  * The Hadith as it should be displayed in the chosen language. In Arabic mode the
  * English is shown until the Arabic has loaded, and stays when there is no Arabic
  * (the bundled offline Bukhari collection); `arabicUnavailable` is then true.

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { HadithLanguage, getHadithLanguage, useHadithLanguage } from './hooks/useHadithLanguage';
+import { HadithLanguage, getUiLanguage, useUiLanguage } from './hooks/useHadithLanguage';
 import { AR } from './i18n.ar';
 
 /**
@@ -224,20 +224,20 @@ export function makeI18n(language: Language): I18n {
 
 /** Translation helpers for the chosen language; re-renders when it changes. */
 export function useI18n(): I18n {
-  const [language] = useHadithLanguage();
+  const language = useUiLanguage();
   return makeI18n(language);
 }
 
 /** For code outside React (notifications, document title, spoken text). */
 export function currentI18n(): I18n {
-  return makeI18n(getHadithLanguage());
+  return makeI18n(getUiLanguage());
 }
 
 let originalTitle = '';
 
 /** Keeps <html lang dir> and the page title in step with the chosen language (right-to-left for Arabic). */
 export function useDocumentLanguage(): void {
-  const [language] = useHadithLanguage();
+  const language = useUiLanguage();
   useEffect(() => {
     document.documentElement.lang = language === 'ar' ? 'ar' : 'en';
     document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
