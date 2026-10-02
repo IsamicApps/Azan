@@ -62,7 +62,9 @@ export function useSpatialNavigation(): void {
       if (!dir) return;
 
       const target = e.target as HTMLElement | null;
-      if (target && (target.tagName === 'INPUT' || target.tagName === 'SELECT')) return;
+      // Left/right move the cursor in a text box; up/down still leave it
+      if (target?.tagName === 'SELECT') return;
+      if (target?.tagName === 'INPUT' && (dir === 'left' || dir === 'right')) return;
 
       const candidates = getCandidates();
       if (candidates.length === 0) return;

@@ -51,13 +51,33 @@ const DEFAULT_MOSQUE_ID = 'amssa';
 /** Awqat's site-wide default (hijridate.js) for mosques that aren't on Awqat */
 const DEFAULT_OFFSET = 1;
 
-/** Days the selected mosque's Awqat page adds to the arithmetic calendar. */
+const ADJUST_KEY = 'daily_hadith_hijri_adjust';
+export const HIJRI_ADJUST_EVENT = 'hijri-adjust-change';
+
+/** The user's own correction (−2…+2 days), e.g. when the local moonsighting differs. */
+export function getHijriAdjustment(): number {
+  try {
+    const n = Number(localStorage.getItem(ADJUST_KEY));
+    return Number.isInteger(n) && Math.abs(n) <= 2 ? n : 0;
+  } catch {
+    return 0;
+  }
+}
+
+export function setHijriAdjustment(days: number): void {
+  try {
+    localStorage.setItem(ADJUST_KEY, String(Math.max(-2, Math.min(2, Math.round(days)))));
+  } catch {}
+  window.dispatchEvent(new Event(HIJRI_ADJUST_EVENT));
+}
+
+/** Days added to the arithmetic calendar: the selected mosque's Awqat offset plus the user's correction. */
 export function getHijriOffset(): number {
   let id = DEFAULT_MOSQUE_ID;
   try {
     id = localStorage.getItem(SELECTED_MOSQUE_KEY) || DEFAULT_MOSQUE_ID;
   } catch {}
-  return getAwqatHijriOffset(id) ?? DEFAULT_OFFSET;
+  return (getAwqatHijriOffset(id) ?? DEFAULT_OFFSET) + getHijriAdjustment();
 }
 
 /**

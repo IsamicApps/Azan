@@ -35,8 +35,16 @@ export interface PrayerTimesResult {
   iftarTime: string;
   /** Iqamah time per prayer ("05:00 AM"), when the mosque has one */
   iqama: Partial<Record<IqamaPrayer, string>>;
+  /** Iqamah per prayer as minutes after local midnight */
+  iqamaMinutes: Partial<Record<IqamaPrayer, number>>;
+  /** Adhan per prayer as minutes after local midnight */
+  adhanMinutes: Record<IqamaPrayer, number>;
+  /** Prayers whose published Iqamah looks out of date: "check with the mosque" */
+  iqamaCheck: Partial<Record<IqamaPrayer, true>>;
   /** Jumu'ah times: the mosque's Awqat notice, else the app's list */
   jumuah: string;
+  /** Friday at the mosque: Dhuhr is Jumu'ah */
+  isFriday: boolean;
   /** 'awqat' when the times come from awqat.com.au, 'calculated' otherwise */
   timesSource: 'awqat' | 'calculated';
   /** True while the next Suhoor/Iftar belongs to a Ramadan fast (from Maghrib before 1 Ramadan until Iftar on its last day) */
@@ -412,8 +420,12 @@ export function calculateMosquePrayerTimes(
     suhoorEndTime: fObj.formatted,
     iftarTime: mObj.formatted,
     iqama,
+    iqamaMinutes: Object.fromEntries(Object.entries(iqamaFor).filter(([, m]) => m !== undefined)) as Partial<Record<IqamaPrayer, number>>,
+    adhanMinutes: { Fajr: fObj.totalMinutes, Dhuhr: dObj.totalMinutes, Asr: aObj.totalMinutes, Maghrib: mObj.totalMinutes, Isha: iObj.totalMinutes },
+    iqamaCheck: awqat?.iqamaCheck ?? {},
     jumuah: getMosqueJumuah(currentMosque),
     timesSource: awqat ? 'awqat' : 'calculated',
+    isFriday: new Date(Date.UTC(clock.year, clock.month - 1, clock.day)).getUTCDay() === 5,
     isRamadan,
     nextFastingEvent: {
       type: fastType,

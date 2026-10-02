@@ -49,6 +49,8 @@ export interface AwqatDay {
   times: number[];
   /** Iqamah per prayer, minutes after local midnight */
   iqama: Partial<Record<IqamaPrayer, number>>;
+  /** Prayers whose Awqat Iqamah is outside its prayer time (an out-of-season fixed time) */
+  iqamaCheck: Partial<Record<IqamaPrayer, true>>;
 }
 
 export function hasAwqat(mosqueId: string): boolean {
@@ -145,15 +147,21 @@ export function getAwqatDay(mosqueId: string, year: number, month: number, day: 
   const times = standard.map((t, i) => t + dst + (mosque.adjust[i] ?? 0));
 
   const iqama: AwqatDay['iqama'] = {};
+  const iqamaCheck: AwqatDay['iqamaCheck'] = {};
   const adhanIndex: Record<IqamaPrayer, number> = { Fajr: 0, Dhuhr: 2, Asr: 3, Maghrib: 4, Isha: 5 };
   for (const entry of mosque.iqama ?? []) {
     const name = entry.name as IqamaPrayer;
     const adhan = times[adhanIndex[name]];
     if (adhan === undefined) continue;
     const at = entry.fixed ? fixedTimeMinutes(entry.fixed, adhan) : adhan + (entry.after ?? 0);
-    if (at !== null && Number.isFinite(at)) iqama[name] = at;
+    if (at === null || !Number.isFinite(at)) continue;
+    // Must fall within the prayer's own time: after its Adhan, before the next one
+    // (sunrise for Fajr, midnight for Isha). Otherwise the mosque's fixed time is stale.
+    const end = name === 'Isha' ? 24 * 60 : times[adhanIndex[name] + 1];
+    if (at < adhan || at >= end) iqamaCheck[name] = true;
+    else iqama[name] = at;
   }
-  return { times, iqama };
+  return { times, iqama, iqamaCheck };
 }
 
 /** Jumu'ah times from the mosque's Awqat notice, e.g. "12:30PM & 1:15PM", when it gives them. */

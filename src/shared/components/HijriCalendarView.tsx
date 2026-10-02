@@ -1,13 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { IslamicPattern, IslamicCornerOrnament } from './IslamicPattern';
 import { getHijriDate } from '../utils/hijri';
 import { Calendar, Sparkles, Moon, Sun, Heart, Info, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useI18n } from '../i18n';
+import { HijriAdjust } from './HijriAdjust';
+import { HIJRI_ADJUST_EVENT } from '../utils/hijri';
 
 export const HijriCalendarView: React.FC = () => {
   const i18n = useI18n();
   const { t } = i18n;
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  // Re-render when the Hijri adjustment changes
+  const [, setAdjustVersion] = useState(0);
+  useEffect(() => {
+    const bump = () => setAdjustVersion((v) => v + 1);
+    window.addEventListener(HIJRI_ADJUST_EVENT, bump);
+    return () => window.removeEventListener(HIJRI_ADJUST_EVENT, bump);
+  }, []);
   const today = new Date();
 
   const hijriObj = getHijriDate(selectedDate);
@@ -89,6 +98,7 @@ export const HijriCalendarView: React.FC = () => {
             <p className="text-xs md:text-sm text-neutral-300">
               {t('Gregorian:')} <span className="text-amber-300 font-semibold">{gregFormatted}</span>
             </p>
+            <HijriAdjust />
           </div>
 
           <div className="flex items-center space-x-2 self-start md:self-auto">

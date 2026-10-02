@@ -34,7 +34,8 @@ export function describeSlideSeconds(seconds: SlideSeconds): string {
 }
 
 /** TV screen brightness in percent. Pages can't change the TV's backlight, so lower levels dim the picture. */
-export const BRIGHTNESS_LEVELS = [100, 85, 70, 55, 40, 25] as const;
+/** 'auto' = full by day, dimmed at night (after Isha until before Fajr) */
+export const BRIGHTNESS_LEVELS = [100, 85, 70, 55, 40, 25, 'auto'] as const;
 export type BrightnessLevel = (typeof BRIGHTNESS_LEVELS)[number];
 
 const BRIGHTNESS_KEY = 'daily_hadith_tv_brightness';
@@ -143,4 +144,22 @@ export function tvThemeVariables(accent: keyof typeof ACCENT_PALETTES | null, su
   }
   for (const [name, color] of Object.entries(surfaces)) vars[`--tv-${name}`] = color;
   return vars;
+}
+
+const ANNOUNCEMENTS_KEY = 'daily_hadith_tv_announcements';
+
+/** Mosque notices shown on the TV between Hadiths (stored on this TV). */
+export function getAnnouncements(): string[] {
+  try {
+    const list = JSON.parse(localStorage.getItem(ANNOUNCEMENTS_KEY) || '[]');
+    return Array.isArray(list) ? list.filter((x) => typeof x === 'string' && x.trim()).slice(0, 10) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveAnnouncements(list: string[]): void {
+  try {
+    localStorage.setItem(ANNOUNCEMENTS_KEY, JSON.stringify(list.slice(0, 10)));
+  } catch {}
 }

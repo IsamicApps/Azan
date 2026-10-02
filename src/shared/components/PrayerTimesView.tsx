@@ -483,7 +483,10 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
           </div>
 
           <h2 className="font-serif text-3xl md:text-5xl font-bold text-white">
-            {t('{prayer} at {time}', { prayer: i18n.prayer(prayerData.nextPrayer.name), time: i18n.time(prayerData.nextPrayer.time) })}
+            {t('{prayer} at {time}', {
+              prayer: i18n.prayer(prayerData.isFriday && prayerData.nextPrayer.name === 'Dhuhr' ? "Jumu'ah" : prayerData.nextPrayer.name),
+              time: i18n.time(prayerData.nextPrayer.time)
+            })}
           </h2>
 
           <p className="text-xs md:text-sm text-neutral-300">
@@ -769,12 +772,20 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
               </div>
 
               <div className="space-y-0.5">
-                <div className="font-semibold text-xs text-neutral-300">{i18n.prayer(p.name)}</div>
+                <div className="font-semibold text-xs text-neutral-300">{i18n.prayer(prayerData.isFriday && p.key === 'Dhuhr' ? "Jumu'ah" : p.name)}</div>
                 <div className="font-mono text-base md:text-lg font-bold text-white">{i18n.time(p.time)}</div>
               </div>
 
               <div className="pt-2 border-t border-white/5 text-[10px] text-neutral-400">
-                {p.iqama ? `${t('Iqamah')} ${i18n.time(p.iqama)}` : p.key === 'Sunrise' ? t('Sunrise') : `${t('Iqamah')} —`}
+                {prayerData.isFriday && p.key === 'Dhuhr'
+                  ? i18n.time(prayerData.jumuah)
+                  : p.iqama
+                  ? `${t('Iqamah')} ${i18n.time(p.iqama)}`
+                  : p.key === 'Sunrise'
+                    ? t('Sunrise')
+                    : prayerData.iqamaCheck[p.key as keyof typeof prayerData.iqamaCheck]
+                      ? t('Iqamah: check with the mosque')
+                      : `${t('Iqamah')} —`}
               </div>
             </div>
           );
