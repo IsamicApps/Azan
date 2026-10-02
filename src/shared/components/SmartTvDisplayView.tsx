@@ -7,7 +7,8 @@ import {
   PrayerTimesResult,
   calculateMosquePrayerTimes,
   getSelectedMosque,
-  getAllMosques
+  getAllMosques,
+  saveSelectedMosque
 } from '../utils/prayerTimes';
 import {
   getAzanSettings,
@@ -36,7 +37,9 @@ import {
   Sun,
   Moon,
   Eye,
-  BookOpen
+  BookOpen,
+  MapPin,
+  X
 } from 'lucide-react';
 
 interface SmartTvDisplayViewProps {
@@ -60,6 +63,8 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
   const [isAutoCycling, setIsAutoCycling] = useState(true);
   const [tvTheme, setTvTheme] = useState<'obsidian' | 'emerald' | 'sapphire' | 'royal-gold'>('obsidian');
   const [driftOffset, setDriftOffset] = useState({ x: 0, y: 0 });
+  const [isMosquePickerOpen, setIsMosquePickerOpen] = useState(false);
+  const selectedMosqueButtonRef = useRef<HTMLButtonElement>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -151,9 +156,9 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'f' || e.key === 'F') {
         toggleFullscreen();
-      } else if (e.key === 'ArrowRight') {
+      } else if (e.key === 'MediaTrackNext' || e.key === 'ChannelUp' || e.key === 'MediaFastForward') {
         setHadithIndex((prev) => (prev + 1) % pool.length);
-      } else if (e.key === 'ArrowLeft') {
+      } else if (e.key === 'MediaTrackPrevious' || e.key === 'ChannelDown' || e.key === 'MediaRewind') {
         setHadithIndex((prev) => (prev - 1 + pool.length) % pool.length);
       } else if (e.key === 'm' || e.key === 'M') {
         const next = !azanSettings.autoAzanEnabled;
@@ -164,24 +169,72 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
         const themes: ('obsidian' | 'emerald' | 'sapphire' | 'royal-gold')[] = ['obsidian', 'emerald', 'sapphire', 'royal-gold'];
         const nextIdx = (themes.indexOf(tvTheme) + 1) % themes.length;
         setTvTheme(themes[nextIdx]);
-      } else if (e.key === 'Escape' && onClose) {
-        onClose();
+      } else if (e.key === 'Escape' || e.key === 'GoBack' || e.key === 'BrowserBack') {
+        if (isMosquePickerOpen) {
+          e.preventDefault();
+          closeMosquePicker();
+        } else if (onClose) {
+          onClose();
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [azanSettings, tvTheme, onClose]);
+  }, [azanSettings, tvTheme, onClose, isMosquePickerOpen]);
 
+  useEffect(() => {
+    const syncFullscreen = () => setIsFullscreen(!!document.fullscreenElement);
+    syncFullscreen();
+    document.addEventListener('fullscreenchange', syncFullscreen);
+    return () => document.removeEventListener('fullscreenchange', syncFullscreen);
+  }, []);
+
+  // Whole document (not just this view) so the Azan modal stays visible in fullscreen
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
-      containerRef.current?.requestFullscreen().catch(() => {});
-      setIsFullscreen(true);
+      document.documentElement.requestFullscreen?.().catch(() => {});
     } else {
       document.exitFullscreen().catch(() => {});
-      setIsFullscreen(false);
     }
   };
+
+  // Focus the current mosque when the picker opens so the remote starts there
+  useEffect(() => {
+    if (isMosquePickerOpen) selectedMosqueButtonRef.current?.focus();
+  }, [isMosquePickerOpen]);
+
+  // The remote's Back button (and Esc in fullscreen) never reaches the page as a key;
+  // it navigates history. A history entry per open picker lets Back close it.
+  useEffect(() => {
+    const handlePopState = () => setIsMosquePickerOpen(false);
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const openMosquePicker = () => {
+    window.history.pushState({ tvMosquePicker: true }, '');
+    setIsMosquePickerOpen(true);
+  };
+
+  const closeMosquePicker = () => {
+    if (window.history.state?.tvMosquePicker) {
+      window.history.back();
+    } else {
+      setIsMosquePickerOpen(false);
+    }
+  };
+
+  const handleSelectMosque = (m: Mosque) => {
+    setSelectedMosque(m);
+    saveSelectedMosque(m.id);
+    setPrayerData(calculateMosquePrayerTimes(m, new Date()));
+    closeMosquePicker();
+  };
+
+  const mosquesByState = getAllMosques()
+    .slice()
+    .sort((a, b) => a.state.localeCompare(b.state) || a.name.localeCompare(b.name));
 
   const activeHadith = pool[hadithIndex] || pool[0];
 
@@ -215,12 +268,12 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
   const currentTheme = themes[tvTheme];
 
   const prayerCards = [
-    { name: 'Fajr', arabic: 'الفجر', time: prayerData.fajr, icon: '🌅', offset: selectedMosque.iqamaOffsets?.Fajr || 20 },
+    { name: 'Fajr', arabic: 'الفجر', time: prayerData.fajr, icon: '🌅', offset: selectedMosque.iqamaOffsets?.Fajr ?? 20 },
     { name: 'Sunrise', arabic: 'الشروق', time: prayerData.sunrise, icon: '☀️', offset: 0 },
-    { name: 'Dhuhr', arabic: 'الظهر', time: prayerData.dhuhr, icon: '☀️', offset: selectedMosque.iqamaOffsets?.Dhuhr || 15 },
-    { name: 'Asr', arabic: 'العصر', time: prayerData.asr, icon: '🌤️', offset: selectedMosque.iqamaOffsets?.Asr || 15 },
-    { name: 'Maghrib', arabic: 'المغرب', time: prayerData.maghrib, icon: '🌇', offset: selectedMosque.iqamaOffsets?.Maghrib || 5 },
-    { name: 'Isha', arabic: 'العشاء', time: prayerData.isha, icon: '🌙', offset: selectedMosque.iqamaOffsets?.Isha || 10 }
+    { name: 'Dhuhr', arabic: 'الظهر', time: prayerData.dhuhr, icon: '☀️', offset: selectedMosque.iqamaOffsets?.Dhuhr ?? 15 },
+    { name: 'Asr', arabic: 'العصر', time: prayerData.asr, icon: '🌤️', offset: selectedMosque.iqamaOffsets?.Asr ?? 15 },
+    { name: 'Maghrib', arabic: 'المغرب', time: prayerData.maghrib, icon: '🌇', offset: selectedMosque.iqamaOffsets?.Maghrib ?? 5 },
+    { name: 'Isha', arabic: 'العشاء', time: prayerData.isha, icon: '🌙', offset: selectedMosque.iqamaOffsets?.Isha ?? 10 }
   ];
 
   return (
@@ -283,6 +336,14 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
 
           {/* Quick TV Control Buttons */}
           <div className="flex items-center space-x-2">
+            <button
+              onClick={openMosquePicker}
+              className="p-3 rounded-2xl bg-white/10 hover:bg-white/20 text-neutral-200 hover:text-white transition cursor-pointer"
+              title="Choose Mosque"
+            >
+              <MapPin className="w-5 h-5" />
+            </button>
+
             <button
               onClick={() => {
                 const themes: ('obsidian' | 'emerald' | 'sapphire' | 'royal-gold')[] = ['obsidian', 'emerald', 'sapphire', 'royal-gold'];
@@ -351,12 +412,14 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
                 <span>{hadithIndex + 1} of {pool.length}</span>
                 <button
                   onClick={() => setHadithIndex((prev) => (prev - 1 + pool.length) % pool.length)}
+                  title="Previous Hadith"
                   className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white cursor-pointer"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setHadithIndex((prev) => (prev + 1) % pool.length)}
+                  title="Next Hadith"
                   className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white cursor-pointer"
                 >
                   <ChevronRight className="w-4 h-4" />
@@ -503,14 +566,52 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
 
         {/* TV Remote Shortcuts Help */}
         <div className="flex items-center space-x-3 text-neutral-500 font-mono text-[10px]">
+          <span>[Arrows] Navigate</span>
+          <span>[OK] Select</span>
+          <span>[Ch +/−] Browse Hadiths</span>
           <span>[F] Fullscreen</span>
-          <span>[M] Mute/Unmute Azan</span>
+          <span>[M] Mute Azan</span>
           <span>[T] Theme</span>
-          <span>[← / →] Browse Hadiths</span>
-          <span>[Esc] Exit</span>
         </div>
       </footer>
 
+      {/* Mosque Picker (remote-friendly) */}
+      {isMosquePickerOpen && (
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-10 bg-black/85 backdrop-blur-md">
+          <div className="w-full max-w-5xl max-h-full flex flex-col rounded-3xl bg-[#10131d] border border-amber-500/30 p-8 shadow-2xl">
+            <div className="flex items-center justify-between pb-4 mb-4 border-b border-white/10">
+              <h3 className="font-serif text-3xl font-bold text-white">Choose Your Mosque</h3>
+              <button
+                onClick={closeMosquePicker}
+                className="p-3 rounded-2xl bg-white/10 hover:bg-white/20 text-neutral-200 cursor-pointer"
+                title="Close"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 overflow-y-auto pr-2 p-1">
+              {mosquesByState.map((m) => {
+                const isSelected = m.id === selectedMosque.id;
+                return (
+                  <button
+                    key={m.id}
+                    ref={isSelected ? selectedMosqueButtonRef : undefined}
+                    onClick={() => handleSelectMosque(m)}
+                    className={`text-left p-4 rounded-2xl border transition cursor-pointer ${
+                      isSelected
+                        ? 'bg-amber-500/20 border-amber-400 text-white'
+                        : 'bg-white/5 border-white/10 text-neutral-200 hover:bg-white/10'
+                    }`}
+                  >
+                    <div className="font-semibold text-base leading-snug">{m.name}</div>
+                    <div className="text-sm text-neutral-400 mt-1">{m.suburb}, {m.state}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

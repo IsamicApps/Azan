@@ -1,12 +1,15 @@
-// Service Worker for Daily Hadith & Azan (v4 Network-First)
-const CACHE_NAME = 'daily-hadith-azan-v4';
+// Service Worker for Daily Hadith & Azan (v5 Network-First) — serves both the mobile and TV apps
+const CACHE_NAME = 'daily-hadith-azan-v5';
 
 const ESSENTIAL_ASSETS = [
   './',
   './index.html',
   './favicon.svg',
   './logo.svg',
-  './manifest.webmanifest'
+  './manifest.webmanifest',
+  './tv/',
+  './tv/index.html',
+  './tv/manifest.webmanifest'
 ];
 
 self.addEventListener('install', (event) => {
@@ -52,7 +55,8 @@ self.addEventListener('fetch', (event) => {
           return networkResponse;
         })
         .catch(() => {
-          return caches.match(event.request).then((cached) => cached || caches.match('./index.html'));
+          const fallback = url.pathname.includes('/tv/') ? './tv/index.html' : './index.html';
+          return caches.match(event.request).then((cached) => cached || caches.match(fallback));
         })
     );
     return;

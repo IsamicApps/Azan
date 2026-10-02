@@ -1,8 +1,13 @@
 # Daily Hadith & Azan (Sahih al-Bukhari & Awqat)
 
-A mobile web application, widget system, and peaceful ambient screensaver featuring verified **Daily Hadiths from Sahih al-Bukhari** (1,700-page IslamHouse edition) and **Automatic Azan & Prayer Times** synchronized with **[Awqat.com.au](https://www.awqat.com.au/)** and the **[Islamic Network API](https://islamic.network/api/)**.
+Two apps from one codebase — a **mobile app** and a **Google TV / big-screen app** — featuring verified **Daily Hadiths from Sahih al-Bukhari** (1,700-page IslamHouse edition) and **Automatic Azan & Prayer Times** synchronized with **[Awqat.com.au](https://www.awqat.com.au/)** and the **[Islamic Network API](https://islamic.network/api/)**.
 
-🌐 **Live GitHub Pages URL**: [https://isamicapps.github.io/Azan/](https://isamicapps.github.io/Azan/)
+| App | URL | Built from |
+| --- | --- | --- |
+| 📱 Mobile app | [isamicapps.github.io/Azan/](https://isamicapps.github.io/Azan/) | `index.html` → `src/mobile/` |
+| 📺 Google TV app | [isamicapps.github.io/Azan/tv/](https://isamicapps.github.io/Azan/tv/) | `tv/index.html` → `src/tv/` |
+
+Both apps share everything in `src/shared/` (components, prayer-time & Azan engine, Hadith data) and one service worker, and are built and deployed together by `npm run build`.
 
 ---
 
@@ -30,11 +35,16 @@ A mobile web application, widget system, and peaceful ambient screensaver featur
 - **Iqamah Offsets & Friday Jumu'ah Timetable**: Congregation times configured per mosque.
 - **Qibla Direction Compass**: Exact degree bearing to the Holy Kaaba in Makkah.
 
-### 3. 📱 Mobile Phone & Widget Surfaces
-- **Interactive Mobile Phone Simulator**: Experience real iPhone 16 Pro Titanium and Google Pixel 9 Pro frames with Dynamic Island and lock-screen gestures.
-- **Mobile Home-Screen Widgets**: Small (2x2), Medium (4x2), and Large (4x4) widgets.
-- **Lock-Screen Widgets**: Accessory Rectangular, Circular, and Inline formats.
-- **Native Codebases Included**: Swift (iOS WidgetKit) and Kotlin (Android Glance / AppWidget).
+### 3. 📱 Mobile App
+- **Full-screen installable PWA** with bottom tab navigation: Today, Awqat, 99 Names, Adhkar, Hijri, Library, Saved.
+- **Daily Hadith reminder notification** at your chosen time.
+- **Widget reference code**: Swift (iOS WidgetKit) and Kotlin (Android Glance / AppWidget) in `src/native/`.
+
+### 3b. 📺 Google TV App
+- **Remote-control (D-pad) navigation**: arrows move focus, OK selects, Back closes dialogs; Channel +/− browses Hadiths.
+- **"Press OK to Start" screen** — the one remote press lets the TV play the Azan automatically afterwards.
+- **Mosque picker**, full-screen landscape layout, live next-prayer countdown and Iqamah times.
+- **Wake Lock & OLED micro-drift** so the screen stays on without burn-in.
 
 ### 4. 🌙 Peaceful Ambient Screensaver
 - **5 Serene Dark Themes**: Midnight Obsidian, Deep Emerald, Royal Navy, Desert Gold, Mystic Amethyst.
@@ -54,7 +64,7 @@ cd Azan
 # Install dependencies
 npm install
 
-# Start development server
+# Start development server (mobile: http://localhost:5173/  •  TV: http://localhost:5173/tv/)
 npm run dev
 
 # Build for production

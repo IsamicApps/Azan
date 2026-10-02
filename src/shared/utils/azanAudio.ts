@@ -194,6 +194,24 @@ export function isAzanPlaying(): boolean {
 }
 
 /**
+ * Unlocks audio playback. Call from a user gesture (tap / remote OK press) so a
+ * later automatic Azan isn't blocked by the browser's autoplay policy.
+ */
+export function unlockAudio(): void {
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+    if (!audioContextInstance) audioContextInstance = new AudioContextClass();
+    if (audioContextInstance.state === 'suspended') audioContextInstance.resume();
+    const silent = audioContextInstance.createBuffer(1, 1, 22050);
+    const source = audioContextInstance.createBufferSource();
+    source.buffer = silent;
+    source.connect(audioContextInstance.destination);
+    source.start(0);
+  } catch {}
+}
+
+/**
  * Acoustic multi-harmonic chime fallback using Web Audio API
  */
 export function playAcousticAdhanChime(onEnd?: () => void): void {

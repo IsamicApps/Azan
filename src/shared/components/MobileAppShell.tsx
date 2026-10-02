@@ -46,14 +46,12 @@ export type MobileTab = 'today' | 'prayer' | 'names' | 'adhkar' | 'calendar' | '
 
 interface MobileAppShellProps {
   onOpenScreensaver: () => void;
-  onOpenWidgetSimulator: () => void;
   onHadithPlayStatusChange?: (isPlaying: boolean, hadithTitle: string) => void;
   initialHadith?: Hadith | null;
 }
 
 export const MobileAppShell: React.FC<MobileAppShellProps> = ({
   onOpenScreensaver,
-  onOpenWidgetSimulator,
   onHadithPlayStatusChange,
   initialHadith
 }) => {
@@ -172,7 +170,7 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
       onTouchEnd={handleTouchEnd}
     >
       {/* Mobile Top App Header */}
-      <header className="shrink-0 px-4 pt-3 pb-2.5 bg-[#0e111a]/95 border-b border-white/10 backdrop-blur-md flex items-center justify-between z-30">
+      <header className="shrink-0 px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2.5 bg-[#0e111a]/95 border-b border-white/10 backdrop-blur-md flex items-center justify-between z-30">
         <div
           onClick={() => {
             setDayOffset(0);
@@ -317,23 +315,6 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
               </div>
               <ChevronRight className="w-4 h-4 text-emerald-400" />
             </div>
-
-            {/* Action Banner: Try Home/Lock Screen Widgets */}
-            <div
-              onClick={onOpenWidgetSimulator}
-              className="p-3.5 rounded-2xl bg-gradient-to-r from-neutral-900 via-neutral-900 to-[#141824] border border-amber-500/25 hover:border-amber-500/50 transition cursor-pointer flex items-center justify-between shadow-lg"
-            >
-              <div className="flex items-center space-x-3">
-                <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center">
-                  <Sparkles className="w-4 h-4 text-amber-400" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-semibold text-neutral-100">Home & Lock Screen Widgets</h4>
-                  <p className="text-[10px] text-neutral-400">Small 2x2, Medium 4x2, Large & Lock screen</p>
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-amber-400" />
-            </div>
           </div>
         )}
 
@@ -397,7 +378,7 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
       )}
 
       {/* Native Mobile Bottom Navigation Bar */}
-      <nav className="shrink-0 border-t border-white/10 bg-[#0b0d14]/98 backdrop-blur-xl px-1 py-1 flex items-center justify-around z-30 pb-safe overflow-x-auto scrollbar-none">
+      <nav className="shrink-0 border-t border-white/10 bg-[#0b0d14]/98 backdrop-blur-xl px-1 py-1 flex items-center justify-around z-30 pb-[max(0.25rem,env(safe-area-inset-bottom))] overflow-x-auto scrollbar-none">
         {[
           { id: 'today', label: 'Today', icon: Sparkles },
           { id: 'prayer', label: 'Awqat', icon: Clock },

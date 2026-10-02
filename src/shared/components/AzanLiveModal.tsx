@@ -61,7 +61,7 @@ export const AzanLiveModal: React.FC<AzanLiveModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-lg animate-fade-in select-none">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-lg animate-fade-in select-none">
       <div className="relative w-full max-w-lg rounded-3xl bg-gradient-to-b from-[#161a28] via-[#0f1320] to-[#080a10] border border-amber-500/40 p-6 md:p-8 shadow-2xl overflow-hidden flex flex-col justify-between text-neutral-100 max-h-[92vh] overflow-y-auto">
         <IslamicPattern opacity={24} color="#d4af37" />
         <IslamicCornerOrnament className="absolute top-3 left-3 rotate-0 opacity-40" />
@@ -169,6 +169,7 @@ export const AzanLiveModal: React.FC<AzanLiveModalProps> = ({
           </div>
 
           <button
+            autoFocus
             onClick={handleStop}
             className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold text-xs shadow-lg transition cursor-pointer"
           >

@@ -1,0 +1,13 @@
+/* TV: viewed from across the room with a remote, so the focused control must be obvious */
+button:focus,
+a:focus,
+[tabindex]:focus {
+  outline: 4px solid #fbbf24;
+  outline-offset: 4px;
+  box-shadow: 0 0 24px rgba(251, 191, 36, 0.55);
+}
+
+html,
+body {
+  overflow: hidden;
+}
