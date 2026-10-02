@@ -14,7 +14,68 @@ type Vars = Record<string, string | number>;
 
 export function translate(language: Language, text: string, vars?: Vars): string {
   const template = language === 'ar' ? (AR[text] ?? text) : text;
-  return vars ? template.replace(/\{(\w+)\}/g, (_, key) => String(vars[key] ?? `{${key}}`)) : template;
+  const result = vars ? template.replace(/\{(\w+)\}/g, (_, key) => String(vars[key] ?? `{${key}}`)) : template;
+  return language === 'ar' ? toArabicDigits(result) : result;
+}
+
+const ARABIC_DIGITS = '٠١٢٣٤٥٦٧٨٩';
+
+/** "04:22" -> "٠٤:٢٢", "40%" -> "٤٠٪" (Arabic-Indic numerals for the Arabic interface) */
+export function toArabicDigits(text: string): string {
+  return text.replace(/[0-9]/g, (d) => ARABIC_DIGITS[Number(d)]).replace(/%/g, '٪');
+}
+
+function toLatinDigits(text: string): string {
+  return text.replace(/[٠-٩]/g, (d) => String(ARABIC_DIGITS.indexOf(d))).replace(/٪/g, '%');
+}
+
+/**
+ * Arabic numerals across the whole page while the interface is Arabic. Numbers are
+ * rendered in many places (times, dates, counters, references), so text on screen
+ * is converted as it appears; the nodes changed are remembered and switched back
+ * to Western digits when the language returns to English.
+ */
+const convertedNodes = new Set<Text>();
+let digitObserver: MutationObserver | null = null;
+
+function convertTextNode(node: Text): void {
+  const parent = node.parentElement;
+  if (!parent || parent.closest('script, style, [data-latin-digits]')) return;
+  const value = node.nodeValue ?? '';
+  if (!/[0-9%]/.test(value)) return;
+  node.nodeValue = toArabicDigits(value);
+  convertedNodes.add(node);
+  // Forget text that has left the page (a TV can run for days)
+  if (convertedNodes.size > 5000) {
+    for (const n of convertedNodes) if (!n.isConnected) convertedNodes.delete(n);
+  }
+}
+
+function convertTree(root: Node): void {
+  if (root.nodeType === Node.TEXT_NODE) return convertTextNode(root as Text);
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) convertTextNode(n as Text);
+}
+
+function setArabicDigits(on: boolean): void {
+  if (on) {
+    if (digitObserver) return;
+    convertTree(document.body);
+    digitObserver = new MutationObserver((records) => {
+      for (const r of records) {
+        if (r.type === 'characterData') convertTextNode(r.target as Text);
+        else r.addedNodes.forEach(convertTree);
+      }
+    });
+    digitObserver.observe(document.body, { subtree: true, childList: true, characterData: true });
+  } else {
+    digitObserver?.disconnect();
+    digitObserver = null;
+    for (const node of convertedNodes) {
+      if (node.isConnected && node.nodeValue) node.nodeValue = toLatinDigits(node.nodeValue);
+    }
+    convertedNodes.clear();
+  }
 }
 
 const PRAYERS_AR: Record<string, string> = {
@@ -178,5 +239,6 @@ export function useDocumentLanguage(): void {
     document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
     if (!originalTitle) originalTitle = document.title;
     document.title = language === 'ar' ? translate('ar', originalTitle) : originalTitle;
+    setArabicDigits(language === 'ar');
   }, [language]);
 }
