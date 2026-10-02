@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "Daily Hadith",
+    "slug": "daily-hadith",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#080a0f"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.dailyhadith.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#080a0f"
+      },
+      "package": "com.dailyhadith.app"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
