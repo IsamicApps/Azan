@@ -531,6 +531,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
               )}
             </div>
 
+            {prayerData.isRamadan && (
             <div className="shrink-0 flex items-center gap-3 px-5 py-2.5 rounded-2xl bg-emerald-950/50 border border-emerald-500/30 text-[22px] whitespace-nowrap">
               <Utensils className="w-6 h-6 text-emerald-400" />
               <span className="text-neutral-300">
@@ -542,6 +543,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
                 ({prayerData.nextFastingEvent.remainingFormatted})
               </span>
             </div>
+            )}
           </div>
         </div>
 

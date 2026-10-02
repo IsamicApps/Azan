@@ -518,7 +518,8 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
         </div>
       </div>
 
-      {/* 4. FASTING / IFTAR & SUHOOR (IMSAK) COUNTDOWN CARD */}
+      {/* 4. FASTING / IFTAR & SUHOOR (IMSAK) COUNTDOWN CARD — Ramadan only */}
+      {prayerData.isRamadan && (
       <div className="relative rounded-3xl bg-gradient-to-r from-emerald-950/40 via-[#101918] to-[#0c1214] border border-emerald-500/30 p-6 shadow-xl overflow-hidden">
         <IslamicPattern opacity={12} color="#10b981" />
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
@@ -578,6 +579,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
           </div>
         </div>
       </div>
+      )}
 
       {/* 5. AUTHENTIC VOCAL MUEZZIN SOUND SELECTOR & PREVIEW */}
       <div className="p-6 rounded-3xl bg-[#11131c] border border-white/10 space-y-4 shadow-xl">

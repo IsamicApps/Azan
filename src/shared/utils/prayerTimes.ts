@@ -1,4 +1,5 @@
 import mosquesData from '../data/mosques.json';
+import { getHijriDate } from './hijri';
 
 export interface Mosque {
   id: string;
@@ -31,6 +32,8 @@ export interface PrayerTimesResult {
   isha24: string;
   suhoorEndTime: string;
   iftarTime: string;
+  /** True while the next Suhoor/Iftar belongs to a Ramadan fast (from Maghrib before 1 Ramadan until Iftar on its last day) */
+  isRamadan: boolean;
   nextFastingEvent: {
     type: 'Suhoor' | 'Iftar';
     time: string;
@@ -322,6 +325,10 @@ export function calculateMosquePrayerTimes(
     fastDiffSec = Math.round((1440 - currentMinutes + fObj.totalMinutes) * 60);
   }
 
+  // The fast the next Suhoor/Iftar belongs to: tomorrow's once Maghrib has passed, otherwise today's
+  const fastDay = new Date(clock.year, clock.month - 1, clock.day + (currentMinutes >= mObj.totalMinutes ? 1 : 0));
+  const isRamadan = getHijriDate(fastDay).month === 'Ramadan';
+
   const fHours = Math.floor(fastDiffSec / 3600);
   const fMins = Math.floor((fastDiffSec % 3600) / 60);
   const fSecs = fastDiffSec % 60;
@@ -346,6 +353,7 @@ export function calculateMosquePrayerTimes(
     isha24: iObj.formatted24,
     suhoorEndTime: fObj.formatted,
     iftarTime: mObj.formatted,
+    isRamadan,
     nextFastingEvent: {
       type: fastType,
       time: fastTime,
