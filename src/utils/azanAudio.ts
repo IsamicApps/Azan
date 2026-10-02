@@ -74,11 +74,31 @@ export function getAzanSettings(): AzanSettings {
 }
 
 export function saveAzanSettings(settings: AzanSettings): void {
-  localStorage.setItem(AZAN_SETTINGS_KEY, JSON.stringify(settings));
+  // lastPlayedPrayerKey is tracked separately so stale settings copies can't roll it back
+  const { lastPlayedPrayerKey, ...rest } = settings;
+  try {
+    localStorage.setItem(AZAN_SETTINGS_KEY, JSON.stringify(rest));
+  } catch {}
+}
+
+const LAST_PLAYED_KEY = 'daily_hadith_azan_last_played_v1';
+
+/**
+ * Marks a prayer as played. Returns false if it was already claimed,
+ * so the same Azan can never be triggered twice.
+ */
+export function claimAzanTrigger(triggerKey: string): boolean {
+  try {
+    if (localStorage.getItem(LAST_PLAYED_KEY) === triggerKey) return false;
+    localStorage.setItem(LAST_PLAYED_KEY, triggerKey);
+  } catch {}
+  return true;
 }
 
 let activeAudio: HTMLAudioElement | null = null;
 let audioContextInstance: AudioContext | null = null;
+let chimeOscillators: OscillatorNode[] = [];
+let chimeEndTimer: ReturnType<typeof setTimeout> | null = null;
 
 /**
  * Plays the authentic vocal Azan audio with callback handlers
@@ -114,19 +134,24 @@ export function playAzan(
       if (onEnd) onEnd();
     };
 
-    audio.onerror = (e) => {
-      console.warn('Audio file error, falling back to harmonic chime:', e);
+    // Both onerror and the play() rejection can fire for one failure; fall back only once
+    let fellBack = false;
+    const fallBackToChime = (reason: unknown) => {
+      if (fellBack || activeAudio !== audio) return;
+      fellBack = true;
+      console.warn('Azan audio unavailable, falling back to harmonic chime:', reason);
+      activeAudio = null;
       playAcousticAdhanChime(onEnd);
       if (onStart) onStart();
     };
 
+    audio.onerror = (e) => fallBackToChime(e);
+
     const playPromise = audio.play();
     if (playPromise !== undefined) {
       playPromise.catch((err) => {
-        console.warn('Audio play prevented or interrupted:', err);
-        // Fallback to synthesized audio on permission block
-        playAcousticAdhanChime(onEnd);
-        if (onStart) onStart();
+        // AbortError means stopAzan() paused it on purpose
+        if (err?.name !== 'AbortError') fallBackToChime(err);
       });
     }
 
@@ -148,16 +173,31 @@ export function stopAzan(): void {
     } catch {}
     activeAudio = null;
   }
+  stopChime();
+}
+
+function stopChime(): void {
+  chimeOscillators.forEach((osc) => {
+    try {
+      osc.stop();
+    } catch {}
+  });
+  chimeOscillators = [];
+  if (chimeEndTimer) {
+    clearTimeout(chimeEndTimer);
+    chimeEndTimer = null;
+  }
 }
 
 export function isAzanPlaying(): boolean {
-  return activeAudio !== null && !activeAudio.paused;
+  return (activeAudio !== null && !activeAudio.paused) || chimeEndTimer !== null;
 }
 
 /**
  * Acoustic multi-harmonic chime fallback using Web Audio API
  */
 export function playAcousticAdhanChime(onEnd?: () => void): void {
+  stopChime();
   try {
     const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
     if (!AudioContextClass) return;
@@ -191,11 +231,14 @@ export function playAcousticAdhanChime(onEnd?: () => void): void {
 
       osc.start(now + n.time);
       osc.stop(now + n.time + n.dur);
+      chimeOscillators.push(osc);
     });
 
-    if (onEnd) {
-      setTimeout(onEnd, 7500);
-    }
+    chimeEndTimer = setTimeout(() => {
+      chimeEndTimer = null;
+      chimeOscillators = [];
+      if (onEnd) onEnd();
+    }, 7500);
   } catch (e) {
     if (onEnd) onEnd();
   }

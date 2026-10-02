@@ -45,6 +45,10 @@ export interface PrayerTimesResult {
     iqamaTime?: string;
   };
   currentPrayer: string;
+  /** Current wall-clock time at the mosque, "HH:MM" (24h) */
+  localTime24: string;
+  /** Current date at the mosque, "YYYY-MM-DD" */
+  localDateKey: string;
   qiblaBearing: number;
   mosque: Mosque;
 }
@@ -104,6 +108,71 @@ export function getMosquesSortedByDistance(userLat: number, userLng: number): Mo
   })).sort((a, b) => (a.distanceKm ?? 9999) - (b.distanceKm ?? 9999));
 }
 
+const STATE_TIMEZONES: Record<string, string> = {
+  NSW: 'Australia/Sydney',
+  ACT: 'Australia/Sydney',
+  VIC: 'Australia/Melbourne',
+  QLD: 'Australia/Brisbane',
+  SA: 'Australia/Adelaide',
+  WA: 'Australia/Perth',
+  TAS: 'Australia/Hobart',
+  NT: 'Australia/Darwin'
+};
+
+interface ZonedClock {
+  year: number;
+  month: number;
+  day: number;
+  hours: number;
+  minutes: number;
+  seconds: number;
+  offsetHours: number;
+}
+
+/**
+ * Wall-clock time in the mosque's own time zone (falls back to the device
+ * time zone for custom mosques outside the known Australian states).
+ */
+function getZonedClock(date: Date, timeZone?: string): ZonedClock {
+  if (timeZone) {
+    try {
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone,
+        hourCycle: 'h23',
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+        second: 'numeric'
+      }).formatToParts(date);
+      const get = (type: string) => Number(parts.find(p => p.type === type)?.value);
+      const clock = {
+        year: get('year'),
+        month: get('month'),
+        day: get('day'),
+        hours: get('hour') % 24,
+        minutes: get('minute'),
+        seconds: get('second')
+      };
+      const asUtc = Date.UTC(clock.year, clock.month - 1, clock.day, clock.hours, clock.minutes, clock.seconds);
+      const offsetMinutes = Math.round((asUtc - date.getTime()) / 60000);
+      if (Object.values(clock).every(Number.isFinite)) {
+        return { ...clock, offsetHours: offsetMinutes / 60 };
+      }
+    } catch {}
+  }
+  return {
+    year: date.getFullYear(),
+    month: date.getMonth() + 1,
+    day: date.getDate(),
+    hours: date.getHours(),
+    minutes: date.getMinutes(),
+    seconds: date.getSeconds(),
+    offsetHours: -date.getTimezoneOffset() / 60
+  };
+}
+
 export function calculateQiblaBearing(lat: number, lng: number): number {
   const mLat = 21.422487 * (Math.PI / 180);
   const mLon = 39.826206 * (Math.PI / 180);
@@ -126,12 +195,11 @@ export function calculateMosquePrayerTimes(
   const lat = currentMosque.lat;
   const lng = currentMosque.lng;
   
-  const tzOffset = -date.getTimezoneOffset() / 60;
+  const clock = getZonedClock(date, STATE_TIMEZONES[currentMosque.state?.toUpperCase()]);
+  const tzOffset = clock.offsetHours;
 
-  const startOfYear = new Date(date.getFullYear(), 0, 0);
-  const diff = (date.getTime() - startOfYear.getTime()) + ((startOfYear.getTimezoneOffset() - date.getTimezoneOffset()) * 60 * 1000);
   const oneDay = 1000 * 60 * 60 * 24;
-  const N = Math.floor(diff / oneDay);
+  const N = Math.round((Date.UTC(clock.year, clock.month - 1, clock.day) - Date.UTC(clock.year, 0, 0)) / oneDay);
 
   const M = (357.5291 + 0.98560028 * N) % 360;
   const M_rad = (M * Math.PI) / 180;
@@ -201,14 +269,14 @@ export function calculateMosquePrayerTimes(
   const mObj = formatDecTime(maghrib_val);
   const iObj = formatDecTime(isha_val);
 
-  const currentMinutes = date.getHours() * 60 + date.getMinutes() + date.getSeconds() / 60;
+  const currentMinutes = clock.hours * 60 + clock.minutes + clock.seconds / 60;
   const schedule = [
-    { name: 'Fajr' as const, mins: fObj.totalMinutes, time: fObj.formatted, offset: currentMosque.iqamaOffsets?.Fajr || 20 },
+    { name: 'Fajr' as const, mins: fObj.totalMinutes, time: fObj.formatted, offset: currentMosque.iqamaOffsets?.Fajr ?? 20 },
     { name: 'Sunrise' as const, mins: sObj.totalMinutes, time: sObj.formatted, offset: 0 },
-    { name: 'Dhuhr' as const, mins: dObj.totalMinutes, time: dObj.formatted, offset: currentMosque.iqamaOffsets?.Dhuhr || 15 },
-    { name: 'Asr' as const, mins: aObj.totalMinutes, time: aObj.formatted, offset: currentMosque.iqamaOffsets?.Asr || 15 },
-    { name: 'Maghrib' as const, mins: mObj.totalMinutes, time: mObj.formatted, offset: currentMosque.iqamaOffsets?.Maghrib || 5 },
-    { name: 'Isha' as const, mins: iObj.totalMinutes, time: iObj.formatted, offset: currentMosque.iqamaOffsets?.Isha || 10 }
+    { name: 'Dhuhr' as const, mins: dObj.totalMinutes, time: dObj.formatted, offset: currentMosque.iqamaOffsets?.Dhuhr ?? 15 },
+    { name: 'Asr' as const, mins: aObj.totalMinutes, time: aObj.formatted, offset: currentMosque.iqamaOffsets?.Asr ?? 15 },
+    { name: 'Maghrib' as const, mins: mObj.totalMinutes, time: mObj.formatted, offset: currentMosque.iqamaOffsets?.Maghrib ?? 5 },
+    { name: 'Isha' as const, mins: iObj.totalMinutes, time: iObj.formatted, offset: currentMosque.iqamaOffsets?.Isha ?? 10 }
   ];
 
   let next = schedule.find(p => p.mins > currentMinutes);
@@ -292,6 +360,8 @@ export function calculateMosquePrayerTimes(
       iqamaTime: next.offset > 0 ? iqamaFormatted : undefined
     },
     currentPrayer: currentPrayerName,
+    localTime24: `${String(clock.hours).padStart(2, '0')}:${String(clock.minutes).padStart(2, '0')}`,
+    localDateKey: `${clock.year}-${String(clock.month).padStart(2, '0')}-${String(clock.day).padStart(2, '0')}`,
     qiblaBearing: Math.round(qibla),
     mosque: currentMosque
   };
@@ -309,6 +379,26 @@ export function getSelectedMosque(): Mosque {
   return all[0] || INITIAL_MOSQUES[0];
 }
 
+export const MOSQUE_CHANGE_EVENT = 'daily-hadith:mosque-change';
+
 export function saveSelectedMosque(mosqueId: string): void {
-  localStorage.setItem(SELECTED_MOSQUE_KEY, mosqueId);
+  try {
+    localStorage.setItem(SELECTED_MOSQUE_KEY, mosqueId);
+  } catch {}
+  window.dispatchEvent(new Event(MOSQUE_CHANGE_EVENT));
+}
+
+/**
+ * Returns the prayer whose start time matches the mosque's current minute, if any.
+ */
+export function getDuePrayer(result: PrayerTimesResult): { name: string; time: string } | null {
+  const schedule = [
+    { name: 'Fajr', time: result.fajr, time24: result.fajr24 },
+    { name: 'Dhuhr', time: result.dhuhr, time24: result.dhuhr24 },
+    { name: 'Asr', time: result.asr, time24: result.asr24 },
+    { name: 'Maghrib', time: result.maghrib, time24: result.maghrib24 },
+    { name: 'Isha', time: result.isha, time24: result.isha24 }
+  ];
+  const due = schedule.find(p => p.time24 === result.localTime24);
+  return due ? { name: due.name, time: due.time } : null;
 }

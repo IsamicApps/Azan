@@ -93,7 +93,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
   const [dhikrCount, setDhikrCount] = useState(0);
   const [selectedDhikr, setSelectedDhikr] = useState<'SubhanAllah' | 'Alhamdulillah' | 'AllahuAkbar' | 'Astaghfirullah'>('SubhanAllah');
 
-  // Update countdown every second and monitor automatic prayer time Azan trigger
+  // Update countdown every second (auto-Azan is triggered globally in App)
   useEffect(() => {
     const timer = setInterval(() => {
       const now = new Date();
@@ -102,57 +102,10 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
       const isPlaying = isAzanPlaying();
       setIsPlayingAzan(isPlaying);
       if (!isPlaying) setCurrentlyPlayingMuezzin(null);
-
-      // AUTO-AZAN TRIGGER ENGINE
-      if (azanSettings.autoAzanEnabled) {
-        const schedule = [
-          { name: 'Fajr', time: currentResult.fajr },
-          { name: 'Dhuhr', time: currentResult.dhuhr },
-          { name: 'Asr', time: currentResult.asr },
-          { name: 'Maghrib', time: currentResult.maghrib },
-          { name: 'Isha', time: currentResult.isha }
-        ];
-
-        const currentTimeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
-        const dateKey = now.toISOString().split('T')[0];
-
-        for (const prayer of schedule) {
-          if (prayer.time.trim() === currentTimeStr.trim()) {
-            const triggerKey = `${dateKey}_${prayer.name}`;
-            if (azanSettings.lastPlayedPrayerKey !== triggerKey && !isAzanPlaying()) {
-              const updated = { ...azanSettings, lastPlayedPrayerKey: triggerKey };
-              setAzanSettings(updated);
-              saveAzanSettings(updated);
-
-              setActiveAzanPrayer({ name: prayer.name, time: prayer.time });
-              setShowAzanLiveModal(true);
-              setCurrentlyPlayingMuezzin(azanSettings.selectedMuezzin);
-              playAzan(
-                () => {
-                  setIsPlayingAzan(true);
-                  setCurrentlyPlayingMuezzin(azanSettings.selectedMuezzin);
-                },
-                () => {
-                  setIsPlayingAzan(false);
-                  setCurrentlyPlayingMuezzin(null);
-                },
-                azanSettings.selectedMuezzin
-              );
-
-              if ('Notification' in window && Notification.permission === 'granted') {
-                new Notification(`Allahu Akbar • Time for ${prayer.name} Prayer`, {
-                  body: `Prayer time has arrived at ${selectedMosque.name} (${selectedMosque.suburb}).`,
-                  icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="%23d4af37"/></svg>'
-                });
-              }
-            }
-          }
-        }
-      }
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [selectedMosque, azanSettings]);
+  }, [selectedMosque]);
 
   const handleFindClosestMosque = () => {
     if (!navigator.geolocation) {
@@ -228,11 +181,11 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
       link: 'https://www.awqat.com.au/',
       jumuah: customForm.jumuah.trim() || '1:15 PM',
       iqamaOffsets: {
-        Fajr: Number(customForm.fajrOffset) || 20,
-        Dhuhr: Number(customForm.dhuhrOffset) || 15,
-        Asr: Number(customForm.asrOffset) || 15,
-        Maghrib: Number(customForm.maghribOffset) || 5,
-        Isha: Number(customForm.ishaOffset) || 10
+        Fajr: customForm.fajrOffset,
+        Dhuhr: customForm.dhuhrOffset,
+        Asr: customForm.asrOffset,
+        Maghrib: customForm.maghribOffset,
+        Isha: customForm.ishaOffset
       }
     });
 
@@ -331,12 +284,12 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
   });
 
   const prayerCards = [
-    { key: 'Fajr', name: 'Fajr', time: prayerData.fajr, icon: '🌅', offset: selectedMosque.iqamaOffsets?.Fajr || 25 },
+    { key: 'Fajr', name: 'Fajr', time: prayerData.fajr, icon: '🌅', offset: selectedMosque.iqamaOffsets?.Fajr ?? 20 },
     { key: 'Sunrise', name: 'Sunrise', time: prayerData.sunrise, icon: '☀️', offset: 0 },
-    { key: 'Dhuhr', name: 'Dhuhr', time: prayerData.dhuhr, icon: '☀️', offset: selectedMosque.iqamaOffsets?.Dhuhr || 15 },
-    { key: 'Asr', name: 'Asr', time: prayerData.asr, icon: '🌤️', offset: selectedMosque.iqamaOffsets?.Asr || 15 },
-    { key: 'Maghrib', name: 'Maghrib', time: prayerData.maghrib, icon: '🌇', offset: selectedMosque.iqamaOffsets?.Maghrib || 5 },
-    { key: 'Isha', name: 'Isha', time: prayerData.isha, icon: '🌙', offset: selectedMosque.iqamaOffsets?.Isha || 10 }
+    { key: 'Dhuhr', name: 'Dhuhr', time: prayerData.dhuhr, icon: '☀️', offset: selectedMosque.iqamaOffsets?.Dhuhr ?? 15 },
+    { key: 'Asr', name: 'Asr', time: prayerData.asr, icon: '🌤️', offset: selectedMosque.iqamaOffsets?.Asr ?? 15 },
+    { key: 'Maghrib', name: 'Maghrib', time: prayerData.maghrib, icon: '🌇', offset: selectedMosque.iqamaOffsets?.Maghrib ?? 5 },
+    { key: 'Isha', name: 'Isha', time: prayerData.isha, icon: '🌙', offset: selectedMosque.iqamaOffsets?.Isha ?? 10 }
   ];
 
   const handleDhikrTap = () => {

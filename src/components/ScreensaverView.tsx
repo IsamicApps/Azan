@@ -74,7 +74,14 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
     };
     requestWakeLock();
 
+    // The browser drops the wake lock whenever the page is hidden; take it again on return
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') requestWakeLock();
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (wakeLockRef.current) {
         wakeLockRef.current.release().catch(() => {});
         wakeLockRef.current = null;

@@ -15,15 +15,15 @@ import {
   Mosque,
   PrayerTimesResult,
   calculateMosquePrayerTimes,
-  getSelectedMosque
+  getSelectedMosque,
+  getDuePrayer,
+  MOSQUE_CHANGE_EVENT
 } from './utils/prayerTimes';
 import {
   playAzan,
   stopAzan,
-  isAzanPlaying,
   getAzanSettings,
-  saveAzanSettings,
-  AzanSettings
+  claimAzanTrigger
 } from './utils/azanAudio';
 import { AzanLiveModal } from './components/AzanLiveModal';
 import { AppLogo } from './components/AppLogo';
@@ -59,6 +59,8 @@ import {
   Sun,
   Tv
 } from 'lucide-react';
+
+const REMINDER_SENT_KEY = 'daily_hadith_reminder_last_sent_v1';
 
 type Tab =
   | 'mobile-phone'
@@ -97,56 +99,64 @@ export function App() {
   const [showGlobalAzanModal, setShowGlobalAzanModal] = useState(false);
   const [globalAzanPrayer, setGlobalAzanPrayer] = useState({ name: 'Fajr', time: '05:00 AM' });
 
-  // Global Prayer Watcher and Auto-Azan
+  // Keep the global watcher on whichever mosque was last selected anywhere in the app
+  useEffect(() => {
+    const syncMosque = () => setSelectedMosque(getSelectedMosque());
+    window.addEventListener(MOSQUE_CHANGE_EVENT, syncMosque);
+    return () => window.removeEventListener(MOSQUE_CHANGE_EVENT, syncMosque);
+  }, []);
+
+  // Global Prayer Watcher and Auto-Azan (the only auto-Azan trigger in the app)
   useEffect(() => {
     const timer = setInterval(() => {
-      const now = new Date();
-      const currentResult = calculateMosquePrayerTimes(selectedMosque, now);
+      const currentResult = calculateMosquePrayerTimes(selectedMosque, new Date());
       setPrayerData(currentResult);
 
       const azanSettings = getAzanSettings();
-      if (azanSettings.autoAzanEnabled) {
-        const schedule = [
-          { name: 'Fajr', time: currentResult.fajr },
-          { name: 'Dhuhr', time: currentResult.dhuhr },
-          { name: 'Asr', time: currentResult.asr },
-          { name: 'Maghrib', time: currentResult.maghrib },
-          { name: 'Isha', time: currentResult.isha }
-        ];
+      const duePrayer = azanSettings.autoAzanEnabled ? getDuePrayer(currentResult) : null;
+      if (duePrayer && claimAzanTrigger(`${currentResult.localDateKey}_${duePrayer.name}`)) {
+        setGlobalAzanPrayer(duePrayer);
+        setShowGlobalAzanModal(true);
 
-        const currentTimeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
-        const dateKey = now.toISOString().split('T')[0];
+        playAzan(undefined, () => {}, azanSettings.selectedMuezzin);
 
-        for (const prayer of schedule) {
-          if (prayer.time.trim() === currentTimeStr.trim()) {
-            const triggerKey = `${dateKey}_${prayer.name}`;
-            if (azanSettings.lastPlayedPrayerKey !== triggerKey && !isAzanPlaying()) {
-              const updated = { ...azanSettings, lastPlayedPrayerKey: triggerKey };
-              saveAzanSettings(updated);
-
-              setGlobalAzanPrayer({ name: prayer.name, time: prayer.time });
-              setShowGlobalAzanModal(true);
-
-              playAzan(
-                undefined,
-                () => {},
-                azanSettings.selectedMuezzin
-              );
-
-              if ('Notification' in window && Notification.permission === 'granted') {
-                new Notification(`Allahu Akbar • Time for ${prayer.name} Prayer`, {
-                  body: `Prayer time has arrived at ${selectedMosque.name} (${selectedMosque.suburb}).`,
-                  icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="%23d4af37"/></svg>'
-                });
-              }
-            }
-          }
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification(`Allahu Akbar • Time for ${duePrayer.name} Prayer`, {
+            body: `Prayer time has arrived at ${selectedMosque.name} (${selectedMosque.suburb}).`,
+            icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="%23d4af37"/></svg>'
+          });
         }
       }
     }, 1000);
 
     return () => clearInterval(timer);
   }, [selectedMosque]);
+
+  // Daily Hadith reminder notification
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const config = getReminderConfig();
+      if (!config.enabled || !('Notification' in window) || Notification.permission !== 'granted') return;
+
+      const now = new Date();
+      const nowHHMM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      if (nowHHMM !== config.time) return;
+
+      const todayKey = formatDateKey(now);
+      try {
+        if (localStorage.getItem(REMINDER_SENT_KEY) === todayKey) return;
+        localStorage.setItem(REMINDER_SENT_KEY, todayKey);
+      } catch {}
+
+      const today = getDailyHadith(now).hadith;
+      new Notification('Daily Hadith Reminder', {
+        body: today.excerpt.length > 180 ? `${today.excerpt.slice(0, 177)}...` : today.excerpt,
+        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><polygon points="50,5 61,35 95,35 68,57 79,91 50,70 21,91 32,57 5,35 39,35" fill="%23d9ab3d"/></svg>'
+      });
+    }, 15000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   // Sync daily selection when date rolls over
   useEffect(() => {

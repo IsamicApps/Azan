@@ -10,9 +10,6 @@ import {
   getAllMosques
 } from '../utils/prayerTimes';
 import {
-  playAzan,
-  stopAzan,
-  isAzanPlaying,
   getAzanSettings,
   saveAzanSettings,
   AzanSettings,
@@ -21,7 +18,6 @@ import {
 import { speakHadith, stopSpeaking, isSpeaking } from '../utils/speech';
 import { IslamicPattern, IslamicCornerOrnament } from './IslamicPattern';
 import { AppLogo } from './AppLogo';
-import { AzanLiveModal } from './AzanLiveModal';
 import {
   Maximize,
   Minimize,
@@ -64,8 +60,6 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
   const [isAutoCycling, setIsAutoCycling] = useState(true);
   const [tvTheme, setTvTheme] = useState<'obsidian' | 'emerald' | 'sapphire' | 'royal-gold'>('obsidian');
   const [driftOffset, setDriftOffset] = useState({ x: 0, y: 0 });
-  const [showAzanModal, setShowAzanModal] = useState(false);
-  const [activeAzanInfo, setActiveAzanInfo] = useState({ name: 'Fajr', time: '05:00 AM' });
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -85,7 +79,14 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
     };
     requestWakeLock();
 
+    // The browser drops the wake lock whenever the page is hidden; take it again on return
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') requestWakeLock();
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (wakeLockRef.current) {
         wakeLockRef.current.release().catch(() => {});
       }
@@ -118,46 +119,12 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
 
       const daily = getDailyHadith(now);
       setCurrentHijriStr(daily.hijriDate);
-
-      // Auto-Azan Live Check
-      if (azanSettings.autoAzanEnabled) {
-        const schedule = [
-          { name: 'Fajr', time: currentCalc.fajr },
-          { name: 'Dhuhr', time: currentCalc.dhuhr },
-          { name: 'Asr', time: currentCalc.asr },
-          { name: 'Maghrib', time: currentCalc.maghrib },
-          { name: 'Isha', time: currentCalc.isha }
-        ];
-
-        const currentTimeFull = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
-        const dateKey = now.toISOString().split('T')[0];
-
-        for (const prayer of schedule) {
-          if (prayer.time.trim() === currentTimeFull.trim()) {
-            const triggerKey = `${dateKey}_${prayer.name}`;
-            if (azanSettings.lastPlayedPrayerKey !== triggerKey && !isAzanPlaying()) {
-              const updated = { ...azanSettings, lastPlayedPrayerKey: triggerKey };
-              setAzanSettings(updated);
-              saveAzanSettings(updated);
-
-              setActiveAzanInfo({ name: prayer.name, time: prayer.time });
-              setShowAzanModal(true);
-
-              playAzan(
-                undefined,
-                () => {},
-                azanSettings.selectedMuezzin
-              );
-            }
-          }
-        }
-      }
     };
 
     updateTime();
     const clockInterval = setInterval(updateTime, 1000);
     return () => clearInterval(clockInterval);
-  }, [selectedMosque, azanSettings]);
+  }, [selectedMosque]);
 
   // OLED Burn-in micro-drift (shifts content 1-3 pixels every 90 seconds)
   useEffect(() => {
@@ -544,17 +511,6 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
         </div>
       </footer>
 
-      {/* Live Azan Broadcast Modal on TV */}
-      <AzanLiveModal
-        isOpen={showAzanModal}
-        prayerName={activeAzanInfo.name}
-        prayerTime={activeAzanInfo.time}
-        mosque={selectedMosque}
-        onClose={() => {
-          setShowAzanModal(false);
-          stopAzan();
-        }}
-      />
     </div>
   );
 };
