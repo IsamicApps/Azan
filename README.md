@@ -44,6 +44,8 @@ Both apps share everything in `src/shared/` (components, prayer-time & Azan engi
 
 ### 3b. 📺 Google TV App
 - **Remote-control (D-pad) navigation**: arrows move focus, OK selects, Back closes dialogs; Channel +/− browses Hadiths.
+- **Hadith slide speed**: each Hadith stays 10 sec, 15 sec, 25 sec (default), 45 sec, 1 min, 2 min or 5 min, or the slides can be paused (footer button or **S** key). Remembered on the TV.
+- **Screen brightness**: dim the whole screen to 85%, 70%, 55%, 40% or 25% (footer button or **B** key), e.g. for the night. Remembered on the TV.
 - **"Press OK to Start" screen** — the one remote press lets the TV play the Azan automatically afterwards.
 - **Mosque picker**, full-screen landscape layout, live next-prayer countdown and Iqamah times.
 - **Wake Lock & OLED micro-drift** so the screen stays on without burn-in.

@@ -29,6 +29,17 @@ import {
   getAzanPlayCount
 } from '../utils/azanAudio';
 import { speakHadith, stopSpeaking, isSpeaking } from '../utils/speech';
+import {
+  SlideSeconds,
+  getSlideSeconds,
+  saveSlideSeconds,
+  nextSlideSeconds,
+  describeSlideSeconds,
+  BrightnessLevel,
+  getTvBrightness,
+  saveTvBrightness,
+  nextTvBrightness
+} from '../utils/tvSettings';
 import { IslamicPattern, IslamicCornerOrnament } from './IslamicPattern';
 import { AppLogo } from './AppLogo';
 import {
@@ -54,7 +65,10 @@ import {
   X,
   Music,
   Play,
-  Square
+  Pause,
+  Square,
+  Timer,
+  SunDim
 } from 'lucide-react';
 
 const MUEZZIN_IDS = Object.keys(MUEZZIN_SOURCES) as MuezzinId[];
@@ -95,7 +109,8 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
   const [isDailyHadith, setIsDailyHadith] = useState(true);
   const [showExcerpt, setShowExcerpt] = useState(false);
   const shownHadithsRef = useRef<{ hadith: Hadith; isDaily: boolean }[]>([]);
-  const [isAutoCycling, setIsAutoCycling] = useState(true);
+  const [slideSeconds, setSlideSeconds] = useState<SlideSeconds>(getSlideSeconds);
+  const [brightness, setBrightness] = useState<BrightnessLevel>(getTvBrightness);
   const [tvTheme, setTvTheme] = useState<'obsidian' | 'emerald' | 'sapphire' | 'royal-gold'>('obsidian');
   const [driftOffset, setDriftOffset] = useState({ x: 0, y: 0 });
   const [openDialog, setOpenDialog] = useState<'mosque' | 'azan' | null>(null);
@@ -211,12 +226,29 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
     if (previous) showHadith(previous.hadith, previous.isDaily);
   };
 
-  // Auto-rotate Hadiths every 25 seconds
+  const cycleSlideSpeed = () => {
+    setSlideSeconds((current) => {
+      const next = nextSlideSeconds(current);
+      saveSlideSeconds(next);
+      return next;
+    });
+  };
+
+  const cycleBrightness = () => {
+    setBrightness((current) => {
+      const next = nextTvBrightness(current);
+      saveTvBrightness(next);
+      return next;
+    });
+  };
+
+  // Next Hadith after the chosen time; restarts whenever the Hadith changes, so one
+  // picked with Ch +/− also stays up for the full time
   useEffect(() => {
-    if (!isAutoCycling) return;
-    const hadithTimer = setInterval(showNextHadith, 25000);
-    return () => clearInterval(hadithTimer);
-  }, [isAutoCycling]);
+    if (!slideSeconds || !activeHadith) return;
+    const hadithTimer = setTimeout(showNextHadith, slideSeconds * 1000);
+    return () => clearTimeout(hadithTimer);
+  }, [slideSeconds, activeHadith]);
 
   // Keyboard navigation for TV Remotes (D-Pad / Keys)
   useEffect(() => {
@@ -234,6 +266,10 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
         saveAzanSettings(updated);
       } else if (e.key === 'l' || e.key === 'L') {
         setHadithLanguage(getHadithLanguage() === 'ar' ? 'en' : 'ar');
+      } else if (e.key === 's' || e.key === 'S') {
+        cycleSlideSpeed();
+      } else if (e.key === 'b' || e.key === 'B') {
+        cycleBrightness();
       } else if (e.key === 't' || e.key === 'T') {
         const themes: ('obsidian' | 'emerald' | 'sapphire' | 'royal-gold')[] = ['obsidian', 'emerald', 'sapphire', 'royal-gold'];
         const nextIdx = (themes.indexOf(tvTheme) + 1) % themes.length;
@@ -665,6 +701,34 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
               <LanguageToggle size="tv" />
 
               <button
+                onClick={cycleSlideSpeed}
+                className={`flex items-center gap-2 px-4 py-3 rounded-2xl transition cursor-pointer text-[20px] font-semibold whitespace-nowrap ${
+                  slideSeconds
+                    ? 'bg-white/10 hover:bg-white/20 text-neutral-200 hover:text-white'
+                    : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                }`}
+                title="Hadith slide speed: how long each Hadith stays on screen [S]"
+                aria-label={`Hadith slide speed: ${describeSlideSeconds(slideSeconds)}. Press to change.`}
+              >
+                {slideSeconds ? <Timer className="w-6 h-6" /> : <Pause className="w-6 h-6" />}
+                <span>{describeSlideSeconds(slideSeconds)}</span>
+              </button>
+
+              <button
+                onClick={cycleBrightness}
+                className={`flex items-center gap-2 px-4 py-3 rounded-2xl transition cursor-pointer text-[20px] font-semibold whitespace-nowrap ${
+                  brightness === 100
+                    ? 'bg-white/10 hover:bg-white/20 text-neutral-200 hover:text-white'
+                    : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                }`}
+                title="Screen brightness [B]"
+                aria-label={`Screen brightness: ${brightness}%. Press to change.`}
+              >
+                {brightness === 100 ? <Sun className="w-6 h-6" /> : <SunDim className="w-6 h-6" />}
+                <span>{brightness}%</span>
+              </button>
+
+              <button
                 onClick={() => openDialogOf('mosque')}
                 className="p-3 rounded-2xl bg-white/10 hover:bg-white/20 text-neutral-200 hover:text-white transition cursor-pointer"
                 title="Choose Mosque"
@@ -828,6 +892,15 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
             </div>
           </div>
         </div>
+      )}
+
+      {/* Brightness: dims everything, dialogs included, without blocking the remote */}
+      {brightness < 100 && (
+        <div
+          aria-hidden="true"
+          className="fixed inset-0 z-[9999] bg-black pointer-events-none transition-opacity duration-300"
+          style={{ opacity: (100 - brightness) / 100 }}
+        />
       )}
     </div>
   );
