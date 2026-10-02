@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { Hadith } from '../types/hadith';
 import { getDailyHadith } from '../utils/dailyEngine';
 import dailyPoolData from '../data/daily_pool.json';
@@ -65,6 +65,9 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
   const [driftOffset, setDriftOffset] = useState({ x: 0, y: 0 });
   const [isMosquePickerOpen, setIsMosquePickerOpen] = useState(false);
   const selectedMosqueButtonRef = useRef<HTMLButtonElement>(null);
+  const hadithBoxRef = useRef<HTMLDivElement>(null);
+  const hadithContentRef = useRef<HTMLDivElement>(null);
+  const hadithTextRef = useRef<HTMLQuoteElement>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -238,6 +241,26 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
 
   const activeHadith = pool[hadithIndex] || pool[0];
 
+  // Largest font (52px down to 24px) at which the whole Hadith fits its panel,
+  // whatever the screen's shape — re-fitted when the Hadith or the screen changes.
+  useLayoutEffect(() => {
+    const fit = () => {
+      const box = hadithBoxRef.current;
+      const content = hadithContentRef.current;
+      const text = hadithTextRef.current;
+      if (!box || !content || !text) return;
+      let size = 52;
+      text.style.fontSize = `${size}px`;
+      while (size > 24 && content.offsetHeight > box.clientHeight) {
+        size -= 2;
+        text.style.fontSize = `${size}px`;
+      }
+    };
+    fit();
+    window.addEventListener('resize', fit);
+    return () => window.removeEventListener('resize', fit);
+  }, [activeHadith.id]);
+
   const themes = {
     obsidian: {
       bg: 'bg-gradient-to-br from-[#06080e] via-[#090d18] to-[#040508]',
@@ -276,13 +299,18 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
     { name: 'Isha', arabic: 'العشاء', time: prayerData.isha, icon: '🌙', offset: selectedMosque.iqamaOffsets?.Isha ?? 10 }
   ];
 
+  // Designed for a fixed 1920x1080 canvas (scaled to the screen by the TV app),
+  // so sizes are absolute and readable from across the room — no breakpoints.
+  const compassPoints = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+  const qiblaDirection = compassPoints[Math.round(prayerData.qiblaBearing / 45) % 8];
+
   return (
     <div
       ref={containerRef}
       style={{
         transform: `translate3d(${driftOffset.x}px, ${driftOffset.y}px, 0)`
       }}
-      className={`fixed inset-0 z-50 w-full h-full ${currentTheme.bg} text-white flex flex-col justify-between p-6 lg:p-10 select-none overflow-hidden transition-colors duration-700`}
+      className={`fixed inset-0 z-50 w-full h-full ${currentTheme.bg} text-white flex flex-col px-[72px] py-[44px] select-none overflow-hidden transition-colors duration-700`}
     >
       <IslamicPattern opacity={12} color={currentTheme.patternColor} />
       <IslamicCornerOrnament color={currentTheme.patternColor} className="absolute top-4 left-4 rotate-0 opacity-40 scale-125" />
@@ -290,173 +318,101 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
       <IslamicCornerOrnament color={currentTheme.patternColor} className="absolute bottom-4 left-4 -rotate-90 opacity-40 scale-125" />
       <IslamicCornerOrnament color={currentTheme.patternColor} className="absolute bottom-4 right-4 rotate-180 opacity-40 scale-125" />
 
-      {/* 1. TOP SMART TV HEADER BAR */}
-      <header className="relative z-20 flex items-center justify-between pb-4 border-b border-white/15">
-        {/* Left: Mosque & Brand with Logo */}
-        <div className="flex items-center space-x-4">
-          <AppLogo size={58} glow={true} />
-          <div>
-            <div className="flex items-center space-x-2">
-              <span className="font-serif text-2xl lg:text-3xl font-extrabold tracking-tight text-white">
+      {/* 1. HEADER: brand & mosque | dates | clock */}
+      <header className="relative z-20 shrink-0 grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-12 pb-6 border-b border-white/15">
+        <div className="flex items-center gap-5 min-w-0">
+          <AppLogo size={76} glow={true} />
+          <div className="min-w-0">
+            <div className="flex items-center gap-3">
+              <span className="font-serif text-[40px] leading-tight font-extrabold tracking-tight text-white whitespace-nowrap">
                 Daily Hadith & Azan
               </span>
-              <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-semibold text-xs border border-amber-500/30">
-                TV Mode
-              </span>
             </div>
-            <div className="text-xs lg:text-sm text-neutral-300 flex items-center space-x-2 mt-0.5">
-              <Building2 className="w-4 h-4 text-amber-400" />
-              <span className="font-semibold text-amber-200">{selectedMosque.name}</span>
-              <span>•</span>
-              <span>{selectedMosque.suburb}, {selectedMosque.state}</span>
-              <span>•</span>
-              <span className="text-emerald-400 font-mono">Awqat.com.au</span>
+            <div className="text-[22px] text-neutral-300 flex items-start gap-2 mt-1 min-w-0">
+              <Building2 className="w-6 h-6 mt-0.5 shrink-0 text-amber-400" />
+              <span className="line-clamp-2">
+                <span className="font-semibold text-amber-200">{selectedMosque.name}</span>
+                <span className="text-neutral-500"> • </span>
+                <span className="whitespace-nowrap">{selectedMosque.suburb}, {selectedMosque.state}</span>
+              </span>
             </div>
           </div>
         </div>
 
-        {/* Center: Live Date (Gregorian & Hijri) */}
-        <div className="hidden md:flex flex-col items-center text-center">
-          <div className="font-arabic text-lg lg:text-xl text-amber-300 font-semibold">
+        <div className="flex flex-col items-center text-center">
+          <div className="font-arabic text-[34px] leading-tight text-amber-300 font-semibold whitespace-nowrap">
             {currentHijriStr}
           </div>
-          <div className="text-xs lg:text-sm text-neutral-300 font-medium">
+          <div className="text-[22px] text-neutral-300 font-medium whitespace-nowrap">
             {currentDateStr}
           </div>
         </div>
 
-        {/* Right: Giant TV Clock & Controls */}
-        <div className="flex items-center space-x-5">
-          <div className="text-right">
-            <div className="font-mono text-3xl lg:text-5xl font-extrabold tracking-tight text-white flex items-baseline">
-              <span>{currentTimeStr}</span>
-              <span className="text-xs lg:text-sm text-amber-400 ml-1.5 font-bold">:{currentSecondsStr}</span>
-            </div>
-          </div>
-
-          {/* Quick TV Control Buttons */}
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={openMosquePicker}
-              className="p-3 rounded-2xl bg-white/10 hover:bg-white/20 text-neutral-200 hover:text-white transition cursor-pointer"
-              title="Choose Mosque"
-            >
-              <MapPin className="w-5 h-5" />
-            </button>
-
-            <button
-              onClick={() => {
-                const themes: ('obsidian' | 'emerald' | 'sapphire' | 'royal-gold')[] = ['obsidian', 'emerald', 'sapphire', 'royal-gold'];
-                const nextIdx = (themes.indexOf(tvTheme) + 1) % themes.length;
-                setTvTheme(themes[nextIdx]);
-              }}
-              className="p-3 rounded-2xl bg-white/10 hover:bg-white/20 text-neutral-200 hover:text-white transition cursor-pointer"
-              title="Switch Theme [T]"
-            >
-              <Moon className="w-5 h-5" />
-            </button>
-
-            <button
-              onClick={() => {
-                const next = !azanSettings.autoAzanEnabled;
-                const updated = { ...azanSettings, autoAzanEnabled: next };
-                setAzanSettings(updated);
-                saveAzanSettings(updated);
-              }}
-              className={`p-3 rounded-2xl transition cursor-pointer ${
-                azanSettings.autoAzanEnabled
-                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                  : 'bg-white/10 text-neutral-400'
-              }`}
-              title={azanSettings.autoAzanEnabled ? 'Auto-Azan On [M]' : 'Auto-Azan Muted [M]'}
-            >
-              {azanSettings.autoAzanEnabled ? <Volume2 className="w-5 h-5 text-emerald-400" /> : <VolumeX className="w-5 h-5" />}
-            </button>
-
-            <button
-              onClick={toggleFullscreen}
-              className="p-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold transition shadow-lg cursor-pointer"
-              title="Toggle Fullscreen [F]"
-            >
-              {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
-            </button>
-
-            {onClose && (
-              <button
-                onClick={onClose}
-                className="px-4 py-3 rounded-2xl bg-white/10 hover:bg-rose-500/30 text-neutral-200 hover:text-white text-xs font-bold transition cursor-pointer"
-              >
-                Exit TV View
-              </button>
-            )}
+        <div className="flex items-center justify-end">
+          <div className="font-mono text-[76px] leading-none font-extrabold tracking-tight text-white flex items-baseline whitespace-nowrap">
+            <span>{currentTimeStr}</span>
+            <span className="text-[28px] text-amber-400 ml-2 font-bold">:{currentSecondsStr}</span>
           </div>
         </div>
       </header>
 
-      {/* 2. MAIN TV BODY (Split 60% Hadith & Fasting / 40% Prayer & Next Countdown) */}
-      <main className="relative z-20 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 my-4 overflow-hidden items-stretch">
-        
-        {/* LEFT COLUMN: Featured Sahih al-Bukhari Hadith (7 Columns) */}
-        <div className="lg:col-span-7 flex flex-col justify-between rounded-3xl bg-[#0c0f18]/80 border border-amber-500/30 p-6 lg:p-8 shadow-2xl relative overflow-hidden backdrop-blur-md">
+      {/* 2. BODY: Hadith (7/12) | Next prayer & timetable (5/12) */}
+      <main className="relative z-20 flex-1 min-h-0 grid grid-cols-12 gap-8 my-7">
+        {/* Featured Hadith */}
+        <div className="col-span-7 min-h-0 flex flex-col rounded-[32px] bg-[#0c0f18]/80 border border-amber-500/30 px-12 py-10 shadow-2xl relative overflow-hidden backdrop-blur-md">
           <IslamicPattern opacity={16} color={currentTheme.patternColor} />
-          
-          <div className="relative z-10 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-bold uppercase tracking-wider">
-                <Sparkles className="w-4 h-4" />
-                <span>Sahih al-Bukhari • Daily Verified Selection</span>
-              </div>
 
-              {/* Hadith cycling controls */}
-              <div className="flex items-center space-x-2 text-xs text-neutral-400">
-                <span>{hadithIndex + 1} of {pool.length}</span>
-                <button
-                  onClick={() => setHadithIndex((prev) => (prev - 1 + pool.length) % pool.length)}
-                  title="Previous Hadith"
-                  className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white cursor-pointer"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setHadithIndex((prev) => (prev + 1) % pool.length)}
-                  title="Next Hadith"
-                  className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white cursor-pointer"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
+          <div className="relative z-10 shrink-0 flex items-center justify-between gap-6">
+            <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[20px] font-bold uppercase tracking-wider whitespace-nowrap">
+              <Sparkles className="w-6 h-6" />
+              <span>Sahih al-Bukhari</span>
             </div>
 
-            {/* Narrator */}
-            {activeHadith.narrator && (
-              <div className="font-serif text-lg lg:text-xl font-bold text-amber-300">
-                {activeHadith.narrator}
-              </div>
-            )}
-
-            {/* Hadith English Text in Big TV Typography */}
-            <blockquote className="font-serif text-xl lg:text-2xl xl:text-3xl text-neutral-100 leading-relaxed max-h-[36vh] overflow-y-auto pr-2 scrollbar-none">
-              &ldquo;{activeHadith.text}&rdquo;
-            </blockquote>
+            <div className="flex items-center gap-3 text-[20px] text-neutral-400">
+              <span className="whitespace-nowrap">{hadithIndex + 1} of {pool.length}</span>
+              <button
+                onClick={() => setHadithIndex((prev) => (prev - 1 + pool.length) % pool.length)}
+                title="Previous Hadith"
+                className="p-3 rounded-xl bg-white/10 hover:bg-white/20 text-white cursor-pointer"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+              <button
+                onClick={() => setHadithIndex((prev) => (prev + 1) % pool.length)}
+                title="Next Hadith"
+                className="p-3 rounded-xl bg-white/10 hover:bg-white/20 text-white cursor-pointer"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
+            </div>
           </div>
 
-          {/* Bottom Hadith Reference Bar & Fasting Ribbon */}
-          <div className="relative z-10 pt-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="text-xs lg:text-sm text-neutral-300 font-mono space-x-3">
+          <div ref={hadithBoxRef} className="relative z-10 flex-1 min-h-0 flex flex-col justify-center overflow-hidden my-6">
+            <div ref={hadithContentRef}>
+              {activeHadith.narrator && (
+                <div className="font-serif text-[34px] font-bold text-amber-300 mb-5">
+                  {activeHadith.narrator}
+                </div>
+              )}
+              <blockquote ref={hadithTextRef} data-hadith-text className="font-serif text-[52px] leading-[1.45] text-neutral-100">
+                &ldquo;{activeHadith.text}&rdquo;
+              </blockquote>
+            </div>
+          </div>
+
+          <div className="relative z-10 shrink-0 pt-6 border-t border-white/10 flex items-center justify-between gap-6">
+            <div className="text-[22px] text-neutral-300 font-mono flex flex-wrap items-center gap-x-4 gap-y-1 min-w-0">
               <span className="text-amber-400 font-semibold">Book {activeHadith.bookNumber}: {activeHadith.bookName}</span>
-              <span>•</span>
+              <span className="text-neutral-500">•</span>
               <span>Hadith #{activeHadith.hadithNumber}</span>
-              <span>•</span>
-              <span className="text-neutral-400">PDF Page {activeHadith.pdfPage}</span>
             </div>
 
-            {/* Fasting Suhoor/Iftar Pill */}
-            <div className="flex items-center space-x-2 px-3.5 py-1.5 rounded-2xl bg-emerald-950/50 border border-emerald-500/30 text-xs">
-              <Utensils className="w-3.5 h-3.5 text-emerald-400" />
+            <div className="shrink-0 flex items-center gap-3 px-5 py-2.5 rounded-2xl bg-emerald-950/50 border border-emerald-500/30 text-[22px] whitespace-nowrap">
+              <Utensils className="w-6 h-6 text-emerald-400" />
               <span className="text-neutral-300">
                 {prayerData.nextFastingEvent.type === 'Iftar'
-                  ? `Iftar at ${prayerData.maghrib}`
-                  : `Suhoor end at ${prayerData.fajr}`}
+                  ? `Iftar ${prayerData.maghrib}`
+                  : `Suhoor ends ${prayerData.fajr}`}
               </span>
               <span className="text-emerald-400 font-bold font-mono">
                 ({prayerData.nextFastingEvent.remainingFormatted})
@@ -465,39 +421,36 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Live Next Prayer Card & Full Timetable (5 Columns) */}
-        <div className="lg:col-span-5 flex flex-col justify-between space-y-4">
-          
-          {/* Top: Giant Next Prayer Countdown Card */}
-          <div className="p-6 rounded-3xl bg-gradient-to-r from-amber-600/30 via-[#1a1f30] to-[#101420] border border-amber-500/40 shadow-2xl relative overflow-hidden flex items-center justify-between">
+        {/* Next prayer & timetable */}
+        <div className="col-span-5 min-h-0 flex flex-col gap-5">
+          <div className="shrink-0 px-9 py-7 rounded-[32px] bg-gradient-to-r from-amber-600/30 via-[#1a1f30] to-[#101420] border border-amber-500/40 shadow-2xl relative overflow-hidden flex items-center justify-between gap-6">
             <IslamicPattern opacity={14} color="#d4af37" />
-            <div className="relative z-10 space-y-1">
-              <div className="text-[11px] uppercase tracking-widest text-amber-300 font-bold">
+            <div className="relative z-10 min-w-0">
+              <div className="text-[20px] uppercase tracking-widest text-amber-300 font-bold">
                 Next Prayer
               </div>
-              <h3 className="font-serif text-3xl lg:text-4xl font-extrabold text-white">
+              <h3 className="font-serif text-[64px] leading-tight font-extrabold text-white">
                 {prayerData.nextPrayer.name}
               </h3>
-              <div className="text-sm font-mono text-neutral-300">
-                Adhan: <span className="text-amber-300 font-bold">{prayerData.nextPrayer.time}</span>
+              <div className="text-[22px] font-mono text-neutral-300 flex flex-wrap gap-x-4">
+                <span className="whitespace-nowrap">Adhan <span className="text-amber-300 font-bold">{prayerData.nextPrayer.time}</span></span>
                 {prayerData.nextPrayer.iqamaTime && (
-                  <span className="ml-2 text-emerald-400">• Iqamah: {prayerData.nextPrayer.iqamaTime}</span>
+                  <span className="whitespace-nowrap text-emerald-400">Iqamah {prayerData.nextPrayer.iqamaTime}</span>
                 )}
               </div>
             </div>
 
-            <div className="relative z-10 text-right">
-              <div className="text-[10px] uppercase tracking-widest text-neutral-400 font-semibold">
-                Time Remaining
+            <div className="relative z-10 text-right shrink-0">
+              <div className="text-[18px] uppercase tracking-widest text-neutral-400 font-semibold">
+                Remaining
               </div>
-              <div className="text-2xl lg:text-4xl font-mono font-extrabold text-amber-300 mt-0.5">
+              <div className="text-[60px] leading-tight font-mono font-extrabold text-amber-300 whitespace-nowrap">
                 {prayerData.nextPrayer.remainingFormatted}
               </div>
             </div>
           </div>
 
-          {/* Bottom: 6 Daily Prayers Timetable with Iqamah */}
-          <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-3 max-h-[46vh] overflow-y-auto pr-1">
+          <div className="flex-1 min-h-0 grid grid-cols-2 grid-rows-3 gap-4">
             {prayerCards.map((p) => {
               const isNext = prayerData.nextPrayer.name === p.name;
               const isCurrent = prayerData.currentPrayer === p.name;
@@ -505,91 +458,138 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
               return (
                 <div
                   key={p.name}
-                  className={`p-4 rounded-2xl border transition-all flex items-center justify-between ${
+                  data-prayer-card
+                  className={`min-h-0 px-6 py-3 rounded-3xl border transition-all flex flex-col justify-center ${
                     isNext
-                      ? 'bg-gradient-to-r from-amber-500/25 via-[#22293d] to-[#151a28] border-amber-400 ring-2 ring-amber-500/40 shadow-xl scale-[1.02]'
+                      ? 'bg-gradient-to-r from-amber-500/25 via-[#22293d] to-[#151a28] border-amber-400 ring-4 ring-amber-500/40 shadow-xl'
                       : isCurrent
                       ? 'bg-neutral-900/90 border-emerald-500/50'
                       : 'bg-[#0f121d]/80 border-white/10'
                   }`}
                 >
-                  <div className="space-y-0.5">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-base">{p.icon}</span>
-                      <span className="font-bold text-sm lg:text-base text-white">{p.name}</span>
-                      <span className="font-arabic text-xs text-neutral-400">{p.arabic}</span>
-                    </div>
-                    <div className="text-[10px] text-neutral-400">
-                      {p.offset > 0 ? `Iqamah +${p.offset}m` : 'Transit'}
-                    </div>
-                  </div>
-
-                  <div className="text-right">
-                    <div className="font-mono text-base lg:text-xl font-bold text-amber-300">
-                      {p.time}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="text-[26px] leading-none">{p.icon}</span>
+                      <span className="font-bold text-[26px] leading-tight text-white">{p.name}</span>
                     </div>
                     {isNext && (
-                      <span className="text-[9px] px-2 py-0.5 rounded-full bg-amber-500 text-neutral-950 font-extrabold uppercase tracking-wider">
+                      <span className="shrink-0 text-[14px] px-3 py-0.5 rounded-full bg-amber-500 text-neutral-950 font-extrabold uppercase tracking-wider">
                         Next
                       </span>
                     )}
+                  </div>
+                  <div className="font-mono text-[36px] leading-tight font-bold text-amber-300 whitespace-nowrap">
+                    {p.time}
+                  </div>
+                  <div className="text-[18px] text-neutral-400 flex items-center gap-2 whitespace-nowrap">
+                    <span className="font-arabic">{p.arabic}</span>
+                    <span>•</span>
+                    <span>{p.offset > 0 ? `Iqamah +${p.offset}m` : 'Transit'}</span>
                   </div>
                 </div>
               );
             })}
           </div>
 
-          {/* Friday Jumu'ah & Qibla Strip */}
-          <div className="p-3.5 rounded-2xl bg-[#0e121c] border border-white/10 flex items-center justify-between text-xs text-neutral-300">
-            <div className="flex items-center space-x-2">
-              <Calendar className="w-4 h-4 text-amber-400" />
-              <span>Jumu&apos;ah: <strong className="text-white">{selectedMosque.jumuah}</strong></span>
+          <div className="shrink-0 px-6 py-4 rounded-3xl bg-[#0e121c] border border-white/10 flex items-center justify-between gap-4 text-[22px] text-neutral-300">
+            <div className="flex items-center gap-3 min-w-0">
+              <Calendar className="w-6 h-6 shrink-0 text-amber-400" />
+              <span>Jumu&apos;ah <strong className="text-white">{selectedMosque.jumuah}</strong></span>
             </div>
-            <div className="flex items-center space-x-2">
-              <Compass className="w-4 h-4 text-sky-400" />
-              <span>Qibla: <strong className="text-sky-300 font-mono">{prayerData.qiblaBearing}° NW</strong></span>
+            <div className="flex items-center gap-3 shrink-0">
+              <Compass className="w-6 h-6 text-sky-400" />
+              <span>Qibla <strong className="text-sky-300 font-mono">{prayerData.qiblaBearing}° {qiblaDirection}</strong></span>
             </div>
           </div>
         </div>
       </main>
 
-      {/* 3. TV BOTTOM TICKER / KEYBOARD SHORTCUTS BAR */}
-      <footer className="relative z-20 pt-3 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between text-[11px] lg:text-xs text-neutral-400 gap-2">
-        <div className="flex items-center space-x-3">
-          <span className="flex items-center space-x-1.5">
-            <Shield className="w-3.5 h-3.5 text-emerald-400" />
-            <span>OLED Protection & Wake Lock Active</span>
+      {/* 3. FOOTER: status | controls */}
+      <footer className="relative z-20 shrink-0 pt-3 border-t border-white/10 flex items-center justify-between gap-6 text-[18px] text-neutral-400">
+        <div className="flex items-center gap-4 whitespace-nowrap">
+          <span className="flex items-center gap-2">
+            <Shield className="w-5 h-5 text-emerald-400" />
+            <span>Screen kept awake</span>
           </span>
           <span>•</span>
           <span>Muezzin: <strong className="text-amber-300">{MUEZZIN_SOURCES[azanSettings.selectedMuezzin]?.name}</strong></span>
         </div>
 
-        {/* TV Remote Shortcuts Help */}
-        <div className="flex items-center space-x-3 text-neutral-500 font-mono text-[10px]">
-          <span>[Arrows] Navigate</span>
-          <span>[OK] Select</span>
-          <span>[Ch +/−] Browse Hadiths</span>
-          <span>[F] Fullscreen</span>
-          <span>[M] Mute Azan</span>
-          <span>[T] Theme</span>
+        <div className="flex items-center gap-6">
+          <span className="text-neutral-500 font-mono text-[16px] whitespace-nowrap">Ch +/−: Hadiths</span>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={openMosquePicker}
+                className="p-3 rounded-2xl bg-white/10 hover:bg-white/20 text-neutral-200 hover:text-white transition cursor-pointer"
+                title="Choose Mosque"
+              >
+                <MapPin className="w-6 h-6" />
+              </button>
+
+              <button
+                onClick={() => {
+                  const themes: ('obsidian' | 'emerald' | 'sapphire' | 'royal-gold')[] = ['obsidian', 'emerald', 'sapphire', 'royal-gold'];
+                  const nextIdx = (themes.indexOf(tvTheme) + 1) % themes.length;
+                  setTvTheme(themes[nextIdx]);
+                }}
+                className="p-3 rounded-2xl bg-white/10 hover:bg-white/20 text-neutral-200 hover:text-white transition cursor-pointer"
+                title="Switch Theme [T]"
+              >
+                <Moon className="w-6 h-6" />
+              </button>
+
+              <button
+                onClick={() => {
+                  const next = !azanSettings.autoAzanEnabled;
+                  const updated = { ...azanSettings, autoAzanEnabled: next };
+                  setAzanSettings(updated);
+                  saveAzanSettings(updated);
+                }}
+                className={`p-3 rounded-2xl transition cursor-pointer ${
+                  azanSettings.autoAzanEnabled
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                    : 'bg-white/10 text-neutral-400'
+                }`}
+                title={azanSettings.autoAzanEnabled ? 'Auto-Azan On [M]' : 'Auto-Azan Muted [M]'}
+              >
+                {azanSettings.autoAzanEnabled ? <Volume2 className="w-6 h-6 text-emerald-400" /> : <VolumeX className="w-6 h-6" />}
+              </button>
+
+              <button
+                onClick={toggleFullscreen}
+                className="p-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold transition shadow-lg cursor-pointer"
+                title="Toggle Fullscreen [F]"
+              >
+                {isFullscreen ? <Minimize className="w-6 h-6" /> : <Maximize className="w-6 h-6" />}
+              </button>
+
+              {onClose && (
+                <button
+                  onClick={onClose}
+                  className="px-5 py-3 rounded-2xl bg-white/10 hover:bg-rose-500/30 text-neutral-200 hover:text-white text-lg font-bold transition cursor-pointer"
+                >
+                  Exit TV View
+                </button>
+              )}
+            </div>
         </div>
       </footer>
 
       {/* Mosque Picker (remote-friendly) */}
       {isMosquePickerOpen && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-10 bg-black/85 backdrop-blur-md">
-          <div className="w-full max-w-5xl max-h-full flex flex-col rounded-3xl bg-[#10131d] border border-amber-500/30 p-8 shadow-2xl">
-            <div className="flex items-center justify-between pb-4 mb-4 border-b border-white/10">
-              <h3 className="font-serif text-3xl font-bold text-white">Choose Your Mosque</h3>
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center px-[96px] py-[54px] bg-black/85 backdrop-blur-md">
+          <div className="w-full max-w-[1500px] max-h-full flex flex-col rounded-[36px] bg-[#10131d] border border-amber-500/30 p-10 shadow-2xl">
+            <div className="flex items-center justify-between pb-6 mb-6 border-b border-white/10">
+              <h3 className="font-serif text-[48px] font-bold text-white">Choose Your Mosque</h3>
               <button
                 onClick={closeMosquePicker}
-                className="p-3 rounded-2xl bg-white/10 hover:bg-white/20 text-neutral-200 cursor-pointer"
+                className="p-4 rounded-2xl bg-white/10 hover:bg-white/20 text-neutral-200 cursor-pointer"
                 title="Close"
               >
-                <X className="w-6 h-6" />
+                <X className="w-8 h-8" />
               </button>
             </div>
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 overflow-y-auto pr-2 p-1">
+            <div className="grid grid-cols-3 gap-4 overflow-y-auto pr-2 p-2">
               {mosquesByState.map((m) => {
                 const isSelected = m.id === selectedMosque.id;
                 return (
@@ -597,14 +597,14 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
                     key={m.id}
                     ref={isSelected ? selectedMosqueButtonRef : undefined}
                     onClick={() => handleSelectMosque(m)}
-                    className={`text-left p-4 rounded-2xl border transition cursor-pointer ${
+                    className={`text-left px-6 py-5 rounded-3xl border transition cursor-pointer ${
                       isSelected
                         ? 'bg-amber-500/20 border-amber-400 text-white'
                         : 'bg-white/5 border-white/10 text-neutral-200 hover:bg-white/10'
                     }`}
                   >
-                    <div className="font-semibold text-base leading-snug">{m.name}</div>
-                    <div className="text-sm text-neutral-400 mt-1">{m.suburb}, {m.state}</div>
+                    <div className="font-semibold text-[24px] leading-snug">{m.name}</div>
+                    <div className="text-[20px] text-neutral-400 mt-1">{m.suburb}, {m.state}</div>
                   </button>
                 );
               })}

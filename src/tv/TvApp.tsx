@@ -4,6 +4,7 @@ import { AutoAzanHost } from '../shared/components/AutoAzanHost';
 import { AppLogo } from '../shared/components/AppLogo';
 import { unlockAudio } from '../shared/utils/azanAudio';
 import { useSpatialNavigation } from './useSpatialNavigation';
+import { TvStage } from './TvStage';
 
 export function TvApp() {
   const [hasStarted, setHasStarted] = useState(false);
@@ -23,31 +24,31 @@ export function TvApp() {
     setHasStarted(true);
   };
 
-  if (!hasStarted) {
-    return (
-      <div className="w-screen h-screen flex flex-col items-center justify-center bg-[#06080e] text-white space-y-8">
-        <AppLogo size={120} glow={true} />
-        <div className="text-center space-y-2">
-          <h1 className="font-serif text-5xl font-bold">Daily Hadith & Azan</h1>
-          <p className="text-xl text-neutral-400">Prayer times, live Azan and Sahih al-Bukhari for your TV</p>
-        </div>
-        <button
-          ref={startButtonRef}
-          onClick={handleStart}
-          className="px-12 py-5 rounded-3xl bg-amber-500 hover:bg-amber-400 text-neutral-950 text-2xl font-bold shadow-2xl shadow-amber-500/30 cursor-pointer"
-        >
-          Press OK to Start
-        </button>
-        <p className="text-base text-neutral-500">Starting enables the automatic Azan sound on this TV</p>
-      </div>
-    );
-  }
-
   return (
-    <>
-      <SmartTvDisplayView />
-      <AutoAzanHost />
-    </>
+    <TvStage>
+      {hasStarted ? (
+        <>
+          <SmartTvDisplayView />
+          <AutoAzanHost />
+        </>
+      ) : (
+        <div className="w-full h-full flex flex-col items-center justify-center bg-[#06080e] text-white gap-10">
+          <AppLogo size={180} glow={true} />
+          <div className="text-center space-y-4">
+            <h1 className="font-serif text-[80px] leading-tight font-bold">Daily Hadith & Azan</h1>
+            <p className="text-[32px] text-neutral-400">Prayer times, live Azan and Sahih al-Bukhari for your TV</p>
+          </div>
+          <button
+            ref={startButtonRef}
+            onClick={handleStart}
+            className="px-16 py-7 rounded-[32px] bg-amber-500 hover:bg-amber-400 text-neutral-950 text-[40px] font-bold shadow-2xl shadow-amber-500/30 cursor-pointer"
+          >
+            Press OK to Start
+          </button>
+          <p className="text-[24px] text-neutral-500">Starting enables the automatic Azan sound on this TV</p>
+        </div>
+      )}
+    </TvStage>
   );
 }
 
