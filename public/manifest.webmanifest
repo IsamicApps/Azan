@@ -1,7 +1,7 @@
 {
-  "name": "Daily Hadith — Sahih al-Bukhari",
+  "name": "Daily Hadith & Azan",
   "short_name": "Daily Hadith",
-  "description": "Daily verified Hadiths from Sahih al-Bukhari with widgets and screensaver",
+  "description": "A daily Sahih or Hasan Hadith from sunnah.com, Awqat prayer times, Iqamah, the Azan and a Hijri calendar, in English or Arabic",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#080a0f",

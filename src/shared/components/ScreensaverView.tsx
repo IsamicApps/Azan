@@ -553,16 +553,16 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
               <h4 className="font-semibold text-white pt-2">{t('How to use Daily Hadith Screensaver:')}</h4>
               <ul className="list-disc ps-5 space-y-1.5 text-xs text-neutral-300">
                 <li>
-                  <strong>{t('In-App Ambient Mode:')}</strong> {t('Open this view, place your phone on a charger / stand. The app engages the screen WakeLock to prevent device sleep safely without bypassing security.')}
+                  <strong>{t('In-app ambient mode:')}</strong> {t('Open this screen and place your phone on a charger or stand. The app keeps the screen awake while it is open.')}
                 </li>
                 <li>
-                  <strong>{t('iOS StandBy Mode (iOS 17+):')}</strong> {t('Use our Large or Medium Widget in StandBy mode horizontally while charging on MagSafe.')}
+                  <strong>{t('Install the app:')}</strong> {t('On iPhone, Safari → Share → Add to Home Screen; on Android, Chrome menu → Install app. It then opens full screen like an app.')}
                 </li>
                 <li>
-                  <strong>{t('Android Daydream / Screen Saver:')}</strong> {t('On Android, you can configure our Widget on your ambient display or launch Daily Hadith in Ambient mode.')}
+                  <strong>{t('Keep it on this screen:')}</strong> {t('iPhone: Settings → Accessibility → Guided Access. Android: Settings → Security → App pinning.')}
                 </li>
                 <li>
-                  <strong>{t('macOS / Windows Screensaver:')}</strong> {t('You can add Daily Hadith web app as a standalone webview screensaver or use our exported Swift Widget.')}
+                  <strong>{t('Big screens:')}</strong> {t('Open the TV page (…/Azan/tv/) on Google TV or any browser for a full-screen mosque display.')}
                 </li>
               </ul>
             </div>

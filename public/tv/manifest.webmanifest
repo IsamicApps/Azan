@@ -1,7 +1,7 @@
 {
   "name": "Daily Hadith & Azan — TV",
   "short_name": "Hadith TV",
-  "description": "Prayer times, live Azan and daily Sahih al-Bukhari Hadiths for Google TV and big screens",
+  "description": "Awqat prayer times, Iqamah countdown, live Azan and Hadiths from sunnah.com for Google TV and big screens",
   "start_url": "./",
   "display": "fullscreen",
   "background_color": "#080a0f",

@@ -21,7 +21,6 @@ import { NamesOfAllahView } from './NamesOfAllahView';
 import { AdhkarView } from './AdhkarView';
 import { HijriCalendarView } from './HijriCalendarView';
 import { DailyHadithCard } from './DailyHadithCard';
-import { HistoryBrowser } from './HistoryBrowser';
 import { SearchLibrary } from './SearchLibrary';
 import { FavoritesView } from './FavoritesView';
 import { PrayerTimesView } from './PrayerTimesView';
@@ -46,7 +45,7 @@ import { speakHadith, stopSpeaking, isSpeaking } from '../utils/speech';
 import { useI18n } from '../i18n';
 import { useDisplayedHadith } from '../hooks/useHadithLanguage';
 
-export type MobileTab = 'today' | 'prayer' | 'names' | 'adhkar' | 'calendar' | 'library' | 'history' | 'favorites';
+export type MobileTab = 'today' | 'prayer' | 'names' | 'adhkar' | 'calendar' | 'library' | 'favorites';
 
 interface MobileAppShellProps {
   onOpenScreensaver: () => void;
@@ -364,12 +363,6 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
           />
         )}
 
-        {activeTab === 'history' && (
-          <HistoryBrowser
-            onSelectHadith={(h) => handleSelectHadith(h)}
-            currentDateStr={formatDateKey(new Date())}
-          />
-        )}
 
         {activeTab === 'favorites' && (
           <FavoritesView
