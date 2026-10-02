@@ -1,5 +1,5 @@
-// Service Worker for Daily Hadith & Azan (v10 Network-First) — serves both the mobile and TV apps
-const CACHE_NAME = 'daily-hadith-azan-v10';
+// Service Worker for Daily Hadith & Azan (v11 Network-First) — serves both the mobile and TV apps
+const CACHE_NAME = 'daily-hadith-azan-v11';
 
 const ESSENTIAL_ASSETS = [
   './',

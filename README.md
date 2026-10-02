@@ -15,7 +15,7 @@ Both apps share everything in `src/shared/` (components, prayer-time & Azan engi
 
 ### 1. 📖 Daily Hadith (all of sunnah.com)
 - **50,884 Hadiths from all 17 sunnah.com collections**: Sahih al-Bukhari, Sahih Muslim, Sunan Abi Dawud, Jami` at-Tirmidhi, Sunan an-Nasa'i, Sunan Ibn Majah, Muwatta Malik, Musnad Ahmad, Sunan ad-Darimi (Arabic only — sunnah.com has no English yet), Riyad as-Salihin, Ash-Shama'il, Bulugh al-Maram, Al-Adab Al-Mufrad, Mishkat al-Masabih and the three Forty Hadith books.
-- **English / العربية**: one switch (on the Hadith card, or the TV footer and **L** key) changes the whole app — every screen, prayer names, Arabic numerals (٠١٢٣), times (ص/م), dates, the Hijri calendar, grades and book names — and switches the layout to right-to-left. The Hadith is then shown in its original Arabic. Strings live in `src/shared/i18n.ar.ts`, keyed by their English text. The bundled English Bukhari library and the 99 Names' explanations stay in English.
+- **English / العربية**: one switch (on the Hadith card, or the TV footer and **L** key) changes the whole app — every screen, prayer names, Arabic numerals (٠١٢٣), times (ص/م), dates, the Hijri calendar, grades and book names — and switches the layout to right-to-left. The Hadith is then shown in its original Arabic. Strings live in `src/shared/i18n.ar.ts`, keyed by their English text. The 99 Names show Arabic meanings from Dr. Saeed bin Wahf al-Qahtani's explanation of the Names (via [rn0x/Names_Of_Allah_Json](https://github.com/rn0x/Names_Of_Allah_Json), MIT); the 26 names not in his list keep their English explanation.
 - **Random order, no repeats**: each date maps to a Hadith through a shuffled order of the whole library, so every Hadith appears once (≈139 years) before any repeats — and phone and TV show the same Hadith of the Day.
 - **Data**: built by `npm run hadith:data` from [hadith-json](https://github.com/AhmedBaset/hadith-json) (scraped from sunnah.com, pinned to `v1.2.0`) into `public/hadith/v3/` — an index plus 100-Hadith chunks, so each day downloads ~40 KB. The bundled Bukhari pool is the offline fallback.
 - **Full-Text & Excerpt Engine**: Long Hadiths provide a one-tap "Read Full Hadith" toggle.
@@ -41,6 +41,7 @@ Both apps share everything in `src/shared/` (components, prayer-time & Azan engi
 
 ### 3. 📱 Mobile App
 - **Full-screen installable PWA** with bottom tab navigation: Today, Awqat, 99 Names, Adhkar, Hijri, Library, Saved.
+- **Library**: the whole sunnah.com library by collection and book, in English or Arabic, with search in a book or a whole collection (Arabic search ignores vowel marks). Only Hadiths the app displays (Sahih, Hasan, ungraded) are listed.
 - **Daily Hadith reminder notification** at your chosen time.
 - **Widget reference code**: Swift (iOS WidgetKit) and Kotlin (Android Glance / AppWidget) in `src/native/`.
 

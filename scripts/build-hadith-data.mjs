@@ -237,7 +237,12 @@ for (const c of COLLECTIONS) {
     fs.writeFileSync(path.join(arDir, `${i}.json`), JSON.stringify(arabic.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE)));
   }
 
-  index.collections.push({ slug: c.slug, name: c.name, count: records.length, books, booksAr, bookRefs });
+  // Where each book starts (books are contiguous), so the Library can load one book
+  const bookStarts = [];
+  records.forEach((r, i) => {
+    if (bookStarts[r[0]] === undefined) bookStarts[r[0]] = i;
+  });
+  index.collections.push({ slug: c.slug, name: c.name, count: records.length, books, booksAr, bookRefs, bookStarts });
   index.total += records.length;
   console.log(`${c.name.padEnd(34)} ${String(records.length).padStart(6)} Hadiths, ${String(graded).padStart(6)} graded`);
 }

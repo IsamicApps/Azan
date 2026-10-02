@@ -18,6 +18,8 @@ interface LibraryCollection {
   booksAr?: string[];
   /** sunnah.com book id per book, as in its URLs: "12", "35b" or "introduction" */
   bookRefs: string[];
+  /** Position in the collection where each book starts (books are contiguous) */
+  bookStarts?: number[];
 }
 
 interface LibraryIndex {
@@ -46,7 +48,10 @@ async function fetchJson<T>(url: string): Promise<T> {
 
 export function loadLibraryIndex(): Promise<LibraryIndex> {
   if (!indexPromise) {
-    indexPromise = fetchJson<LibraryIndex>(`${LIBRARY_URL}index.json`);
+    indexPromise = fetchJson<LibraryIndex>(`${LIBRARY_URL}index.json`).then((index) =>
+      // An index saved on the device before book positions were added: fetch it fresh
+      index.collections.every((c) => c.bookStarts) ? index : fetchJson<LibraryIndex>(`${LIBRARY_URL}index.json?v=books`)
+    );
     indexPromise.catch(() => (indexPromise = null)); // retry later (e.g. back online)
   }
   return indexPromise;
@@ -127,6 +132,72 @@ export async function loadHadithAt(position: number): Promise<Hadith> {
     local -= collection.count;
   }
   throw new Error('Hadith position out of range');
+}
+
+export interface LibraryBook {
+  name: string;
+  nameAr: string;
+  start: number;
+  count: number;
+}
+
+export interface LibraryCollectionInfo {
+  slug: string;
+  name: string;
+  books: LibraryBook[];
+}
+
+/** Collections and their books, for browsing the Library. */
+export async function loadLibraryCollections(): Promise<LibraryCollectionInfo[]> {
+  const index = await loadLibraryIndex();
+  return index.collections.map((c) => {
+    const starts = c.bookStarts ?? [0];
+    return {
+      slug: c.slug,
+      name: c.name,
+      books: c.books.map((name, i) => ({
+        name,
+        nameAr: c.booksAr?.[i] || name,
+        start: starts[i] ?? 0,
+        count: (starts[i + 1] ?? c.count) - (starts[i] ?? 0)
+      }))
+    };
+  });
+}
+
+/**
+ * Hadiths start…end-1 of a collection (positions within it), leaving out the ones
+ * the app never shows (Daʻif, Mawduʻ, incomplete).
+ */
+export async function loadCollectionRange(
+  slug: string,
+  start: number,
+  end: number,
+  onProgress?: (done: number, total: number) => void
+): Promise<Hadith[]> {
+  const index = await loadLibraryIndex();
+  let offset = 0;
+  const collection = index.collections.find((c) => {
+    if (c.slug === slug) return true;
+    offset += c.count;
+    return false;
+  });
+  if (!collection) return [];
+  const excluded = new Set(index.excluded);
+  const first = Math.floor(start / index.chunkSize);
+  const last = Math.floor((Math.min(end, collection.count) - 1) / index.chunkSize);
+  const result: Hadith[] = [];
+  for (let chunk = first; chunk <= last; chunk++) {
+    const records = await loadChunk(slug, chunk);
+    records.forEach((record, i) => {
+      const local = chunk * index.chunkSize + i;
+      if (local >= start && local < end && !excluded.has(offset + local)) {
+        result.push(toHadith(index, collection, record, local));
+      }
+    });
+    onProgress?.(chunk - first + 1, last - first + 1);
+  }
+  return result;
 }
 
 /** How many Hadiths can be shown: Sahih, Hasan or ungraded. */

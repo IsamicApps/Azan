@@ -27,6 +27,8 @@ interface NameOfAllah {
   arabic: string;
   transliteration: string;
   meaning: string;
+  /** Arabic meaning from Dr. Saeed al-Qahtani's explanation of the Names (not every name is in it) */
+  meaningAr?: string;
   explanation: string;
   quranRef: string;
 }
@@ -66,7 +68,7 @@ export const NamesOfAllahView: React.FC = () => {
     setPlayingId(item.id);
     speakDua(
       item.arabic,
-      `${item.transliteration}. ${item.meaning}. ${item.explanation}`,
+      isArabic ? (item.meaningAr ?? '') : `${item.transliteration}. ${item.meaning}. ${item.explanation}`,
       () => setPlayingId(item.id),
       () => setPlayingId(null)
     );
@@ -74,7 +76,11 @@ export const NamesOfAllahView: React.FC = () => {
 
   const handleCopy = async (item: NameOfAllah) => {
     try {
-      await navigator.clipboard.writeText(`${item.arabic} (${item.transliteration})\nMeaning: ${item.meaning}\nRef: ${item.quranRef}\n"${item.explanation}"`);
+      await navigator.clipboard.writeText(
+        isArabic && item.meaningAr
+          ? `${item.arabic}\n${item.meaningAr}\n${quranRefInArabic(item.quranRef)}`
+          : `${item.arabic} (${item.transliteration})\nMeaning: ${item.meaning}\nRef: ${item.quranRef}\n"${item.explanation}"`
+      );
       setCopiedId(item.id);
       setTimeout(() => setCopiedId(null), 2000);
     } catch {}
@@ -89,6 +95,7 @@ export const NamesOfAllahView: React.FC = () => {
       n.transliteration.toLowerCase().includes(q) ||
       n.meaning.toLowerCase().includes(q) ||
       n.explanation.toLowerCase().includes(q) ||
+      (n.meaningAr ? plainArabic(n.meaningAr).includes(plainArabic(q)) : false) ||
       plainArabic(n.arabic).includes(plainArabic(q)) ||
       String(n.id) === q
     );
@@ -116,7 +123,11 @@ export const NamesOfAllahView: React.FC = () => {
             &ldquo;{t('Allah has ninety-nine Names, one-hundred less one; and he who memorizes them will enter Paradise.')}&rdquo;
             <span className="text-amber-400 font-serif italic ms-1">— {t('Sahih al-Bukhari #2736')}</span>
           </p>
-          {isArabic && <p className="text-[11px] text-neutral-500">{t('The meanings and explanations of the names are in English.')}</p>}
+          {isArabic && (
+            <p className="text-[11px] text-neutral-500">
+              {t('Arabic meanings: Dr. Saeed bin Wahf al-Qahtani, explanation of the Names of Allah. Names not covered there are explained in English.')}
+            </p>
+          )}
         </div>
       </div>
 
@@ -203,15 +214,21 @@ export const NamesOfAllahView: React.FC = () => {
                       {item.transliteration}
                     </div>
                   )}
-                  <div dir="ltr" className="text-xs text-amber-300/90 font-medium">
-                    {item.meaning}
-                  </div>
+                  {isArabic && item.meaningAr ? (
+                    <div className="text-sm text-amber-300/90 font-medium mt-1 leading-relaxed">{item.meaningAr}</div>
+                  ) : (
+                    <div dir="ltr" className="text-xs text-amber-300/90 font-medium">
+                      {item.meaning}
+                    </div>
+                  )}
                 </div>
 
-                {/* Explanation */}
-                <p dir="ltr" className="text-xs text-neutral-300 leading-relaxed italic font-serif border-t border-white/5 pt-2.5">
-                  &ldquo;{item.explanation}&rdquo;
-                </p>
+                {/* Explanation (English; in Arabic the meaning above is the explanation) */}
+                {!(isArabic && item.meaningAr) && (
+                  <p dir="ltr" className="text-xs text-neutral-300 leading-relaxed italic font-serif border-t border-white/5 pt-2.5">
+                    &ldquo;{item.explanation}&rdquo;
+                  </p>
+                )}
               </div>
 
               {/* Quranic Reference Footnote */}
