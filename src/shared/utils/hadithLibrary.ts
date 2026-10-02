@@ -3,7 +3,7 @@
  * 50,884 Hadiths), built by scripts/build-hadith-data.mjs into small JSON chunks
  * that are downloaded only when needed.
  */
-import { Hadith, DailySelection } from '../types/hadith';
+import { Hadith, DailySelection, GradeCategory, HadithGrade } from '../types/hadith';
 import { SITE_ROOT } from './siteRoot';
 import { getDaysSinceEpoch, formatDateKey, getDailyHadith as getBundledDailyHadith } from './dailyEngine';
 import { getHijriDate } from './hijri';
@@ -20,13 +20,15 @@ interface LibraryCollection {
 interface LibraryIndex {
   total: number;
   chunkSize: number;
+  /** [grade, category, graded by] */
+  grades: [string, GradeCategory, string][];
   collections: LibraryCollection[];
 }
 
-/** [book index, number within book, narrator, English text, Arabic (only when there is no English)] */
-type HadithRecord = [number, number, string, string, string?];
+/** [book index, number within book, narrator, English text, Arabic (only when there is no English), grade id] */
+type HadithRecord = [number, number, string, string, string?, number?];
 
-const LIBRARY_URL = `${SITE_ROOT}hadith/v1/`;
+const LIBRARY_URL = `${SITE_ROOT}hadith/v2/`;
 
 let indexPromise: Promise<LibraryIndex> | null = null;
 const chunkPromises = new Map<string, Promise<HadithRecord[]>>();
@@ -75,8 +77,9 @@ function inBookReference(collection: LibraryCollection, book: number, number: nu
   return `In-book reference: ${ref === 'introduction' ? 'Introduction' : `Book ${ref}`}, Hadith ${number}`;
 }
 
-function toHadith(collection: LibraryCollection, record: HadithRecord): Hadith {
-  const [book, number, narrator, english, arabic] = record;
+function toHadith(index: LibraryIndex, collection: LibraryCollection, record: HadithRecord): Hadith {
+  const [book, number, narrator, english, arabic, gradeId] = record;
+  const grade = gradeId === undefined ? undefined : index.grades[gradeId];
   const isArabic = !english;
   const text = english || arabic || '';
   const words = text.split(/\s+/).filter(Boolean);
@@ -100,7 +103,8 @@ function toHadith(collection: LibraryCollection, record: HadithRecord): Hadith {
     startPage: 0,
     endPage: 0,
     pdfPage: 0,
-    sourceUrl: sunnahUrl(collection, book, number)
+    sourceUrl: sunnahUrl(collection, book, number),
+    grade: grade && { text: grade[0], category: grade[1], by: grade[2] }
   };
 }
 
@@ -111,7 +115,7 @@ export async function loadHadithAt(position: number): Promise<Hadith> {
   for (const collection of index.collections) {
     if (local < collection.count) {
       const records = await loadChunk(collection.slug, Math.floor(local / index.chunkSize));
-      return toHadith(collection, records[local % index.chunkSize]);
+      return toHadith(index, collection, records[local % index.chunkSize]);
     }
     local -= collection.count;
   }
@@ -219,10 +223,28 @@ export function describeHadith(h: Hadith): { collection: string; reference: stri
   };
 }
 
+/** Badge text and colour for a Hadith's grade, e.g. "Daʻif" / "Graded by Al-Albani". */
+export function describeGrade(h: Hadith): { label: string; by: string; category: GradeCategory | 'none' } {
+  if (h.grade) {
+    const isCollection = h.grade.by === h.collection;
+    return { label: h.grade.text, by: isCollection ? `Part of ${h.collection}` : `Graded by ${h.grade.by}`, category: h.grade.category };
+  }
+  if (h.source !== 'sunnah.com') return { label: 'Sahih', by: 'Part of Sahih al-Bukhari', category: 'sahih' };
+  return { label: 'Not graded', by: 'No grade available for this collection', category: 'none' };
+}
+
+/** "Grade: Daʻif (Al-Albani)" for sharing and copying, or '' when there is no grade. */
+export function gradeLine(h: Hadith): string {
+  const g = describeGrade(h);
+  if (g.category === 'none') return '';
+  return `Grade: ${g.label} (${h.grade && h.grade.by !== h.collection ? h.grade.by : h.collection})`;
+}
+
 /** Citation text used when copying or sharing a Hadith. */
 export function citeHadith(h: Hadith): string {
   if (h.source === 'sunnah.com') {
-    return `${h.collection}, ${h.bookName}, ${h.reference ?? `Hadith ${h.hadithNumber}`} — sunnah.com`;
+    const grade = gradeLine(h);
+    return `${h.collection}, ${h.bookName}, ${h.reference ?? `Hadith ${h.hadithNumber}`}${grade ? ` — ${grade}` : ''} — sunnah.com`;
   }
   return `Sahih al-Bukhari, Vol. ${h.volume}, Book ${h.bookNumber} (${h.bookName}), Hadith #${h.hadithNumber}, PDF p. ${h.pdfPage}`;
 }

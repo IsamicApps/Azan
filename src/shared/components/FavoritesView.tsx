@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Hadith, FavoriteItem } from '../types/hadith';
 import { BookmarkCheck, Trash2, Search, Share2, Download, BookOpen, ExternalLink, MessageSquare } from 'lucide-react';
 import { describeHadith, citeHadith } from '../utils/hadithLibrary';
+import { GradeBadge } from './GradeBadge';
 
 interface FavoritesViewProps {
   favorites: FavoriteItem[];
@@ -105,6 +106,9 @@ export const FavoritesView: React.FC<FavoritesViewProps> = ({
                   <span className="text-xs font-sans font-semibold text-amber-400">
                     {describeHadith(item.hadith).collection} • {describeHadith(item.hadith).reference}
                   </span>
+                  <div>
+                    <GradeBadge hadith={item.hadith} />
+                  </div>
                   {item.hadith.narrator && (
                     <p className="text-xs text-neutral-300 font-medium italic">{item.hadith.narrator}</p>
                   )}

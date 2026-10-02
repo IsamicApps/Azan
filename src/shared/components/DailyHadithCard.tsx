@@ -4,7 +4,8 @@ import { Bookmark, BookmarkCheck, Volume2, VolumeX, Share2, ExternalLink, Sparkl
 import { IslamicPattern, IslamicCornerOrnament } from './IslamicPattern';
 import { speakHadith, stopSpeaking, isSpeaking } from '../utils/speech';
 import { ShareModal } from './ShareModal';
-import { describeHadith, citeHadith } from '../utils/hadithLibrary';
+import { describeHadith, citeHadith, describeGrade } from '../utils/hadithLibrary';
+import { GradeBadge } from './GradeBadge';
 
 interface DailyHadithCardProps {
   hadith: Hadith;
@@ -77,6 +78,7 @@ export const DailyHadithCard: React.FC<DailyHadithCardProps> = ({
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                 <span>Hadith of the Day</span>
               </span>
+              <GradeBadge hadith={hadith} />
               {hadith.isLong && !showFull && (
                 <span className="text-[11px] px-2 py-0.5 rounded bg-white/10 text-neutral-300">
                   Excerpt
@@ -188,6 +190,8 @@ export const DailyHadithCard: React.FC<DailyHadithCardProps> = ({
             </div>
             <div className="text-xs text-neutral-400 flex flex-wrap items-center gap-x-3">
               <span>{info.detail}</span>
+              <span>•</span>
+              <span>{describeGrade(hadith).by}</span>
               <span>•</span>
               <span className="text-emerald-400 flex items-center space-x-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-ping"></span>

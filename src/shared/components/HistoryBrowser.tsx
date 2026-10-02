@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Hadith, DailySelection } from '../types/hadith';
 import { loadDailyHadithOrBundled, describeHadith } from '../utils/hadithLibrary';
+import { GradeBadge } from './GradeBadge';
 import { Calendar, ChevronRight, ChevronLeft, BookOpen, Clock, Sparkles } from 'lucide-react';
 
 interface HistoryBrowserProps {
@@ -118,8 +119,11 @@ export const HistoryBrowser: React.FC<HistoryBrowserProps> = ({
               </p>
 
               <div className="pt-2 border-t border-white/5 flex items-center justify-between text-xs text-neutral-400">
-                <span className="truncate max-w-[220px]">
-                  {describeHadith(item.hadith).collection} • {item.hadith.bookName}
+                <span className="flex items-center gap-2 min-w-0">
+                  <GradeBadge hadith={item.hadith} />
+                  <span className="truncate max-w-[180px]">
+                    {describeHadith(item.hadith).collection} • {item.hadith.bookName}
+                  </span>
                 </span>
                 <span className="text-amber-400 flex items-center group-hover:translate-x-1 transition-transform">
                   <span>View</span>

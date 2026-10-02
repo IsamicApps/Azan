@@ -5,6 +5,7 @@ import { IslamicPattern, IslamicCornerOrnament } from './IslamicPattern';
 import { X, Settings2, Sun, Type, Palette, Shield, Info, Volume2, VolumeX } from 'lucide-react';
 import { speakHadith, stopSpeaking, isSpeaking } from '../utils/speech';
 import { describeHadith } from '../utils/hadithLibrary';
+import { GradeBadge } from './GradeBadge';
 
 interface ScreensaverViewProps {
   hadith: Hadith;
@@ -326,6 +327,9 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
           </div>
           <div className="text-xs md:text-sm font-sans text-neutral-400">
             {describeHadith(hadith).detail} • {describeHadith(hadith).sourceLabel}
+          </div>
+          <div className="pt-1.5">
+            <GradeBadge hadith={hadith} showGrader />
           </div>
         </div>
       </main>

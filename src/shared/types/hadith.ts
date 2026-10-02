@@ -22,6 +22,18 @@ export interface Hadith {
   reference?: string;
   /** True when sunnah.com has no English translation and `text` is the Arabic */
   isArabic?: boolean;
+  /** Authenticity grade; absent when the collection has no grades */
+  grade?: HadithGrade;
+}
+
+export type GradeCategory = 'sahih' | 'hasan' | 'daif' | 'fabricated' | 'other';
+
+export interface HadithGrade {
+  /** e.g. "Sahih", "Hasan Sahih", "Daʻif Isnad" */
+  text: string;
+  category: GradeCategory;
+  /** e.g. "Al-Albani", or the collection for Bukhari and Muslim */
+  by: string;
 }
 
 export interface BookMeta {

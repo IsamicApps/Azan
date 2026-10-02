@@ -16,10 +16,10 @@ Both apps share everything in `src/shared/` (components, prayer-time & Azan engi
 ### 1. 📖 Daily Hadith (all of sunnah.com)
 - **50,884 Hadiths from all 17 sunnah.com collections**: Sahih al-Bukhari, Sahih Muslim, Sunan Abi Dawud, Jami` at-Tirmidhi, Sunan an-Nasa'i, Sunan Ibn Majah, Muwatta Malik, Musnad Ahmad, Sunan ad-Darimi (Arabic only — sunnah.com has no English yet), Riyad as-Salihin, Ash-Shama'il, Bulugh al-Maram, Al-Adab Al-Mufrad, Mishkat al-Masabih and the three Forty Hadith books.
 - **Random order, no repeats**: each date maps to a Hadith through a shuffled order of the whole library, so every Hadith appears once (≈139 years) before any repeats — and phone and TV show the same Hadith of the Day.
-- **Data**: built by `npm run hadith:data` from [hadith-json](https://github.com/AhmedBaset/hadith-json) (scraped from sunnah.com, pinned to `v1.2.0`) into `public/hadith/v1/` — an index plus 100-Hadith chunks, so each day downloads ~40 KB. The bundled Bukhari pool is the offline fallback.
+- **Data**: built by `npm run hadith:data` from [hadith-json](https://github.com/AhmedBaset/hadith-json) (scraped from sunnah.com, pinned to `v1.2.0`) into `public/hadith/v2/` — an index plus 100-Hadith chunks, so each day downloads ~40 KB. The bundled Bukhari pool is the offline fallback.
 - **Full-Text & Excerpt Engine**: Long Hadiths provide a one-tap "Read Full Hadith" toggle.
 - **Source Verification**: Each Hadith shows sunnah.com's in-book reference (e.g. *Book 12, Hadith 102*) and links to that book on sunnah.com.
-- **Note**: the source data has no authenticity grades; the Sunan and other collections include Hadiths graded weak.
+- **Grades**: each Hadith shows its grade (Sahih, Hasan, Daʻif, Mawduʻ) — Al-Albani's first, as on sunnah.com — from [hadith-api](https://github.com/fawazahmed0/hadith-api) for Abu Dawud, Tirmidhi, Nasa'i, Ibn Majah and Malik, matched by in-book reference and text. Bukhari and Muslim are shown as Sahih; the other collections have no grades in the data and show "Not graded".
 - **Audio Recitation**: Serene Web Speech synthesis reading narration and Hadith text.
 - **Social Graphic Card Generator**: Export shareable cards and copy formatted citations.
 

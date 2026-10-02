@@ -4,6 +4,7 @@ import { X, Copy, Check, Download, Share2 } from 'lucide-react';
 import { IslamicPattern, IslamicCornerOrnament } from './IslamicPattern';
 import { toPng } from 'html-to-image';
 import { describeHadith, citeHadith } from '../utils/hadithLibrary';
+import { GradeBadge } from './GradeBadge';
 
 interface ShareModalProps {
   hadith: Hadith;
@@ -95,6 +96,9 @@ export const ShareModal: React.FC<ShareModalProps> = ({
               {hijriDate && (
                 <span className="text-[11px] text-amber-200/60 mt-1 font-sans">{hijriDate}</span>
               )}
+              <div className="mt-2">
+                <GradeBadge hadith={hadith} showGrader />
+              </div>
             </div>
 
             {/* Narrator */}

@@ -3,6 +3,7 @@ import { Hadith } from '../types/hadith';
 import dailyPoolData from '../data/daily_pool.json';
 import { getHijriDate } from '../utils/hijri';
 import { loadDailyHadithOrBundled, loadRandomHadith, describeHadith } from '../utils/hadithLibrary';
+import { GradeBadge } from './GradeBadge';
 import {
   Mosque,
   PrayerTimesResult,
@@ -521,6 +522,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
             <div className="text-[22px] text-neutral-300 font-mono flex flex-wrap items-center gap-x-4 gap-y-1 min-w-0">
               {activeHadith && (
                 <>
+                  <GradeBadge hadith={activeHadith} size="tv" showGrader />
                   <span className="text-amber-400 font-semibold">{describeHadith(activeHadith).reference}</span>
                   <span className="text-neutral-500">•</span>
                   <span>{describeHadith(activeHadith).detail}</span>
