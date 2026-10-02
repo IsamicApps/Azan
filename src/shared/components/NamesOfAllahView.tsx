@@ -3,6 +3,24 @@ import namesData from '../data/namesOfAllah.json';
 import { IslamicPattern, IslamicCornerOrnament } from './IslamicPattern';
 import { speakDua, stopSpeaking, isSpeaking } from '../utils/speech';
 import { Search, Volume2, Square, Sparkles, Check, Bookmark, Heart, BookOpen, Share2 } from 'lucide-react';
+import { useI18n } from '../i18n';
+
+const SURAHS_AR: Record<string, string> = {
+  'Ad-Duha': 'الضحى', 'Adh-Dhariyat': 'الذاريات', 'Al-Ahzab': 'الأحزاب', "Al-An'am": 'الأنعام', 'Al-Anfal': 'الأنفال',
+  'Al-Baqarah': 'البقرة', 'Al-Buruj': 'البروج', 'Al-Fatihah': 'الفاتحة', 'Al-Hadid': 'الحديد', 'Al-Hajj': 'الحج',
+  'Al-Hashr': 'الحشر', 'Al-Hijr': 'الحجر', 'Al-Ikhlas': 'الإخلاص', 'Al-Infitar': 'الانفطار', 'Al-Kahf': 'الكهف',
+  'Al-Mulk': 'الملك', 'Al-Qamar': 'القمر', "Al-Waqi'ah": 'الواقعة', "Ali 'Imran": 'آل عمران', 'An-Najm': 'النجم',
+  'An-Nisa': 'النساء', 'An-Nur': 'النور', "Ar-Ra'd": 'الرعد', 'Ar-Rahman': 'الرحمن', 'Ar-Rum': 'الروم',
+  'As-Sajdah': 'السجدة', 'Ash-Shura': 'الشورى', 'At-Tur': 'الطور', 'Az-Zumar': 'الزمر', Fatir: 'فاطر', Hud: 'هود',
+  Ibrahim: 'إبراهيم', Maryam: 'مريم', Nuh: 'نوح', Qaf: 'ق', Saba: 'سبأ', Sad: 'ص'
+};
+
+/** "Surah Al-Fatihah (1:3)" -> "سورة الفاتحة (1:3)" */
+function quranRefInArabic(ref: string): string {
+  return ref.replace(/^Surah (.+?)(\s*\(.*)?$/, (whole, name: string, rest = '') =>
+    SURAHS_AR[name] ? `سورة ${SURAHS_AR[name]}${rest}` : whole
+  );
+}
 
 interface NameOfAllah {
   id: number;
@@ -14,6 +32,7 @@ interface NameOfAllah {
 }
 
 export const NamesOfAllahView: React.FC = () => {
+  const { t, isArabic } = useI18n();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedName, setSelectedName] = useState<NameOfAllah | null>(null);
   const [playingId, setPlayingId] = useState<number | null>(null);
@@ -84,37 +103,38 @@ export const NamesOfAllahView: React.FC = () => {
         <div className="relative z-10 space-y-2">
           <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold uppercase tracking-wider">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Asma-ul-Husna • 99 Divine Names</span>
+            <span>{t('Asma-ul-Husna • 99 Divine Names')}</span>
           </div>
 
           <h2 className="font-serif text-3xl md:text-5xl font-bold text-white tracking-tight">
-            The 99 Beautiful Names of Allah
+            {t('The 99 Beautiful Names of Allah')}
           </h2>
 
           <p className="text-xs md:text-sm text-neutral-300 max-w-2xl leading-relaxed">
-            &ldquo;Allah has ninety-nine Names, one-hundred less one; and he who memorizes them will enter Paradise.&rdquo;
-            <span className="text-amber-400 font-serif italic ml-1">— Sahih al-Bukhari #2736</span>
+            &ldquo;{t('Allah has ninety-nine Names, one-hundred less one; and he who memorizes them will enter Paradise.')}&rdquo;
+            <span className="text-amber-400 font-serif italic ms-1">— {t('Sahih al-Bukhari #2736')}</span>
           </p>
+          {isArabic && <p className="text-[11px] text-neutral-500">{t('The meanings and explanations of the names are in English.')}</p>}
         </div>
       </div>
 
       {/* Search & Statistics Bar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-2xl bg-[#11131c] border border-white/10">
         <div className="relative w-full sm:w-80">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+          <Search className="absolute start-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by name, meaning, or # (e.g. Ar-Rahman, Peace, 1)..."
-            className="w-full pl-10 pr-4 py-2 rounded-xl bg-black/50 border border-white/10 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-amber-400"
+            placeholder={t('Search by name, meaning, or # (e.g. Ar-Rahman, Peace, 1)...')}
+            className="w-full ps-10 pe-4 py-2 rounded-xl bg-black/50 border border-white/10 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-amber-400"
           />
         </div>
 
         <div className="flex items-center space-x-3 text-xs text-neutral-400">
-          <span>Showing {filteredNames.length} of 99 Names</span>
+          <span>{t('Showing {count} of 99 Names', { count: filteredNames.length })}</span>
           <span>•</span>
-          <span className="text-amber-300">{favoriteIds.length} Saved</span>
+          <span className="text-amber-300">{t('{count} Saved', { count: favoriteIds.length })}</span>
         </div>
       </div>
 
@@ -144,7 +164,7 @@ export const NamesOfAllahView: React.FC = () => {
                           ? 'bg-amber-500 text-neutral-950 font-bold animate-pulse'
                           : 'bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-white'
                       }`}
-                      title={isPlayingThis ? 'Stop recitation' : 'Listen to name & meaning'}
+                      title={t(isPlayingThis ? 'Stop recitation' : 'Listen to name & meaning')}
                     >
                       {isPlayingThis ? <Square className="w-3.5 h-3.5 fill-current" /> : <Volume2 className="w-3.5 h-3.5" />}
                     </button>
@@ -156,7 +176,7 @@ export const NamesOfAllahView: React.FC = () => {
                           ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
                           : 'bg-white/5 hover:bg-white/10 text-neutral-400 hover:text-white'
                       }`}
-                      title="Save to Favorites"
+                      title={t('Save to Favourites')}
                     >
                       <Heart className={`w-3.5 h-3.5 ${isFav ? 'fill-current' : ''}`} />
                     </button>
@@ -164,7 +184,7 @@ export const NamesOfAllahView: React.FC = () => {
                     <button
                       onClick={() => handleCopy(item)}
                       className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-neutral-400 hover:text-white transition cursor-pointer"
-                      title="Copy Name & Translation"
+                      title={t('Copy Name & Translation')}
                     >
                       {copiedId === item.id ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5" />}
                     </button>
@@ -173,19 +193,21 @@ export const NamesOfAllahView: React.FC = () => {
 
                 {/* Big Arabic Calligraphy */}
                 <div className="text-center py-2">
-                  <h3 className="font-arabic text-3xl md:text-4xl font-bold text-amber-200 tracking-wide dir-rtl group-hover:text-amber-300 transition-colors">
+                  <h3 dir="rtl" className="font-arabic text-3xl md:text-4xl font-bold text-amber-200 tracking-wide group-hover:text-amber-300 transition-colors">
                     {item.arabic}
                   </h3>
-                  <div className="font-serif text-lg font-bold text-white mt-1">
-                    {item.transliteration}
-                  </div>
-                  <div className="text-xs text-amber-300/90 font-medium">
+                  {!isArabic && (
+                    <div className="font-serif text-lg font-bold text-white mt-1">
+                      {item.transliteration}
+                    </div>
+                  )}
+                  <div dir="ltr" className="text-xs text-amber-300/90 font-medium">
                     {item.meaning}
                   </div>
                 </div>
 
                 {/* Explanation */}
-                <p className="text-xs text-neutral-300 leading-relaxed italic font-serif border-t border-white/5 pt-2.5">
+                <p dir="ltr" className="text-xs text-neutral-300 leading-relaxed italic font-serif border-t border-white/5 pt-2.5">
                   &ldquo;{item.explanation}&rdquo;
                 </p>
               </div>
@@ -194,9 +216,9 @@ export const NamesOfAllahView: React.FC = () => {
               <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[10px] text-neutral-400">
                 <span className="flex items-center space-x-1">
                   <BookOpen className="w-3 h-3 text-amber-400" />
-                  <span>{item.quranRef}</span>
+                  <span>{isArabic ? quranRefInArabic(item.quranRef) : item.quranRef}</span>
                 </span>
-                <span className="text-emerald-400/80 font-mono">Bukhari #2736</span>
+                <span className="text-emerald-400/80 font-mono">{t('Bukhari #2736')}</span>
               </div>
             </div>
           );

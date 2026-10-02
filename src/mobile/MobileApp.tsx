@@ -4,11 +4,13 @@ import { MobileAppShell } from '../shared/components/MobileAppShell';
 import { ScreensaverView } from '../shared/components/ScreensaverView';
 import { AutoAzanHost } from '../shared/components/AutoAzanHost';
 import { useDailyReminder } from '../shared/hooks/useDailyReminder';
+import { useDocumentLanguage } from '../shared/i18n';
 
 export function MobileApp() {
   const [isScreensaverOpen, setIsScreensaverOpen] = useState(false);
 
   useDailyReminder();
+  useDocumentLanguage();
 
   const today = useDailyHadith(new Date());
 

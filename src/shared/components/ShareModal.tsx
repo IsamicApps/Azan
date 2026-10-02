@@ -6,6 +6,7 @@ import { toPng } from 'html-to-image';
 import { describeHadith, citeHadith } from '../utils/hadithLibrary';
 import { GradeBadge } from './GradeBadge';
 import { useDisplayedHadith } from '../hooks/useHadithLanguage';
+import { useI18n } from '../i18n';
 
 interface ShareModalProps {
   hadith: Hadith;
@@ -23,14 +24,16 @@ export const ShareModal: React.FC<ShareModalProps> = ({
   hijriDate
 }) => {
   const { hadith } = useDisplayedHadith(sourceHadith);
+  const i18n = useI18n();
+  const { t, language } = i18n;
   const cardRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
   if (!isOpen) return null;
 
-  const formattedText = `"${hadith.text}"\n\n— ${hadith.narrator || hadith.collection}\n[${citeHadith(hadith)}]\nSource: ${hadith.sourceUrl}`;
-  const info = describeHadith(hadith);
+  const info = describeHadith(hadith, language);
+  const formattedText = `"${hadith.text}"\n\n— ${hadith.narrator || info.collection}\n[${citeHadith(hadith, language)}]\n${t('Source')}: ${hadith.sourceUrl}`;
 
   const handleCopyText = async () => {
     try {
@@ -66,7 +69,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
           <div className="flex items-center space-x-2">
             <Share2 className="w-5 h-5 text-amber-400" />
-            <h3 className="font-serif text-xl text-neutral-100 font-semibold tracking-wide">Share Hadith</h3>
+            <h3 className="font-serif text-xl text-neutral-100 font-semibold tracking-wide">{t('Share Hadith')}</h3>
           </div>
           <button
             onClick={onClose}
@@ -91,12 +94,12 @@ export const ShareModal: React.FC<ShareModalProps> = ({
             {/* Header Badge */}
             <div className="relative z-10 mb-4 flex flex-col items-center">
               <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs tracking-wider uppercase font-sans font-medium">
-                <span>Daily Hadith</span>
+                <span>{t('Daily Hadith')}</span>
                 <span>•</span>
                 <span>{info.collection}</span>
               </div>
               {hijriDate && (
-                <span className="text-[11px] text-amber-200/60 mt-1 font-sans">{hijriDate}</span>
+                <span className="text-[11px] text-amber-200/60 mt-1 font-sans">{i18n.hijri(hijriDate)}</span>
               )}
               <div className="mt-2">
                 <GradeBadge hadith={hadith} showGrader />
@@ -139,7 +142,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
             className="flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-neutral-200 hover:text-white transition font-sans text-sm font-medium"
           >
             {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-            <span>{copied ? 'Citation Copied!' : 'Copy Citation Text'}</span>
+            <span>{t(copied ? 'Citation Copied!' : 'Copy Citation Text')}</span>
           </button>
           <button
             onClick={handleDownloadImage}
@@ -147,7 +150,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
             className="flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-neutral-950 transition font-sans text-sm font-semibold shadow-lg shadow-amber-500/20 disabled:opacity-50"
           >
             <Download className="w-4 h-4" />
-            <span>{isExporting ? 'Generating...' : 'Download Image Card'}</span>
+            <span>{t(isExporting ? 'Generating...' : 'Download Image Card')}</span>
           </button>
         </div>
       </div>

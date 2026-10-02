@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
 import { getReminderConfig } from '../utils/storage';
 import { formatDateKey } from '../utils/dailyEngine';
-import { loadDailyHadithOrBundled } from '../utils/hadithLibrary';
+import { loadDailyHadithOrBundled, loadArabicText, withArabicText } from '../utils/hadithLibrary';
+import { currentI18n } from '../i18n';
 import { showNotification } from '../utils/notify';
 
 const REMINDER_SENT_KEY = 'daily_hadith_reminder_last_sent_v1';
@@ -25,10 +26,18 @@ export function useDailyReminder(): void {
         localStorage.setItem(REMINDER_SENT_KEY, todayKey);
       } catch {}
 
-      loadDailyHadithOrBundled(now).then(({ hadith: today }) => showNotification('Daily Hadith Reminder', {
-        body: today.excerpt.length > 180 ? `${today.excerpt.slice(0, 177)}...` : today.excerpt,
-        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><polygon points="50,5 61,35 95,35 68,57 79,91 50,70 21,91 32,57 5,35 39,35" fill="%23d9ab3d"/></svg>'
-      }));
+      const i18n = currentI18n();
+      loadDailyHadithOrBundled(now)
+        .then(async ({ hadith }) => {
+          // The Arabic original when the app is in Arabic (English if it can't be loaded)
+          if (!i18n.isArabic) return hadith;
+          const arabic = await loadArabicText(hadith).catch(() => null);
+          return arabic ? withArabicText(hadith, arabic) : hadith;
+        })
+        .then((today) => showNotification(i18n.t('Daily Hadith Reminder'), {
+          body: today.excerpt.length > 180 ? `${today.excerpt.slice(0, 177)}...` : today.excerpt,
+          icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><polygon points="50,5 61,35 95,35 68,57 79,91 50,70 21,91 32,57 5,35 39,35" fill="%23d9ab3d"/></svg>'
+        }));
     }, 15000);
 
     return () => clearInterval(timer);

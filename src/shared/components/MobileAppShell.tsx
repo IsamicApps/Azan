@@ -43,6 +43,8 @@ import {
   Heart
 } from 'lucide-react';
 import { speakHadith, stopSpeaking, isSpeaking } from '../utils/speech';
+import { useI18n } from '../i18n';
+import { useDisplayedHadith } from '../hooks/useHadithLanguage';
 
 export type MobileTab = 'today' | 'prayer' | 'names' | 'adhkar' | 'calendar' | 'library' | 'history' | 'favorites';
 
@@ -57,6 +59,8 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
   onHadithPlayStatusChange,
   initialHadith
 }) => {
+  const i18n = useI18n();
+  const { t } = i18n;
   const [dayOffset, setDayOffset] = useState(0);
   const [activeTab, setActiveTab] = useState<MobileTab>('today');
   const [activeHadithOverride, setActiveHadithOverride] = useState<Hadith | null>(initialHadith || null);
@@ -90,6 +94,8 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
   const currentDailySelection: DailySelection | null = useDailyHadith(selectedDate);
   const displayedHadith: Hadith | null = activeHadithOverride || currentDailySelection?.hadith || null;
   const isFav = displayedHadith ? isFavorite(displayedHadith.id) : false;
+  // What "Listen" reads: the Hadith in the chosen language
+  const spokenHadith = useDisplayedHadith(displayedHadith).hadith;
 
   useEffect(() => {
     if (initialHadith) {
@@ -113,18 +119,18 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
   };
 
   const handleAudioToggle = () => {
-    if (!displayedHadith) return;
+    if (!displayedHadith || !spokenHadith) return;
     if (isPlayingAudio || isSpeaking()) {
       stopSpeaking();
       setIsPlayingAudio(false);
       if (onHadithPlayStatusChange) onHadithPlayStatusChange(false, '');
     } else {
       setIsPlayingAudio(true);
-      const title = `${displayedHadith.collection} • ${displayedHadith.narrator || 'Hadith'}`;
+      const title = `${i18n.collection(displayedHadith.collection)} • ${displayedHadith.narrator || t('Hadith')}`;
       if (onHadithPlayStatusChange) onHadithPlayStatusChange(true, title);
       speakHadith(
-        displayedHadith.narrator,
-        displayedHadith.text,
+        spokenHadith.narrator,
+        spokenHadith.text,
         () => {
           setIsPlayingAudio(true);
           if (onHadithPlayStatusChange) onHadithPlayStatusChange(true, title);
@@ -186,7 +192,7 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
           <AppLogo size={34} glow={false} />
           <div>
             <div className="font-serif text-base font-bold text-white leading-tight flex items-center space-x-1.5">
-              <span>Daily Hadith</span>
+              <span>{t('Daily Hadith')}</span>
             </div>
             {/* Quick Next Prayer Pill */}
             <div
@@ -197,7 +203,12 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
               className="text-[10px] font-sans text-amber-300 font-semibold flex items-center space-x-1 hover:underline cursor-pointer"
             >
               <Clock className="w-2.5 h-2.5 text-amber-400" />
-              <span>{prayerData.nextPrayer.name} {prayerData.nextPrayer.time} ({prayerData.nextPrayer.remainingFormatted})</span>
+              <span>
+                {i18n.prayer(prayerData.nextPrayer.name)} {i18n.time(prayerData.nextPrayer.time)}{' '}
+                {i18n.isArabic
+                  ? `· ${t('in {time}', { time: i18n.duration(prayerData.nextPrayer.remainingFormatted) })}`
+                  : `(${prayerData.nextPrayer.remainingFormatted})`}
+              </span>
             </div>
           </div>
         </div>
@@ -211,7 +222,7 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
                 ? 'bg-amber-500 text-neutral-950 ring-2 ring-amber-500/40 animate-pulse'
                 : 'bg-white/5 hover:bg-white/10 text-neutral-300'
             }`}
-            title="Listen to Hadith"
+            title={t('Listen to Hadith')}
           >
             {isPlayingAudio ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
           </button>
@@ -219,7 +230,7 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
           <button
             onClick={onOpenScreensaver}
             className="p-2 rounded-xl bg-gradient-to-r from-amber-500/20 to-amber-600/20 text-amber-300 border border-amber-500/30"
-            title="Screensaver"
+            title={t('Screensaver')}
           >
             <Moon className="w-3.5 h-3.5" />
           </button>
@@ -227,7 +238,7 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
           <button
             onClick={() => setIsReminderOpen(true)}
             className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-neutral-300"
-            title="Reminder Settings"
+            title={t('Reminder Settings')}
           >
             <Bell className="w-3.5 h-3.5" />
           </button>
@@ -235,7 +246,7 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
           <button
             onClick={() => setIsVerificationOpen(true)}
             className="p-2 rounded-xl bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
-            title="Verification Suite"
+            title={t('Verification Suite')}
           >
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
           </button>
@@ -255,18 +266,18 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
                 }}
                 className="flex items-center space-x-1 text-neutral-400 hover:text-amber-300 px-2 py-1 rounded-lg hover:bg-white/5 transition"
               >
-                <ChevronLeft className="w-3.5 h-3.5" />
-                <span>Prev Day</span>
+                <ChevronLeft className="w-3.5 h-3.5 rtl:rotate-180" />
+                <span>{t('Prev Day')}</span>
               </button>
 
               <div className="text-center font-sans">
                 {isToday ? (
                   <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold text-[10px] tracking-wider uppercase">
-                    Today
+                    {t('Today')}
                   </span>
                 ) : (
                   <span className="text-xs text-amber-300 font-medium">
-                    {selectedDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    {i18n.date(selectedDate, { month: 'short', day: 'numeric' })}
                   </span>
                 )}
               </div>
@@ -281,8 +292,8 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
                 disabled={dayOffset >= 0 && !activeHadithOverride}
                 className="flex items-center space-x-1 text-neutral-400 hover:text-amber-300 px-2 py-1 rounded-lg hover:bg-white/5 transition disabled:opacity-25 disabled:cursor-not-allowed"
               >
-                <span>Next Day</span>
-                <ChevronRight className="w-3.5 h-3.5" />
+                <span>{t('Next Day')}</span>
+                <ChevronRight className="w-3.5 h-3.5 rtl:rotate-180" />
               </button>
             </div>
 
@@ -299,7 +310,7 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
               />
             ) : (
               <div className="rounded-3xl border border-amber-500/25 bg-[#0e111a] p-10 text-center text-sm text-neutral-400 animate-pulse">
-                Loading the Hadith of the Day…
+                {t('Loading the Hadith of the Day…')}
               </div>
             )}
 
@@ -314,17 +325,17 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
                 </div>
                 <div>
                   <h4 className="text-xs font-semibold text-neutral-100 flex items-center space-x-1.5">
-                    <span>Prayer Times (Awqat)</span>
+                    <span>{t('Prayer Times (Awqat)')}</span>
                     <span className="text-[10px] text-amber-400 font-mono">
-                      {prayerData.nextPrayer.name} {prayerData.nextPrayer.time}
+                      {i18n.prayer(prayerData.nextPrayer.name)} {i18n.time(prayerData.nextPrayer.time)}
                     </span>
                   </h4>
-                  <p className="text-[10px] text-neutral-400 truncate max-w-[200px]">
+                  <p dir="auto" className="text-[10px] text-neutral-400 truncate max-w-[200px]">
                     {selectedMosque.name} ({selectedMosque.suburb})
                   </p>
                 </div>
               </div>
-              <ChevronRight className="w-4 h-4 text-emerald-400" />
+              <ChevronRight className="w-4 h-4 text-emerald-400 rtl:rotate-180" />
             </div>
           </div>
         )}
@@ -377,13 +388,13 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
         <div className="shrink-0 px-4 py-2 bg-amber-500 text-neutral-950 flex items-center justify-between text-xs font-medium animate-pulse shadow-lg z-20">
           <div className="flex items-center space-x-2 truncate">
             <Volume2 className="w-4 h-4 shrink-0" />
-            <span className="truncate">Reciting: {displayedHadith?.collection}</span>
+            <span className="truncate">{t('Reciting: {name}', { name: i18n.collection(displayedHadith?.collection ?? '') })}</span>
           </div>
           <button
             onClick={handleAudioToggle}
             className="px-2 py-0.5 rounded bg-black/20 text-neutral-950 font-bold hover:bg-black/30 cursor-pointer"
           >
-            Stop
+            {t('Stop')}
           </button>
         </div>
       )}
@@ -391,13 +402,13 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
       {/* Native Mobile Bottom Navigation Bar */}
       <nav className="shrink-0 border-t border-white/10 bg-[#0b0d14]/98 backdrop-blur-xl px-1 py-1 flex items-center justify-around z-30 pb-[max(0.25rem,env(safe-area-inset-bottom))] overflow-x-auto scrollbar-none">
         {[
-          { id: 'today', label: 'Today', icon: BookOpenText },
-          { id: 'prayer', label: 'Awqat', icon: Clock },
-          { id: 'names', label: '99 Names', icon: Heart },
-          { id: 'adhkar', label: 'Adhkar', icon: ShieldCheck },
-          { id: 'calendar', label: 'Hijri', icon: Calendar },
-          { id: 'library', label: 'Library', icon: Search },
-          { id: 'favorites', label: `Saved (${favorites.length})`, icon: Bookmark }
+          { id: 'today', label: t('Today'), icon: BookOpenText },
+          { id: 'prayer', label: t('Awqat'), icon: Clock },
+          { id: 'names', label: t('99 Names'), icon: Heart },
+          { id: 'adhkar', label: t('Adhkar'), icon: ShieldCheck },
+          { id: 'calendar', label: t('Hijri'), icon: Calendar },
+          { id: 'library', label: t('Library'), icon: Search },
+          { id: 'favorites', label: t('Saved ({count})', { count: favorites.length }), icon: Bookmark }
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;

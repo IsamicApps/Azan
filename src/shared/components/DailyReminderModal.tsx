@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ReminderConfig } from '../types/hadith';
 import { saveReminderConfig } from '../utils/storage';
 import { showNotification } from '../utils/notify';
+import { useI18n } from '../i18n';
 import { Bell, Clock, Check, X, Volume2, ShieldCheck, AlertCircle } from 'lucide-react';
 
 interface DailyReminderModalProps {
@@ -17,6 +18,7 @@ export const DailyReminderModal: React.FC<DailyReminderModalProps> = ({
   onClose,
   onUpdateConfig
 }) => {
+  const { t } = useI18n();
   const [enabled, setEnabled] = useState(config.enabled);
   const [time, setTime] = useState(config.time || '07:30');
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -29,7 +31,7 @@ export const DailyReminderModal: React.FC<DailyReminderModalProps> = ({
       const updated = { ...config, enabled: false };
       onUpdateConfig(updated);
       saveReminderConfig(updated);
-      setStatusMessage('Daily reminders disabled.');
+      setStatusMessage(t('Daily reminders disabled.'));
       return;
     }
 
@@ -41,17 +43,17 @@ export const DailyReminderModal: React.FC<DailyReminderModalProps> = ({
         const updated = { enabled: true, time, hasPermission: true };
         onUpdateConfig(updated);
         saveReminderConfig(updated);
-        setStatusMessage('Notification permission granted! Daily Hadith reminder scheduled.');
+        setStatusMessage(t('Notification permission granted! Daily Hadith reminder scheduled.'));
       } else {
         setEnabled(false);
-        setStatusMessage('Notification permission was declined. Please enable in browser settings.');
+        setStatusMessage(t('Notification permission was declined. Please enable in browser settings.'));
       }
     } else {
       setEnabled(true);
       const updated = { enabled: true, time, hasPermission: false };
       onUpdateConfig(updated);
       saveReminderConfig(updated);
-      setStatusMessage('In-app scheduled reminder enabled.');
+      setStatusMessage(t('In-app scheduled reminder enabled.'));
     }
   };
 
@@ -66,13 +68,13 @@ export const DailyReminderModal: React.FC<DailyReminderModalProps> = ({
 
   const triggerTestNotification = () => {
     if ('Notification' in window && Notification.permission === 'granted') {
-      showNotification('Daily Hadith Reminder', {
-        body: 'Today\'s wisdom from Sahih al-Bukhari is ready for you.',
+      showNotification(t('Daily Hadith Reminder'), {
+        body: t("Today's Hadith is ready for you."),
         icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><polygon points="50,5 61,35 95,35 68,57 79,91 50,70 21,91 32,57 5,35 39,35" fill="%23d9ab3d"/></svg>'
       });
-      setStatusMessage('Test notification sent successfully!');
+      setStatusMessage(t('Test notification sent successfully!'));
     } else {
-      setStatusMessage('Please grant notification permission first.');
+      setStatusMessage(t('Please grant notification permission first.'));
     }
   };
 
@@ -82,7 +84,7 @@ export const DailyReminderModal: React.FC<DailyReminderModalProps> = ({
         <div className="flex items-center justify-between pb-4 border-b border-white/10">
           <div className="flex items-center space-x-2">
             <Bell className="w-5 h-5 text-amber-400" />
-            <h3 className="font-serif text-xl font-semibold">Daily Hadith Reminder</h3>
+            <h3 className="font-serif text-xl font-semibold">{t('Daily Hadith Reminder')}</h3>
           </div>
           <button
             onClick={onClose}
@@ -96,15 +98,15 @@ export const DailyReminderModal: React.FC<DailyReminderModalProps> = ({
           <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-200 leading-relaxed flex items-start space-x-2.5">
             <ShieldCheck className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
             <div>
-              <strong>Privacy First:</strong> Notification permissions are requested strictly on demand only when you choose to activate daily reminders.
+              <strong>{t('Privacy First:')}</strong> {t('Notification permissions are requested strictly on demand only when you choose to activate daily reminders.')}
             </div>
           </div>
 
           {/* Toggle */}
           <div className="flex items-center justify-between p-4 rounded-xl bg-neutral-900/80 border border-white/10">
             <div>
-              <div className="font-semibold text-sm">Enable Daily Reminder</div>
-              <div className="text-xs text-neutral-400">Receive today&apos;s Hadith at your chosen time</div>
+              <div className="font-semibold text-sm">{t('Enable Daily Reminder')}</div>
+              <div className="text-xs text-neutral-400">{t("Receive today's Hadith at your chosen time")}</div>
             </div>
             <input
               type="checkbox"
@@ -120,7 +122,7 @@ export const DailyReminderModal: React.FC<DailyReminderModalProps> = ({
               <div className="flex items-center justify-between text-xs text-neutral-300">
                 <span className="flex items-center space-x-1.5">
                   <Clock className="w-4 h-4 text-amber-400" />
-                  <span>Reminder Time (Device Local Time)</span>
+                  <span>{t('Reminder Time (Device Local Time)')}</span>
                 </span>
               </div>
               <input
@@ -145,7 +147,7 @@ export const DailyReminderModal: React.FC<DailyReminderModalProps> = ({
               className="w-full py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-xs text-neutral-200 transition flex items-center justify-center space-x-2 font-medium"
             >
               <Bell className="w-3.5 h-3.5" />
-              <span>Send Test Notification</span>
+              <span>{t('Send Test Notification')}</span>
             </button>
           )}
         </div>
@@ -154,7 +156,7 @@ export const DailyReminderModal: React.FC<DailyReminderModalProps> = ({
           onClick={onClose}
           className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-neutral-950 font-semibold transition"
         >
-          Done
+          {t('Done')}
         </button>
       </div>
     </div>

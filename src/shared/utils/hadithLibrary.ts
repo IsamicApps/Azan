@@ -7,12 +7,15 @@ import { Hadith, DailySelection, GradeCategory, HadithGrade } from '../types/had
 import { SITE_ROOT } from './siteRoot';
 import { getDaysSinceEpoch, formatDateKey, getDailyHadith as getBundledDailyHadith } from './dailyEngine';
 import { getHijriDate } from './hijri';
+import { collectionName } from '../i18n';
 
 interface LibraryCollection {
   slug: string;
   name: string;
   count: number;
   books: string[];
+  /** Arabic book names (missing in libraries saved before they were added) */
+  booksAr?: string[];
   /** sunnah.com book id per book, as in its URLs: "12", "35b" or "introduction" */
   bookRefs: string[];
 }
@@ -97,6 +100,7 @@ function toHadith(index: LibraryIndex, collection: LibraryCollection, record: Ha
     volume: 0,
     bookNumber: parseInt(collection.bookRefs[book], 10) || 0,
     bookName: collection.books[book] ?? '',
+    bookNameAr: collection.booksAr?.[book] || undefined,
     hadithNumber: String(number),
     narrator,
     text,
@@ -270,13 +274,35 @@ export async function loadRandomHadith(): Promise<Hadith> {
 }
 
 /** Short human reference, e.g. "Sahih Muslim • The Book of Faith • In-book reference: Book 1, Hadith 12". */
-export function describeHadith(h: Hadith): { collection: string; reference: string; detail: string; sourceLabel: string } {
+type UiLanguage = 'en' | 'ar';
+
+/** "In-book reference: Book 12, Hadith 102" -> "المرجع في الكتاب: كتاب 12، حديث 102" */
+function referenceInArabic(reference: string): string {
+  return reference
+    .replace('In-book reference: ', 'المرجع في الكتاب: ')
+    .replace('Introduction', 'المقدمة')
+    .replace(/\bBook (\S+)/, 'كتاب $1')
+    .replace(/, Hadith /, '، حديث ')
+    .replace(/^Hadith /, 'حديث ');
+}
+
+export function describeHadith(h: Hadith, language: UiLanguage = 'en'): { collection: string; reference: string; detail: string; sourceLabel: string } {
+  const ar = language === 'ar';
   if (h.source === 'sunnah.com') {
+    const detail = h.reference ?? `Hadith ${h.hadithNumber}`;
     return {
-      collection: h.collection,
-      reference: h.bookName,
-      detail: h.reference ?? `Hadith ${h.hadithNumber}`,
+      collection: collectionName(language, h.collection),
+      reference: ar ? h.bookNameAr || h.bookName : h.bookName,
+      detail: ar ? referenceInArabic(detail) : detail,
       sourceLabel: 'sunnah.com'
+    };
+  }
+  if (ar) {
+    return {
+      collection: collectionName(language, h.collection || 'Sahih al-Bukhari'),
+      reference: `كتاب ${h.bookNumber}: ${h.bookName}`,
+      detail: `المجلد ${h.volume}، حديث رقم ${h.hadithNumber}`,
+      sourceLabel: `ملف PDF ص ${h.pdfPage}`
     };
   }
   return {
@@ -287,25 +313,103 @@ export function describeHadith(h: Hadith): { collection: string; reference: stri
   };
 }
 
+const GRADE_WORDS_AR: Record<string, string> = {
+  Sahih: 'صحيح',
+  Hasan: 'حسن',
+  'Daʻif': 'ضعيف',
+  'Mawduʻ': 'موضوع',
+  Mawquf: 'موقوف',
+  'Maqtuʻ': 'مقطوع',
+  Mursal: 'مرسل',
+  Munkar: 'منكر',
+  Shadh: 'شاذ',
+  'Maʻlul': 'معلول',
+  Mutawatir: 'متواتر',
+  Isnad: 'الإسناد',
+  Hadith: 'الحديث',
+  Matn: 'المتن',
+  'li-ghayrihi': 'لغيره',
+  Very: 'جدًا'
+};
+
+const GRADE_NOTES_AR: Record<string, string> = {
+  '(Bukhari and Muslim)': '(البخاري ومسلم)',
+  '(Bukhari)': '(البخاري)',
+  '(Muslim)': '(مسلم)',
+  '(Agreed upon)': '(متفق عليه)'
+};
+
+const GRADERS_AR: Record<string, string> = {
+  'Al-Albani': 'الألباني',
+  'Zubair Ali Zai': 'زبير علي زئي',
+  'Salim al-Hilali': 'سليم الهلالي'
+};
+
+/** "Hasan Sahih" -> "حسن صحيح", "Isnad Sahih" -> "إسناده صحيح", "Very Daʻif" -> "ضعيف جدًا" */
+function gradeInArabic(text: string): string {
+  let note = '';
+  const base = text.replace(/\s*\([^)]*\)\s*$/, (m) => {
+    note = GRADE_NOTES_AR[m.trim()] ?? m.trim();
+    return '';
+  });
+  let words = base.split(/\s+/).filter(Boolean);
+  let prefix = '';
+  if (words[0] === 'Isnad') {
+    prefix = 'إسناده ';
+    words = words.slice(1);
+  }
+  let very = false;
+  if (words[0] === 'Very') {
+    very = true;
+    words = words.slice(1);
+  }
+  const arabic = words.map((w) => GRADE_WORDS_AR[w] ?? w).join(' ');
+  return `${prefix}${arabic}${very ? ' جدًا' : ''}${note ? ` ${note}` : ''}`;
+}
+
 /** Badge text and colour for a Hadith's grade, e.g. "Daʻif" / "Graded by Al-Albani". */
-export function describeGrade(h: Hadith): { label: string; by: string; category: GradeCategory | 'none' } {
+export function describeGrade(h: Hadith, language: UiLanguage = 'en'): { label: string; by: string; category: GradeCategory | 'none' } {
+  const ar = language === 'ar';
   if (h.grade) {
     const isCollection = h.grade.by === h.collection;
-    return { label: h.grade.text, by: isCollection ? `Part of ${h.collection}` : `Graded by ${h.grade.by}`, category: h.grade.category };
+    const label = ar ? gradeInArabic(h.grade.text) : h.grade.text;
+    const by = ar
+      ? isCollection
+        ? `من ${collectionName(language, h.collection)}`
+        : `حكم ${GRADERS_AR[h.grade.by] ?? h.grade.by}`
+      : isCollection
+        ? `Part of ${h.collection}`
+        : `Graded by ${h.grade.by}`;
+    return { label, by, category: h.grade.category };
   }
-  if (h.source !== 'sunnah.com') return { label: 'Sahih', by: 'Part of Sahih al-Bukhari', category: 'sahih' };
-  return { label: 'Not graded', by: 'No grade available for this collection', category: 'none' };
+  if (h.source !== 'sunnah.com') {
+    return ar
+      ? { label: 'صحيح', by: 'من صحيح البخاري', category: 'sahih' }
+      : { label: 'Sahih', by: 'Part of Sahih al-Bukhari', category: 'sahih' };
+  }
+  return ar
+    ? { label: 'بلا حكم', by: 'لا يوجد حكم لهذه المجموعة', category: 'none' }
+    : { label: 'Not graded', by: 'No grade available for this collection', category: 'none' };
 }
 
 /** "Grade: Daʻif (Al-Albani)" for sharing and copying, or '' when there is no grade. */
-export function gradeLine(h: Hadith): string {
-  const g = describeGrade(h);
+export function gradeLine(h: Hadith, language: UiLanguage = 'en'): string {
+  const g = describeGrade(h, language);
   if (g.category === 'none') return '';
-  return `Grade: ${g.label} (${h.grade && h.grade.by !== h.collection ? h.grade.by : h.collection})`;
+  const source = h.grade && h.grade.by !== h.collection ? h.grade.by : h.collection;
+  if (language === 'ar') {
+    return `الحكم: ${g.label} (${GRADERS_AR[source] ?? collectionName(language, source)})`;
+  }
+  return `Grade: ${g.label} (${source})`;
 }
 
 /** Citation text used when copying or sharing a Hadith. */
-export function citeHadith(h: Hadith): string {
+export function citeHadith(h: Hadith, language: UiLanguage = 'en'): string {
+  if (language === 'ar') {
+    const info = describeHadith(h, language);
+    const grade = gradeLine(h, language);
+    return `${info.collection}، ${info.reference}، ${info.detail}${grade ? ` — ${grade}` : ''} — ${info.sourceLabel}`;
+  }
   if (h.source === 'sunnah.com') {
     const grade = gradeLine(h);
     return `${h.collection}, ${h.bookName}, ${h.reference ?? `Hadith ${h.hadithNumber}`}${grade ? ` — ${grade}` : ''} — sunnah.com`;

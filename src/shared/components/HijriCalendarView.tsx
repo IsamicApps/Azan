@@ -2,14 +2,17 @@ import React, { useState } from 'react';
 import { IslamicPattern, IslamicCornerOrnament } from './IslamicPattern';
 import { getHijriDate } from '../utils/hijri';
 import { Calendar, Sparkles, Moon, Sun, Heart, Info, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useI18n } from '../i18n';
 
 export const HijriCalendarView: React.FC = () => {
+  const i18n = useI18n();
+  const { t } = i18n;
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const today = new Date();
 
   const hijriObj = getHijriDate(selectedDate);
-  const hijriStr = hijriObj.formatted;
-  const gregFormatted = selectedDate.toLocaleDateString(undefined, {
+  const hijriStr = i18n.hijri(hijriObj.formatted);
+  const gregFormatted = i18n.date(selectedDate, {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
@@ -21,6 +24,17 @@ export const HijriCalendarView: React.FC = () => {
   const month = selectedDate.getMonth();
   const firstDayIndex = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  // Hijri months covered by this Gregorian month, e.g. "Rabiʻ II – Jumada I 1448 AH"
+  const firstHijri = getHijriDate(new Date(year, month, 1));
+  const lastHijri = getHijriDate(new Date(year, month, daysInMonth));
+  const hijriMonthsLabel = i18n.hijri(
+    firstHijri.month === lastHijri.month
+      ? `${firstHijri.month} ${firstHijri.year} AH`
+      : firstHijri.year === lastHijri.year
+        ? `${firstHijri.month} – ${lastHijri.month} ${lastHijri.year} AH`
+        : `${firstHijri.month} ${firstHijri.year} – ${lastHijri.month} ${lastHijri.year} AH`
+  );
 
   const changeMonth = (delta: number) => {
     const nextDate = new Date(year, month + delta, 1);
@@ -65,7 +79,7 @@ export const HijriCalendarView: React.FC = () => {
           <div className="space-y-2">
             <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold uppercase tracking-wider">
               <Calendar className="w-3.5 h-3.5" />
-              <span>Islamic Hijri & Gregorian Calendar</span>
+              <span>{t('Islamic Hijri & Gregorian Calendar')}</span>
             </div>
 
             <h2 className="font-serif text-3xl md:text-5xl font-bold text-white tracking-tight">
@@ -73,7 +87,7 @@ export const HijriCalendarView: React.FC = () => {
             </h2>
 
             <p className="text-xs md:text-sm text-neutral-300">
-              Gregorian: <span className="text-amber-300 font-semibold">{gregFormatted}</span>
+              {t('Gregorian:')} <span className="text-amber-300 font-semibold">{gregFormatted}</span>
             </p>
           </div>
 
@@ -81,22 +95,22 @@ export const HijriCalendarView: React.FC = () => {
             <button
               onClick={() => changeMonth(-1)}
               className="p-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white transition cursor-pointer"
-              title="Previous Month"
+              title={t('Previous Month')}
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-4 h-4 rtl:rotate-180" />
             </button>
             <button
               onClick={() => setSelectedDate(new Date())}
               className="px-4 py-2 rounded-xl bg-amber-500 text-neutral-950 font-bold text-xs shadow-md transition cursor-pointer"
             >
-              Today
+              {t('Today')}
             </button>
             <button
               onClick={() => changeMonth(1)}
               className="p-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white transition cursor-pointer"
-              title="Next Month"
+              title={t('Next Month')}
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-4 h-4 rtl:rotate-180" />
             </button>
           </div>
         </div>
@@ -107,17 +121,20 @@ export const HijriCalendarView: React.FC = () => {
         {/* Month Calendar Grid */}
         <div className="lg:col-span-2 p-6 rounded-3xl bg-[#11131c] border border-white/10 space-y-4 shadow-xl">
           <div className="flex items-center justify-between pb-2 border-b border-white/10">
-            <h3 className="font-serif text-lg font-bold text-white">
-              {selectedDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
-            </h3>
+            <div>
+              <h3 className="font-serif text-lg font-bold text-white">
+                {i18n.date(selectedDate, { month: 'long', year: 'numeric' })}
+              </h3>
+              <div className="text-[11px] text-amber-300/80">{hijriMonthsLabel}</div>
+            </div>
             <div className="flex items-center space-x-3 text-[11px] text-neutral-400">
               <span className="flex items-center space-x-1">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block" />
-                <span>Sunnah Fasting (Mon/Thu)</span>
+                <span>{t('Sunnah Fasting (Mon/Thu)')}</span>
               </span>
               <span className="flex items-center space-x-1">
                 <span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block" />
-                <span>Friday (Jumu&apos;ah)</span>
+                <span>{t("Friday (Jumu'ah)")}</span>
               </span>
             </div>
           </div>
@@ -125,7 +142,7 @@ export const HijriCalendarView: React.FC = () => {
           {/* Days of week header */}
           <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-neutral-400">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
-              <div key={d} className="py-1">{d}</div>
+              <div key={d} className="py-1">{t(d)}</div>
             ))}
           </div>
 
@@ -141,11 +158,13 @@ export const HijriCalendarView: React.FC = () => {
               const isTodayCell = isToday(dayNum);
               const isFasting = isSunnahFastingDay(dateObj);
               const isFri = isFriday(dateObj);
+              const hijriDay = getHijriDate(dateObj);
 
               return (
                 <div
                   key={dayNum}
-                  className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-between min-h-[64px] ${
+                  title={i18n.hijri(hijriDay.formatted)}
+                  className={`px-1 py-2 rounded-2xl border text-center transition-all flex flex-col items-center justify-between min-h-[64px] ${
                     isTodayCell
                       ? 'bg-amber-500 text-neutral-950 font-bold border-amber-400 shadow-lg scale-105 z-10'
                       : isFri
@@ -156,18 +175,18 @@ export const HijriCalendarView: React.FC = () => {
                   }`}
                 >
                   <span className="text-sm font-semibold">{dayNum}</span>
+                  {/* Hijri day (as on Awqat); the 1st of a month is underlined, its name is in the tooltip */}
+                  <span
+                    className={`text-[10px] leading-tight ${
+                      isTodayCell ? 'text-neutral-900' : hijriDay.day === 1 ? 'text-amber-300 font-bold underline' : 'text-amber-300/70'
+                    }`}
+                  >
+                    {hijriDay.day}
+                  </span>
 
-                  <div className="flex space-x-0.5 mt-1">
-                    {isFri && (
-                      <span className={`text-[9px] px-1 rounded ${isTodayCell ? 'bg-black/30 text-white' : 'text-amber-300'}`}>
-                        Jum
-                      </span>
-                    )}
-                    {isFasting && (
-                      <span className={`text-[9px] px-1 rounded ${isTodayCell ? 'bg-black/30 text-white' : 'text-emerald-300'}`}>
-                        Fast
-                      </span>
-                    )}
+                  <div className="flex gap-1 mt-1">
+                    {isFri && <span className={`w-1.5 h-1.5 rounded-full ${isTodayCell ? 'bg-neutral-900' : 'bg-amber-400'}`} title={t("Jumu'ah")} />}
+                    {isFasting && <span className={`w-1.5 h-1.5 rounded-full ${isTodayCell ? 'bg-neutral-900' : 'bg-emerald-400'}`} title={t('Sunnah fast')} />}
                   </div>
                 </div>
               );
@@ -180,17 +199,17 @@ export const HijriCalendarView: React.FC = () => {
           <div className="space-y-3">
             <h3 className="font-serif text-lg font-bold text-white flex items-center space-x-2">
               <Sparkles className="w-4 h-4 text-amber-400" />
-              <span>Sacred Islamic Occasions</span>
+              <span>{t('Sacred Islamic Occasions')}</span>
             </h3>
 
-            <div className="space-y-2.5 max-h-96 overflow-y-auto pr-1 text-xs">
+            <div className="space-y-2.5 max-h-96 overflow-y-auto pe-1 text-xs">
               {islamicEvents.map((ev) => (
                 <div key={ev.name} className="p-3 rounded-2xl bg-black/40 border border-white/5 space-y-1">
                   <div className="font-semibold text-white flex items-center space-x-1.5">
                     <span>{ev.icon}</span>
-                    <span>{ev.name}</span>
+                    <span>{t(ev.name)}</span>
                   </div>
-                  <p className="text-[11px] text-neutral-400 leading-relaxed">{ev.desc}</p>
+                  <p className="text-[11px] text-neutral-400 leading-relaxed">{t(ev.desc)}</p>
                 </div>
               ))}
             </div>
@@ -199,7 +218,7 @@ export const HijriCalendarView: React.FC = () => {
           <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-300 flex items-start space-x-2">
             <Info className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
             <span>
-              &ldquo;Fasting on the Day of &lsquo;Arafah expiates the sins of the preceding year and the coming year.&rdquo; — Sahih Muslim
+              &ldquo;{t("Fasting on the Day of 'Arafah expiates the sins of the preceding year and the coming year.")}&rdquo; — {t('Sahih Muslim')}
             </span>
           </div>
         </div>

@@ -7,6 +7,7 @@ import { speakHadith, stopSpeaking, isSpeaking } from '../utils/speech';
 import { describeHadith } from '../utils/hadithLibrary';
 import { GradeBadge } from './GradeBadge';
 import { useDisplayedHadith } from '../hooks/useHadithLanguage';
+import { useI18n } from '../i18n';
 
 interface ScreensaverViewProps {
   hadith: Hadith;
@@ -53,6 +54,9 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
   onClose
 }) => {
   const { hadith } = useDisplayedHadith(sourceHadith);
+  const i18n = useI18n();
+  const { t, language } = i18n;
+  const info = describeHadith(hadith, language);
   const [config, setConfig] = useState<ScreensaverConfig>(getScreensaverConfig());
   const [showControls, setShowControls] = useState(true);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -98,13 +102,14 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
-      const timeStr = now.toLocaleTimeString([], {
+      const locale = i18n.isArabic ? 'ar-u-nu-latn' : undefined;
+      const timeStr = now.toLocaleTimeString(locale, {
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',
         hour12: config.clockFormat === '12h'
       });
-      const dateStr = now.toLocaleDateString(undefined, {
+      const dateStr = i18n.date(now, {
         weekday: 'long',
         month: 'long',
         day: 'numeric',
@@ -117,7 +122,7 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
     updateTime();
     const interval = setInterval(updateTime, 1000);
     return () => clearInterval(interval);
-  }, [config.clockFormat]);
+  }, [config.clockFormat, i18n.language]);
 
   // Burn-in / OLED drift protection
   useEffect(() => {
@@ -232,12 +237,12 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
         <div className="flex items-center space-x-2">
           <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-sans text-neutral-300 flex items-center space-x-2">
             <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-            <span>Peaceful Screensaver</span>
+            <span>{t('Peaceful Screensaver')}</span>
           </span>
           {config.driftEnabled && (
             <span className="hidden sm:inline-flex items-center space-x-1 text-[11px] px-2 py-0.5 rounded bg-white/5 text-neutral-400">
               <Shield className="w-3 h-3 text-emerald-400" />
-              <span>OLED Burn-in Protection Active</span>
+              <span>{t('OLED Burn-in Protection Active')}</span>
             </span>
           )}
         </div>
@@ -246,28 +251,28 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
           <button
             onClick={handleAudioToggle}
             className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md transition shadow-lg"
-            title="Audio Recite"
+            title={t('Listen to Hadith')}
           >
             {isPlayingAudio ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </button>
           <button
             onClick={() => setShowNativeGuide(true)}
             className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md transition shadow-lg"
-            title="Native System Screensaver Setup Guide"
+            title={t('Native System Screensaver Setup Guide')}
           >
             <Info className="w-4 h-4" />
           </button>
           <button
             onClick={() => setShowSettingsModal(true)}
             className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md transition shadow-lg"
-            title="Screensaver Settings"
+            title={t('Screensaver Settings')}
           >
             <Settings2 className="w-4 h-4" />
           </button>
           <button
             onClick={onClose}
             className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md transition shadow-lg"
-            title="Exit Screensaver"
+            title={t('Exit Screensaver')}
           >
             <X className="w-4 h-4" />
           </button>
@@ -295,7 +300,7 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
                 {config.showHijri && hijriDate && (
                   <>
                     <span>•</span>
-                    <span className={currentTheme.subAccent}>{hijriDate}</span>
+                    <span className={currentTheme.subAccent}>{i18n.hijri(hijriDate)}</span>
                   </>
                 )}
               </div>
@@ -325,10 +330,10 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
         {/* Hadith Canonical Reference */}
         <div className="mt-8 pt-6 border-t border-white/10 flex flex-col items-center space-y-1.5">
           <div className={`font-serif text-base md:text-lg ${currentTheme.accent} font-medium`}>
-            {describeHadith(hadith).collection} • {describeHadith(hadith).reference}
+            {info.collection} • {info.reference}
           </div>
           <div className="text-xs md:text-sm font-sans text-neutral-400">
-            {describeHadith(hadith).detail} • {describeHadith(hadith).sourceLabel}
+            {info.detail} • {info.sourceLabel}
           </div>
           <div className="pt-1.5">
             <GradeBadge hadith={hadith} showGrader />
@@ -343,7 +348,7 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
         }`}
       >
         <p className="text-[11px] font-sans text-neutral-400">
-          Tap anywhere or move mouse to reveal controls • Screen will stay awake
+          {t('Tap anywhere or move mouse to reveal controls • Screen will stay awake')}
         </p>
       </footer>
 
@@ -357,7 +362,7 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
             <div className="flex items-center justify-between pb-4 border-b border-white/10">
               <div className="flex items-center space-x-2">
                 <Settings2 className="w-5 h-5 text-amber-400" />
-                <h3 className="font-serif text-xl font-semibold">Screensaver Settings</h3>
+                <h3 className="font-serif text-xl font-semibold">{t('Screensaver Settings')}</h3>
               </div>
               <button
                 onClick={() => setShowSettingsModal(false)}
@@ -371,7 +376,7 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
             <div className="space-y-2">
               <label className="text-xs uppercase tracking-wider text-neutral-400 font-semibold flex items-center space-x-2">
                 <Palette className="w-4 h-4 text-amber-400" />
-                <span>Background Theme</span>
+                <span>{t('Background Theme')}</span>
               </label>
               <div className="grid grid-cols-3 gap-2">
                 {[
@@ -380,18 +385,18 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
                   { id: 'navy', label: 'Navy', color: '#081426' },
                   { id: 'desert', label: 'Desert Gold', color: '#1a130b' },
                   { id: 'amethyst', label: 'Amethyst', color: '#140b1e' }
-                ].map((t) => (
+                ].map((theme) => (
                   <button
-                    key={t.id}
-                    onClick={() => updateConfig({ theme: t.id as ScreensaverTheme })}
+                    key={theme.id}
+                    onClick={() => updateConfig({ theme: theme.id as ScreensaverTheme })}
                     className={`py-2 px-3 rounded-xl border text-xs font-medium transition flex items-center space-x-2 ${
-                      config.theme === t.id
+                      config.theme === theme.id
                         ? 'border-amber-400 bg-white/10 text-white'
                         : 'border-white/10 bg-white/5 text-neutral-400 hover:text-white'
                     }`}
                   >
-                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: t.color }}></span>
-                    <span className="truncate">{t.label}</span>
+                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: theme.color }}></span>
+                    <span className="truncate">{t(theme.label)}</span>
                   </button>
                 ))}
               </div>
@@ -401,7 +406,7 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
             <div className="space-y-2">
               <label className="text-xs uppercase tracking-wider text-neutral-400 font-semibold flex items-center space-x-2">
                 <Type className="w-4 h-4 text-amber-400" />
-                <span>Typography Size</span>
+                <span>{t('Typography Size')}</span>
               </label>
               <div className="grid grid-cols-4 gap-2">
                 {(['small', 'medium', 'large', 'huge'] as const).map((size) => (
@@ -414,7 +419,7 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
                         : 'border-white/10 bg-white/5 text-neutral-400 hover:text-white'
                     }`}
                   >
-                    {size}
+                    {t(size)}
                   </button>
                 ))}
               </div>
@@ -425,7 +430,7 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
               <div className="flex items-center justify-between text-xs text-neutral-400">
                 <span className="uppercase tracking-wider font-semibold flex items-center space-x-2">
                   <Sun className="w-4 h-4 text-amber-400" />
-                  <span>Brightness</span>
+                  <span>{t('Brightness')}</span>
                 </span>
                 <span>{config.brightness}%</span>
               </div>
@@ -442,7 +447,7 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
             {/* Geometric Pattern Opacity */}
             <div className="space-y-2">
               <div className="flex items-center justify-between text-xs text-neutral-400">
-                <span className="uppercase tracking-wider font-semibold">Islamic Pattern Opacity</span>
+                <span className="uppercase tracking-wider font-semibold">{t('Islamic Pattern Opacity')}</span>
                 <span>{config.patternOpacity}%</span>
               </div>
               <input
@@ -458,7 +463,7 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
             {/* Clock & Date Toggles */}
             <div className="space-y-3 pt-2 border-t border-white/10">
               <label className="flex items-center justify-between text-sm cursor-pointer">
-                <span>Display Real-time Clock</span>
+                <span>{t('Display Real-time Clock')}</span>
                 <input
                   type="checkbox"
                   checked={config.showClock}
@@ -468,8 +473,8 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
               </label>
 
               {config.showClock && (
-                <div className="flex items-center justify-between text-xs pl-4 text-neutral-400">
-                  <span>Clock Format</span>
+                <div className="flex items-center justify-between text-xs ps-4 text-neutral-400">
+                  <span>{t('Clock Format')}</span>
                   <div className="flex space-x-2">
                     {(['12h', '24h'] as const).map((fmt) => (
                       <button
@@ -487,7 +492,7 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
               )}
 
               <label className="flex items-center justify-between text-sm cursor-pointer">
-                <span>Display Date & Hijri Calendar</span>
+                <span>{t('Display Date & Hijri Calendar')}</span>
                 <input
                   type="checkbox"
                   checked={config.showDate}
@@ -498,8 +503,8 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
 
               <label className="flex items-center justify-between text-sm cursor-pointer">
                 <div className="flex flex-col">
-                  <span>OLED Anti-Burn-in Drift</span>
-                  <span className="text-xs text-neutral-400">Gentle micro-shifts to protect screen</span>
+                  <span>{t('OLED Anti-Burn-in Drift')}</span>
+                  <span className="text-xs text-neutral-400">{t('Gentle micro-shifts to protect screen')}</span>
                 </div>
                 <input
                   type="checkbox"
@@ -514,7 +519,7 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
               onClick={() => setShowSettingsModal(false)}
               className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-neutral-950 font-semibold transition"
             >
-              Done
+              {t('Done')}
             </button>
           </div>
         </div>
@@ -530,7 +535,7 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
             <div className="flex items-center justify-between pb-3 border-b border-white/10">
               <div className="flex items-center space-x-2">
                 <Shield className="w-5 h-5 text-amber-400" />
-                <h3 className="font-serif text-xl font-semibold">Screensaver Integration</h3>
+                <h3 className="font-serif text-xl font-semibold">{t('Screensaver Integration')}</h3>
               </div>
               <button
                 onClick={() => setShowNativeGuide(false)}
@@ -542,22 +547,22 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
 
             <div className="space-y-3 text-sm text-neutral-300 leading-relaxed">
               <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-200">
-                <strong>Platform Operating System Notice:</strong> Mobile operating systems (iOS and Android) do not allow third-party apps to directly replace system lock screens or native display timeout locks for security reasons.
+                <strong>{t('Platform Operating System Notice:')}</strong> {t('Mobile operating systems (iOS and Android) do not allow third-party apps to directly replace system lock screens or native display timeout locks for security reasons.')}
               </div>
 
-              <h4 className="font-semibold text-white pt-2">How to use Daily Hadith Screensaver:</h4>
-              <ul className="list-disc pl-5 space-y-1.5 text-xs text-neutral-300">
+              <h4 className="font-semibold text-white pt-2">{t('How to use Daily Hadith Screensaver:')}</h4>
+              <ul className="list-disc ps-5 space-y-1.5 text-xs text-neutral-300">
                 <li>
-                  <strong>In-App Ambient Mode:</strong> Open this view, place your phone on a charger / stand. The app engages the screen WakeLock to prevent device sleep safely without bypassing security.
+                  <strong>{t('In-App Ambient Mode:')}</strong> {t('Open this view, place your phone on a charger / stand. The app engages the screen WakeLock to prevent device sleep safely without bypassing security.')}
                 </li>
                 <li>
-                  <strong>iOS StandBy Mode (iOS 17+):</strong> Use our Large or Medium Widget in StandBy mode horizontally while charging on MagSafe.
+                  <strong>{t('iOS StandBy Mode (iOS 17+):')}</strong> {t('Use our Large or Medium Widget in StandBy mode horizontally while charging on MagSafe.')}
                 </li>
                 <li>
-                  <strong>Android Daydream / Screen Saver:</strong> On Android, you can configure our Widget on your ambient display or launch Daily Hadith in Ambient mode.
+                  <strong>{t('Android Daydream / Screen Saver:')}</strong> {t('On Android, you can configure our Widget on your ambient display or launch Daily Hadith in Ambient mode.')}
                 </li>
                 <li>
-                  <strong>macOS / Windows Screensaver:</strong> You can add Daily Hadith web app as a standalone webview screensaver or use our exported Swift Widget.
+                  <strong>{t('macOS / Windows Screensaver:')}</strong> {t('You can add Daily Hadith web app as a standalone webview screensaver or use our exported Swift Widget.')}
                 </li>
               </ul>
             </div>
@@ -566,7 +571,7 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
               onClick={() => setShowNativeGuide(false)}
               className="w-full py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium transition"
             >
-              Close
+              {t('Close')}
             </button>
           </div>
         </div>

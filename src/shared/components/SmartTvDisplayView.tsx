@@ -6,6 +6,7 @@ import { loadDailyHadithOrBundled, loadRandomHadith, describeHadith } from '../u
 import { GradeBadge } from './GradeBadge';
 import { LanguageToggle } from './LanguageToggle';
 import { useDisplayedHadith, getHadithLanguage, setHadithLanguage } from '../hooks/useHadithLanguage';
+import { useI18n } from '../i18n';
 import {
   Mosque,
   PrayerTimesResult,
@@ -34,7 +35,6 @@ import {
   getSlideSeconds,
   saveSlideSeconds,
   nextSlideSeconds,
-  describeSlideSeconds,
   BrightnessLevel,
   getTvBrightness,
   saveTvBrightness,
@@ -99,14 +99,17 @@ async function pickRandomHadith(): Promise<Hadith> {
 }
 
 export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose }) => {
+  const i18n = useI18n();
+  const { t } = i18n;
   const [selectedMosque, setSelectedMosque] = useState<Mosque>(getSelectedMosque());
   const [prayerData, setPrayerData] = useState<PrayerTimesResult>(
     calculateMosquePrayerTimes(selectedMosque, new Date())
   );
   const [azanSettings, setAzanSettings] = useState<AzanSettings>(getAzanSettings());
   const [currentTimeStr, setCurrentTimeStr] = useState('');
+  const [currentPeriod, setCurrentPeriod] = useState<'AM' | 'PM'>('AM');
   const [currentSecondsStr, setCurrentSecondsStr] = useState('');
-  const [currentDateStr, setCurrentDateStr] = useState('');
+  const [clockDate, setClockDate] = useState(() => new Date());
   const [currentHijriStr, setCurrentHijriStr] = useState('');
   const [isFullscreen, setIsFullscreen] = useState(false);
   // Starts on the Hadith of the Day, then shows random Hadiths from all of sunnah.com
@@ -173,17 +176,11 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
       const seconds = String(now.getSeconds()).padStart(2, '0');
       const ampm = now.getHours() >= 12 ? 'PM' : 'AM';
 
-      setCurrentTimeStr(`${hours}:${minutes} ${ampm}`);
+      setCurrentTimeStr(`${hours}:${minutes}`);
+      setCurrentPeriod(ampm);
       setCurrentSecondsStr(seconds);
 
-      setCurrentDateStr(
-        now.toLocaleDateString(undefined, {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        })
-      );
+      setClockDate(now);
 
       setCurrentHijriStr(getHijriDate(now).formatted);
     };
@@ -230,6 +227,12 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
     const previous = shownHadithsRef.current.pop();
     if (previous) showHadith(previous.hadith, previous.isDaily);
   };
+
+  const slideLabel = slideSeconds === 0
+    ? t('Paused')
+    : slideSeconds < 60
+      ? t('{n} sec', { n: slideSeconds })
+      : t('{n} min', { n: slideSeconds / 60 });
 
   const cycleSlideSpeed = () => {
     setSlideSeconds((current) => {
@@ -482,7 +485,9 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
 
   // Designed for a fixed 1920x1080 canvas (scaled to the screen by the TV app),
   // so sizes are absolute and readable from across the room — no breakpoints.
-  const compassPoints = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+  const compassPoints = i18n.isArabic
+    ? ['شمال', 'شمال شرق', 'شرق', 'جنوب شرق', 'جنوب', 'جنوب غرب', 'غرب', 'شمال غرب']
+    : ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
   const qiblaDirection = compassPoints[Math.round(prayerData.qiblaBearing / 45) % 8];
 
   return (
@@ -507,7 +512,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
           <div className="min-w-0">
             <div className="flex items-center gap-3">
               <span className="font-serif text-[40px] leading-tight font-extrabold tracking-tight text-white whitespace-nowrap">
-                Daily Hadith & Azan
+                {t('Daily Hadith & Azan')}
               </span>
             </div>
             <div className="text-[22px] text-neutral-300 flex items-start gap-2 mt-1 min-w-0">
@@ -523,17 +528,22 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
 
         <div className="flex flex-col items-center text-center">
           <div className="font-arabic text-[34px] leading-tight text-amber-300 font-semibold whitespace-nowrap">
-            {currentHijriStr}
+            {i18n.hijri(currentHijriStr)}
           </div>
           <div className="text-[22px] text-neutral-300 font-medium whitespace-nowrap">
-            {currentDateStr}
+            {i18n.date(clockDate, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </div>
         </div>
 
         <div className="flex items-center justify-end">
-          <div className="font-mono text-[76px] leading-none font-extrabold tracking-tight text-white flex items-baseline whitespace-nowrap">
-            <span>{currentTimeStr}</span>
-            <span className="text-[28px] text-amber-400 ml-2 font-bold">:{currentSecondsStr}</span>
+          {/* Digits always left to right; ص/م sits before them in Arabic, AM/PM after them in English */}
+          <div dir="ltr" className="font-mono text-[76px] leading-none font-extrabold tracking-tight text-white flex items-baseline gap-3 whitespace-nowrap">
+            {i18n.isArabic && <span className="text-[40px] text-neutral-300 font-bold">{i18n.time(currentPeriod).trim()}</span>}
+            <span>
+              {currentTimeStr}
+              <span className="text-[28px] text-amber-400 font-bold">:{currentSecondsStr}</span>
+            </span>
+            {!i18n.isArabic && <span className="text-[40px] text-neutral-300 font-bold">{currentPeriod}</span>}
           </div>
         </div>
       </header>
@@ -547,24 +557,24 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
           <div className="relative z-10 shrink-0 flex items-center justify-between gap-6">
             <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[20px] font-bold uppercase tracking-wider whitespace-nowrap">
               <BookOpenText className="w-6 h-6" />
-              <span>{activeHadith?.collection ?? 'sunnah.com'}</span>
+              <span>{activeHadith ? i18n.collection(activeHadith.collection) : 'sunnah.com'}</span>
             </div>
 
             <div className="flex items-center gap-3 text-[20px] text-neutral-400">
-              {isDailyHadith && <span className="whitespace-nowrap">Hadith of the Day</span>}
+              {isDailyHadith && <span className="whitespace-nowrap">{t('Hadith of the Day')}</span>}
               <button
                 onClick={showPreviousHadith}
-                title="Previous Hadith"
+                title={t('Previous Hadith')}
                 className="p-3 rounded-xl bg-white/10 hover:bg-white/20 text-white cursor-pointer"
               >
-                <ChevronLeft className="w-6 h-6" />
+                <ChevronLeft className="w-6 h-6 rtl:rotate-180" />
               </button>
               <button
                 onClick={showNextHadith}
-                title="Next Hadith"
+                title={t('Next Hadith')}
                 className="p-3 rounded-xl bg-white/10 hover:bg-white/20 text-white cursor-pointer"
               >
-                <ChevronRight className="w-6 h-6" />
+                <ChevronRight className="w-6 h-6 rtl:rotate-180" />
               </button>
             </div>
           </div>
@@ -583,7 +593,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
                 className={`${shownHadith?.isArabic ? 'font-arabic' : 'font-serif'} text-[52px] leading-[1.45] text-neutral-100`}
               >
                 {!shownHadith
-                  ? 'Loading the Hadith of the Day…'
+                  ? t('Loading the Hadith of the Day…')
                   : shownHadith.isArabic
                     ? (showExcerpt ? shownHadith.excerpt : shownHadith.text)
                     : <>&ldquo;{showExcerpt ? shownHadith.excerpt : shownHadith.text}&rdquo;</>}
@@ -596,10 +606,10 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
               {activeHadith && (
                 <>
                   <GradeBadge hadith={activeHadith} size="tv" showGrader />
-                  <span className="text-amber-400 font-semibold">{describeHadith(activeHadith).reference}</span>
+                  <span className="text-amber-400 font-semibold">{describeHadith(activeHadith, i18n.language).reference}</span>
                   <span className="text-neutral-500">•</span>
-                  <span>{describeHadith(activeHadith).detail}</span>
-                  {showExcerpt && <span className="text-neutral-500">(excerpt)</span>}
+                  <span>{describeHadith(activeHadith, i18n.language).detail}</span>
+                  {showExcerpt && <span className="text-neutral-500">({t('excerpt')})</span>}
                 </>
               )}
             </div>
@@ -609,11 +619,11 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
               <Utensils className="w-6 h-6 text-emerald-400" />
               <span className="text-neutral-300">
                 {prayerData.nextFastingEvent.type === 'Iftar'
-                  ? `Iftar ${prayerData.maghrib}`
-                  : `Suhoor ends ${prayerData.fajr}`}
+                  ? t('Iftar {time}', { time: i18n.time(prayerData.maghrib) })
+                  : t('Suhoor ends {time}', { time: i18n.time(prayerData.nextFastingEvent.time) })}
               </span>
               <span className="text-emerald-400 font-bold font-mono">
-                ({prayerData.nextFastingEvent.remainingFormatted})
+                ({i18n.duration(prayerData.nextFastingEvent.remainingFormatted)})
               </span>
             </div>
             )}
@@ -626,25 +636,25 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
             <IslamicPattern opacity={14} color={currentTheme.patternColor} />
             <div className="relative z-10 min-w-0">
               <div className="text-[20px] uppercase tracking-widest text-amber-300 font-bold">
-                Next Prayer
+                {t('Next Prayer')}
               </div>
               <h3 className="font-serif text-[64px] leading-tight font-extrabold text-white">
-                {prayerData.nextPrayer.name}
+                {i18n.prayer(prayerData.nextPrayer.name)}
               </h3>
               <div className="text-[22px] font-mono text-neutral-300 flex flex-wrap gap-x-4">
-                <span className="whitespace-nowrap">Adhan <span className="text-amber-300 font-bold">{prayerData.nextPrayer.time}</span></span>
+                <span className="whitespace-nowrap">{t('Adhan')} <span className="text-amber-300 font-bold">{i18n.time(prayerData.nextPrayer.time)}</span></span>
                 {prayerData.nextPrayer.iqamaTime && (
-                  <span className="whitespace-nowrap text-emerald-400">Iqamah {prayerData.nextPrayer.iqamaTime}</span>
+                  <span className="whitespace-nowrap text-emerald-400">{t('Iqamah')} {i18n.time(prayerData.nextPrayer.iqamaTime)}</span>
                 )}
               </div>
             </div>
 
-            <div className="relative z-10 text-right shrink-0">
+            <div className="relative z-10 text-end shrink-0">
               <div className="text-[18px] uppercase tracking-widest text-neutral-400 font-semibold">
-                Remaining
+                {t('Remaining')}
               </div>
               <div className="text-[60px] leading-tight font-mono font-extrabold text-amber-300 whitespace-nowrap">
-                {prayerData.nextPrayer.remainingFormatted}
+                {i18n.duration(prayerData.nextPrayer.remainingFormatted)}
               </div>
             </div>
           </div>
@@ -669,21 +679,21 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <span className="text-[26px] leading-none">{p.icon}</span>
-                      <span className="font-bold text-[26px] leading-tight text-white">{p.name}</span>
+                      <span className="font-bold text-[26px] leading-tight text-white">{i18n.prayer(p.name)}</span>
                     </div>
                     {isNext && (
                       <span className="shrink-0 text-[14px] px-3 py-0.5 rounded-full bg-amber-500 text-neutral-950 font-extrabold uppercase tracking-wider">
-                        Next
+                        {t('Next')}
                       </span>
                     )}
                   </div>
                   <div className="font-mono text-[36px] leading-tight font-bold text-amber-300 whitespace-nowrap">
-                    {p.time}
+                    {i18n.time(p.time)}
                   </div>
                   <div className="text-[18px] text-neutral-400 flex items-center gap-2 whitespace-nowrap">
-                    <span className="font-arabic">{p.arabic}</span>
+                    <span className={i18n.isArabic ? '' : 'font-arabic'}>{i18n.isArabic ? p.name : p.arabic}</span>
                     <span>•</span>
-                    <span>{p.iqama ? <>Iqamah <span className="font-mono text-emerald-300">{p.iqama}</span></> : p.name === 'Sunrise' ? 'Sunrise' : 'Iqamah —'}</span>
+                    <span>{p.iqama ? <>{t('Iqamah')} <span className="font-mono text-emerald-300">{i18n.time(p.iqama)}</span></> : p.name === 'Sunrise' ? t('Sunrise') : `${t('Iqamah')} —`}</span>
                   </div>
                 </div>
               );
@@ -693,11 +703,11 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
           <div className="shrink-0 px-6 py-4 rounded-3xl bg-[var(--tv-strip)] border border-white/10 flex items-center justify-between gap-4 text-[22px] text-neutral-300">
             <div className="flex items-center gap-3 min-w-0">
               <Calendar className="w-6 h-6 shrink-0 text-amber-400" />
-              <span>Jumu&apos;ah <strong className="text-white">{prayerData.jumuah}</strong></span>
+              <span>{t("Jumu'ah")} <strong className="text-white">{i18n.time(prayerData.jumuah)}</strong></span>
             </div>
             <div className="flex items-center gap-3 shrink-0">
               <Compass className="w-6 h-6 text-sky-400" />
-              <span>Qibla <strong className="text-sky-300 font-mono">{prayerData.qiblaBearing}° {qiblaDirection}</strong></span>
+              <span>{t('Qibla')} <strong className="text-sky-300 font-mono">{prayerData.qiblaBearing}° {qiblaDirection}</strong></span>
             </div>
           </div>
         </div>
@@ -708,12 +718,12 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
         <div className="flex items-center gap-4 whitespace-nowrap">
           <span className="flex items-center gap-2">
             <Shield className="w-5 h-5 text-emerald-400" />
-            <span>Screen kept awake</span>
+            <span>{t('Screen kept awake')}</span>
           </span>
           <span>•</span>
           <span>
-            Azan: <strong className="text-amber-300">{MUEZZIN_SOURCES[azanSettings.selectedMuezzin]?.name}</strong>
-            {hasCustomPrayerVoices && <span className="text-neutral-500"> (custom per prayer)</span>}
+            {t('Azan')}: <strong className="text-amber-300">{t(MUEZZIN_SOURCES[azanSettings.selectedMuezzin]?.name)}</strong>
+            {hasCustomPrayerVoices && <span className="text-neutral-500"> ({t('custom per prayer')})</span>}
           </span>
         </div>
 
@@ -728,11 +738,11 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
                     ? 'bg-white/10 hover:bg-white/20 text-neutral-200 hover:text-white'
                     : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
                 }`}
-                title="Hadith slide speed: how long each Hadith stays on screen [S]"
-                aria-label={`Hadith slide speed: ${describeSlideSeconds(slideSeconds)}. Press to change.`}
+                title={t('Hadith slide speed: how long each Hadith stays on screen [S]')}
+                aria-label={t('Hadith slide speed: {value}. Press to change.', { value: slideLabel })}
               >
                 {slideSeconds ? <Timer className="w-6 h-6" /> : <Pause className="w-6 h-6" />}
-                <span>{describeSlideSeconds(slideSeconds)}</span>
+                <span>{slideLabel}</span>
               </button>
 
               <button
@@ -742,8 +752,8 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
                     ? 'bg-white/10 hover:bg-white/20 text-neutral-200 hover:text-white'
                     : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
                 }`}
-                title="Screen brightness [B]"
-                aria-label={`Screen brightness: ${brightness}%. Press to change.`}
+                title={t('Screen brightness [B]')}
+                aria-label={t('Screen brightness: {value}%. Press to change.', { value: brightness })}
               >
                 {brightness === 100 ? <Sun className="w-6 h-6" /> : <SunDim className="w-6 h-6" />}
                 <span>{brightness}%</span>
@@ -752,7 +762,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
               <button
                 onClick={() => openDialogOf('mosque')}
                 className="p-3 rounded-2xl bg-white/10 hover:bg-white/20 text-neutral-200 hover:text-white transition cursor-pointer"
-                title="Choose Mosque"
+                title={t('Choose Mosque')}
               >
                 <MapPin className="w-6 h-6" />
               </button>
@@ -760,7 +770,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
               <button
                 onClick={() => openDialogOf('azan')}
                 className="p-3 rounded-2xl bg-white/10 hover:bg-white/20 text-neutral-200 hover:text-white transition cursor-pointer"
-                title="Azan Voices"
+                title={t('Azan Voices')}
               >
                 <Music className="w-6 h-6" />
               </button>
@@ -768,7 +778,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
               <button
                 onClick={cycleTheme}
                 className="p-3 rounded-2xl bg-white/10 hover:bg-white/20 text-neutral-200 hover:text-white transition cursor-pointer"
-                title="Switch Theme [T]"
+                title={t('Switch Theme [T]')}
               >
                 <Moon className="w-6 h-6" />
               </button>
@@ -785,7 +795,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
                     ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
                     : 'bg-white/10 text-neutral-400'
                 }`}
-                title={azanSettings.autoAzanEnabled ? 'Auto-Azan On [M]' : 'Auto-Azan Muted [M]'}
+                title={t(azanSettings.autoAzanEnabled ? 'Auto-Azan On [M]' : 'Auto-Azan Muted [M]')}
               >
                 {azanSettings.autoAzanEnabled ? <Volume2 className="w-6 h-6 text-emerald-400" /> : <VolumeX className="w-6 h-6" />}
               </button>
@@ -793,7 +803,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
               <button
                 onClick={toggleFullscreen}
                 className="p-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold transition shadow-lg cursor-pointer"
-                title="Toggle Fullscreen [F]"
+                title={t('Toggle Fullscreen [F]')}
               >
                 {isFullscreen ? <Minimize className="w-6 h-6" /> : <Maximize className="w-6 h-6" />}
               </button>
@@ -803,7 +813,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
                   onClick={onClose}
                   className="px-5 py-3 rounded-2xl bg-white/10 hover:bg-rose-500/30 text-neutral-200 hover:text-white text-lg font-bold transition cursor-pointer"
                 >
-                  Exit TV View
+                  {t('Exit TV View')}
                 </button>
               )}
             </div>
@@ -816,20 +826,20 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
           <div className="w-full max-w-[1300px] max-h-full flex flex-col rounded-[36px] bg-[var(--tv-dialog)] border border-amber-500/30 p-10 shadow-2xl">
             <div className="flex items-center justify-between pb-6 mb-4 border-b border-white/10">
               <div>
-                <h3 className="font-serif text-[48px] leading-tight font-bold text-white">Azan Voices</h3>
-                <p className="text-[22px] text-neutral-400">Press OK on Change to pick a voice for each prayer</p>
+                <h3 className="font-serif text-[48px] leading-tight font-bold text-white">{t('Azan Voices')}</h3>
+                <p className="text-[22px] text-neutral-400">{t('Press OK on Change to pick a voice for each prayer')}</p>
               </div>
               <button
                 onClick={closeDialog}
                 className="p-4 rounded-2xl bg-white/10 hover:bg-white/20 text-neutral-200 cursor-pointer"
-                title="Close"
+                title={t('Close')}
               >
                 <X className="w-8 h-8" />
               </button>
             </div>
 
             <div className="flex flex-col gap-3 overflow-y-auto p-2">
-              {[{ key: 'default', label: 'Default (all prayers)' }, ...AZAN_PRAYERS.map((p) => ({ key: p, label: p }))].map((row, index) => {
+              {[{ key: 'default', label: t('Default (all prayers)') }, ...AZAN_PRAYERS.map((p) => ({ key: p, label: i18n.prayer(p) }))].map((row, index) => {
                 const isDefaultRow = row.key === 'default';
                 const own = isDefaultRow ? null : azanSettings.prayerMuezzins?.[row.key as AzanPrayer];
                 const effective = isDefaultRow ? azanSettings.selectedMuezzin : getMuezzinForPrayer(azanSettings, row.key);
@@ -844,24 +854,24 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
                     <div className="w-[300px] shrink-0 text-[28px] font-bold text-white">{row.label}</div>
                     <div className="flex-1 min-w-0">
                       <div className="text-[26px] font-semibold text-amber-200 truncate">
-                        {MUEZZIN_SOURCES[effective].name}
+                        {t(MUEZZIN_SOURCES[effective].name)}
                       </div>
                       <div className="text-[20px] text-neutral-400">
-                        {isDefaultRow ? 'Used by every prayer set to Default' : own ? MUEZZIN_SOURCES[own].location : 'Default'}
+                        {isDefaultRow ? t('Used by every prayer set to Default') : own ? t(MUEZZIN_SOURCES[own].location) : t('Default')}
                       </div>
                     </div>
                     <button
                       ref={index === 0 ? azanDialogFirstButtonRef : undefined}
                       onClick={() => (isDefaultRow ? cycleDefaultMuezzin() : cyclePrayerMuezzin(row.key as AzanPrayer))}
                       className="px-7 py-4 rounded-2xl bg-white/10 hover:bg-white/20 text-[22px] font-bold text-white cursor-pointer"
-                      title={`Change ${row.label} voice`}
+                      title={t('Change {name} voice', { name: row.label })}
                     >
-                      Change
+                      {t('Change')}
                     </button>
                     <button
                       onClick={() => togglePreview(row.key, effective)}
                       className={`p-4 rounded-2xl cursor-pointer ${isPreviewing ? 'bg-rose-500 text-white' : 'bg-amber-500 text-neutral-950'}`}
-                      title={isPreviewing ? `Stop ${row.label} preview` : `Listen to ${row.label} voice`}
+                      title={t(isPreviewing ? 'Stop {name} preview' : 'Listen to {name} voice', { name: row.label })}
                     >
                       {isPreviewing ? <Square className="w-7 h-7 fill-current" /> : <Play className="w-7 h-7 fill-current" />}
                     </button>
@@ -878,11 +888,11 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center px-[96px] py-[54px] bg-black/85 backdrop-blur-md">
           <div className="w-full max-w-[1500px] max-h-full flex flex-col rounded-[36px] bg-[var(--tv-dialog)] border border-amber-500/30 p-10 shadow-2xl">
             <div className="flex items-center justify-between pb-6 mb-6 border-b border-white/10">
-              <h3 className="font-serif text-[48px] font-bold text-white">Choose Your Mosque</h3>
+              <h3 className="font-serif text-[48px] font-bold text-white">{t('Choose Your Mosque')}</h3>
               <button
                 onClick={closeDialog}
                 className="p-4 rounded-2xl bg-white/10 hover:bg-white/20 text-neutral-200 cursor-pointer"
-                title="Close"
+                title={t('Close')}
               >
                 <X className="w-8 h-8" />
               </button>
@@ -895,7 +905,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
                     key={m.id}
                     ref={isSelected ? selectedMosqueButtonRef : undefined}
                     onClick={() => handleSelectMosque(m)}
-                    className={`text-left px-6 py-5 rounded-3xl border transition cursor-pointer ${
+                    className={`text-start px-6 py-5 rounded-3xl border transition cursor-pointer ${
                       isSelected
                         ? 'bg-amber-500/20 border-amber-400 text-white'
                         : 'bg-white/5 border-white/10 text-neutral-200 hover:bg-white/10'

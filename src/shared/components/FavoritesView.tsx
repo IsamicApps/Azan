@@ -3,6 +3,8 @@ import { Hadith, FavoriteItem } from '../types/hadith';
 import { BookmarkCheck, Trash2, Search, Share2, Download, BookOpen, ExternalLink, MessageSquare } from 'lucide-react';
 import { describeHadith, citeHadith } from '../utils/hadithLibrary';
 import { GradeBadge } from './GradeBadge';
+import { useDisplayedHadith } from '../hooks/useHadithLanguage';
+import { useI18n } from '../i18n';
 
 interface FavoritesViewProps {
   favorites: FavoriteItem[];
@@ -16,6 +18,7 @@ export const FavoritesView: React.FC<FavoritesViewProps> = ({
   onRemoveFavorite,
   onSelectHadith
 }) => {
+  const { t, language } = useI18n();
   const [query, setQuery] = useState('');
 
   const filtered = favorites.filter((f) => {
@@ -32,7 +35,7 @@ export const FavoritesView: React.FC<FavoritesViewProps> = ({
     const text = favorites
       .map(
         (f, i) =>
-          `[${i + 1}] "${f.hadith.text}"\n— ${f.hadith.narrator}\n${citeHadith(f.hadith)}\n`
+          `[${i + 1}] "${f.hadith.text}"\n${f.hadith.narrator ? `— ${f.hadith.narrator}\n` : ''}${citeHadith(f.hadith, language)}\n`
       )
       .join('\n---\n\n');
 
@@ -51,10 +54,10 @@ export const FavoritesView: React.FC<FavoritesViewProps> = ({
         <div className="space-y-1">
           <h3 className="font-serif text-xl font-semibold text-neutral-100 flex items-center space-x-2">
             <BookmarkCheck className="w-5 h-5 text-rose-400" />
-            <span>Saved Favourites</span>
+            <span>{t('Saved Favourites')}</span>
           </h3>
           <p className="text-xs text-neutral-400">
-            Your personal collection of cherished Hadiths for reflection and contemplation.
+            {t('Your personal collection of cherished Hadiths for reflection and contemplation.')}
           </p>
         </div>
 
@@ -64,7 +67,7 @@ export const FavoritesView: React.FC<FavoritesViewProps> = ({
             className="flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-xs text-neutral-200 hover:text-white transition"
           >
             <Download className="w-4 h-4" />
-            <span>Export Collection</span>
+            <span>{t('Export Collection')}</span>
           </button>
         )}
       </div>
@@ -72,13 +75,13 @@ export const FavoritesView: React.FC<FavoritesViewProps> = ({
       {/* Search within Favorites */}
       {favorites.length > 3 && (
         <div className="relative">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+          <Search className="absolute start-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search saved Hadiths..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-neutral-900/50 border border-white/10 text-neutral-100 text-sm focus:outline-none focus:border-amber-400/50"
+            placeholder={t('Search saved Hadiths...')}
+            className="w-full ps-10 pe-4 py-2.5 rounded-xl bg-neutral-900/50 border border-white/10 text-neutral-100 text-sm focus:outline-none focus:border-amber-400/50"
           />
         </div>
       )}
@@ -89,71 +92,84 @@ export const FavoritesView: React.FC<FavoritesViewProps> = ({
           <div className="w-14 h-14 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center mx-auto">
             <BookmarkCheck className="w-7 h-7 text-rose-400" />
           </div>
-          <h4 className="font-serif text-xl text-neutral-200">No Favourites Saved Yet</h4>
+          <h4 className="font-serif text-xl text-neutral-200">{t('No Favourites Saved Yet')}</h4>
           <p className="text-xs text-neutral-400 max-w-sm mx-auto">
-            Tap the bookmark icon on any Daily Hadith to save it to your personal spiritual collection.
+            {t('Tap the bookmark icon on any Daily Hadith to save it to your personal spiritual collection.')}
           </p>
         </div>
       ) : (
         <div className="space-y-4">
           {filtered.map((item) => (
-            <div
-              key={item.hadithId}
-              className="p-5 rounded-2xl bg-[#12141c]/80 border border-white/10 hover:border-amber-500/30 transition-all flex flex-col justify-between space-y-3"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-1">
-                  <span className="text-xs font-sans font-semibold text-amber-400">
-                    {describeHadith(item.hadith).collection} • {describeHadith(item.hadith).reference}
-                  </span>
-                  <div>
-                    <GradeBadge hadith={item.hadith} />
-                  </div>
-                  {item.hadith.narrator && (
-                    <p className="text-xs text-neutral-300 font-medium italic">{item.hadith.narrator}</p>
-                  )}
-                </div>
-
-                <div className="flex items-center space-x-1.5">
-                  <button
-                    onClick={() => onSelectHadith(item.hadith)}
-                    className="px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs font-medium border border-amber-500/20 transition"
-                  >
-                    View Card
-                  </button>
-                  <button
-                    onClick={() => onRemoveFavorite(item.hadithId)}
-                    className="p-2 rounded-lg bg-white/5 hover:bg-rose-500/20 text-neutral-400 hover:text-rose-400 transition"
-                    title="Remove"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-
-              <p
-                dir={item.hadith.isArabic ? 'rtl' : undefined}
-                className={`${item.hadith.isArabic ? 'font-arabic' : 'font-serif'} text-sm md:text-base leading-relaxed text-neutral-100`}
-              >
-                {item.hadith.isArabic ? item.hadith.text : <>&ldquo;{item.hadith.text}&rdquo;</>}
-              </p>
-
-              <div className="pt-2 border-t border-white/5 flex items-center justify-between text-xs text-neutral-400">
-                <span>Saved on {new Date(item.savedAt).toLocaleDateString()}</span>
-                <a
-                  href={item.hadith.sourceUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center space-x-1 text-emerald-400 hover:text-emerald-300 text-[11px]"
-                >
-                  <span>{item.hadith.source === 'sunnah.com' ? 'sunnah.com' : `PDF Page ${item.hadith.pdfPage}`}</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              </div>
-            </div>
+            <FavoriteCard key={item.hadithId} item={item} onRemoveFavorite={onRemoveFavorite} onSelectHadith={onSelectHadith} />
           ))}
         </div>
       )}
+    </div>
+  );
+};
+
+interface FavoriteCardProps {
+  item: FavoriteItem;
+  onRemoveFavorite: (id: string) => void;
+  onSelectHadith: (hadith: Hadith) => void;
+}
+
+/** One saved Hadith, shown in the chosen language. */
+const FavoriteCard: React.FC<FavoriteCardProps> = ({ item, onRemoveFavorite, onSelectHadith }) => {
+  const i18n = useI18n();
+  const { t, language } = i18n;
+  const { hadith } = useDisplayedHadith(item.hadith);
+  const info = describeHadith(hadith, language);
+
+  return (
+    <div className="p-5 rounded-2xl bg-[#12141c]/80 border border-white/10 hover:border-amber-500/30 transition-all flex flex-col justify-between space-y-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="space-y-1">
+          <span className="text-xs font-sans font-semibold text-amber-400">
+            {info.collection} • {info.reference}
+          </span>
+          <div>
+            <GradeBadge hadith={hadith} />
+          </div>
+          {hadith.narrator && <p className="text-xs text-neutral-300 font-medium italic">{hadith.narrator}</p>}
+        </div>
+
+        <div className="flex items-center space-x-1.5">
+          <button
+            onClick={() => onSelectHadith(item.hadith)}
+            className="px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs font-medium border border-amber-500/20 transition"
+          >
+            {t('View Card')}
+          </button>
+          <button
+            onClick={() => onRemoveFavorite(item.hadithId)}
+            className="p-2 rounded-lg bg-white/5 hover:bg-rose-500/20 text-neutral-400 hover:text-rose-400 transition"
+            title={t('Remove')}
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+
+      <p
+        dir={hadith.isArabic ? 'rtl' : undefined}
+        className={`${hadith.isArabic ? 'font-arabic' : 'font-serif'} text-sm md:text-base leading-relaxed text-neutral-100`}
+      >
+        {hadith.isArabic ? hadith.text : <>&ldquo;{hadith.text}&rdquo;</>}
+      </p>
+
+      <div className="pt-2 border-t border-white/5 flex items-center justify-between text-xs text-neutral-400">
+        <span>{t('Saved on {date}', { date: i18n.date(new Date(item.savedAt), { year: 'numeric', month: 'short', day: 'numeric' }) })}</span>
+        <a
+          href={hadith.sourceUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center space-x-1 text-emerald-400 hover:text-emerald-300 text-[11px]"
+        >
+          <span>{hadith.source === 'sunnah.com' ? 'sunnah.com' : t('PDF Page {page}', { page: hadith.pdfPage })}</span>
+          <ExternalLink className="w-3 h-3" />
+        </a>
+      </div>
     </div>
   );
 };

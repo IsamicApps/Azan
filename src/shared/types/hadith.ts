@@ -4,6 +4,8 @@ export interface Hadith {
   volume: number;
   bookNumber: number;
   bookName: string;
+  /** Arabic book name (sunnah.com library), for the Arabic interface */
+  bookNameAr?: string;
   hadithNumber: string;
   narrator: string;
   text: string;

@@ -2,6 +2,7 @@ import React from 'react';
 import { ShieldCheck, ShieldAlert, ShieldQuestion } from 'lucide-react';
 import { Hadith } from '../types/hadith';
 import { describeGrade } from '../utils/hadithLibrary';
+import { useI18n } from '../i18n';
 
 const TONES = {
   sahih: 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300',
@@ -22,7 +23,8 @@ interface GradeBadgeProps {
 
 /** Authenticity grade of a Hadith (Sahih, Hasan, Daʻif, Mawduʻ…), coloured by strength. */
 export const GradeBadge: React.FC<GradeBadgeProps> = ({ hadith, size = 'sm', showGrader = false }) => {
-  const grade = describeGrade(hadith);
+  const { language } = useI18n();
+  const grade = describeGrade(hadith, language);
   const Icon =
     grade.category === 'sahih' || grade.category === 'hasan'
       ? ShieldCheck
@@ -42,7 +44,7 @@ export const GradeBadge: React.FC<GradeBadgeProps> = ({ hadith, size = 'sm', sho
       <Icon />
       <span>{grade.label}</span>
       {showGrader && grade.category !== 'none' && (
-        <span className="font-normal opacity-75">· {grade.by.replace(/^Graded by /, '')}</span>
+        <span className="font-normal opacity-75">· {grade.by.replace(/^(Graded by |حكم )/, '')}</span>
       )}
     </span>
   );

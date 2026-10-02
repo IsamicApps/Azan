@@ -27,6 +27,7 @@ import {
 import { speakDua, stopSpeaking, isSpeaking } from '../utils/speech';
 import { IslamicPattern, IslamicCornerOrnament } from './IslamicPattern';
 import { AzanLiveModal } from './AzanLiveModal';
+import { useI18n } from '../i18n';
 import {
   Clock,
   Compass,
@@ -57,6 +58,8 @@ interface PrayerTimesViewProps {
 }
 
 export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange }) => {
+  const i18n = useI18n();
+  const { t } = i18n;
   const [allMosquesList, setAllMosquesList] = useState<Mosque[]>(getAllMosques());
   const [selectedMosque, setSelectedMosque] = useState<Mosque>(getSelectedMosque());
   const [prayerData, setPrayerData] = useState<PrayerTimesResult>(
@@ -114,7 +117,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
 
   const handleFindClosestMosque = () => {
     if (!navigator.geolocation) {
-      setLocationError('Geolocation is not supported by your browser.');
+      setLocationError(t('Geolocation is not supported by your browser.'));
       return;
     }
 
@@ -138,7 +141,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
       },
       () => {
         setIsLocating(false);
-        setLocationError('Could not retrieve GPS location. You can select your mosque manually or add a custom one below.');
+        setLocationError(t('Could not retrieve GPS location. You can select your mosque manually or add a custom one below.'));
       },
       { timeout: 10000, enableHighAccuracy: true }
     );
@@ -146,7 +149,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
 
   const handleAutofillFormGPS = () => {
     if (!navigator.geolocation) {
-      alert('Geolocation is not supported by your browser.');
+      alert(t('Geolocation is not supported by your browser.'));
       return;
     }
     navigator.geolocation.getCurrentPosition(
@@ -158,7 +161,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
         }));
       },
       (err) => {
-        alert('Could not detect GPS coordinates. Please enter them manually.');
+        alert(t('Could not detect GPS coordinates. Please enter them manually.'));
       },
       { enableHighAccuracy: true }
     );
@@ -170,7 +173,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
     const lng = parseFloat(customForm.lng);
 
     if (!customForm.name.trim() || isNaN(lat) || isNaN(lng)) {
-      alert('Please provide a valid Mosque Name, Latitude, and Longitude.');
+      alert(t('Please provide a valid Mosque Name, Latitude, and Longitude.'));
       return;
     }
 
@@ -304,6 +307,11 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
     { key: 'Isha', name: 'Isha', time: prayerData.isha, icon: '🌙', iqama: prayerData.iqama.Isha }
   ];
 
+  const compassPoints = i18n.isArabic
+    ? ['شمال', 'شمال شرق', 'شرق', 'جنوب شرق', 'جنوب', 'جنوب غرب', 'غرب', 'شمال غرب']
+    : ['North', 'North-East', 'East', 'South-East', 'South', 'South-West', 'West', 'North-West'];
+  const qiblaDirection = compassPoints[Math.round(prayerData.qiblaBearing / 45) % 8];
+
   const handleDhikrTap = () => {
     setDhikrCount((prev) => prev + 1);
   };
@@ -321,7 +329,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
             <div className="flex items-center space-x-2">
               <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-semibold tracking-wide uppercase">
                 <Building2 className="w-3.5 h-3.5" />
-                <span>{selectedMosque.isCustom ? 'Custom Location' : prayerData.timesSource === 'awqat' ? 'Selected Mosque (Awqat.com.au)' : 'Selected Mosque'}</span>
+                <span>{t(selectedMosque.isCustom ? 'Custom Location' : prayerData.timesSource === 'awqat' ? 'Selected Mosque (Awqat.com.au)' : 'Selected Mosque')}</span>
               </span>
               <span className="text-xs text-amber-300/80 font-medium">
                 {selectedMosque.state}
@@ -346,7 +354,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
               className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-neutral-950 font-semibold text-xs shadow-lg transition disabled:opacity-50 cursor-pointer"
             >
               <Navigation className={`w-4 h-4 ${isLocating ? 'animate-spin' : ''}`} />
-              <span>{isLocating ? 'Locating...' : 'Closest Mosque (GPS)'}</span>
+              <span>{t(isLocating ? 'Locating...' : 'Closest Mosque (GPS)')}</span>
             </button>
 
             <button
@@ -354,14 +362,14 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
               className="flex items-center space-x-1.5 px-3.5 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-semibold border border-amber-500/40 transition cursor-pointer"
             >
               <PlusCircle className="w-4 h-4" />
-              <span>Add Custom City/Mosque</span>
+              <span>{t('Add Custom City/Mosque')}</span>
             </button>
 
             <button
               onClick={() => setShowMosqueSelector(!showMosqueSelector)}
               className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-neutral-100 text-xs font-medium border border-white/10 transition cursor-pointer"
             >
-              {showMosqueSelector ? 'Close Directory' : 'Change Mosque'}
+              {t(showMosqueSelector ? 'Close Directory' : 'Change Mosque')}
             </button>
 
             <a
@@ -369,7 +377,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
               target="_blank"
               rel="noopener noreferrer"
               className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-amber-300 border border-white/5 transition"
-              title="View on Awqat.com.au"
+              title={t('View on Awqat.com.au')}
             >
               <ExternalLink className="w-4 h-4" />
             </a>
@@ -388,13 +396,13 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
         <div className="p-6 rounded-3xl bg-[#11131c] border border-amber-500/30 space-y-4 animate-fade-in shadow-2xl">
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+              <Search className="absolute start-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by mosque name, suburb, or area (e.g. Footscray, Tarneit, Melbourne)..."
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-black/50 border border-white/10 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-amber-400"
+                placeholder={t('Search by mosque name, suburb, or area (e.g. Footscray, Tarneit, Melbourne)...')}
+                className="w-full ps-10 pe-4 py-2.5 rounded-xl bg-black/50 border border-white/10 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-amber-400"
               />
             </div>
 
@@ -410,7 +418,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
                       : 'bg-white/5 text-neutral-400 hover:text-white'
                   }`}
                 >
-                  {st}
+                  {st === 'ALL' ? t('All') : st === 'CUSTOM' ? t('Custom') : st}
                 </button>
               ))}
             </div>
@@ -429,12 +437,12 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
                       : 'bg-neutral-900/60 hover:bg-neutral-900/90 border-white/5 hover:border-amber-500/30'
                   }`}
                 >
-                  <div className="space-y-1 truncate pr-2">
+                  <div className="space-y-1 truncate pe-2">
                     <div className="font-semibold text-sm text-white truncate flex items-center space-x-2">
                       <span>{m.name}</span>
                       {m.isCustom && (
                         <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/30 text-purple-300 font-semibold uppercase">
-                          Custom
+                          {t('Custom')}
                         </span>
                       )}
                       <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-neutral-300 font-mono">
@@ -442,19 +450,19 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
                       </span>
                     </div>
                     <div className="text-xs text-neutral-400 truncate">{m.suburb}, {m.state}</div>
-                    <div className="text-[11px] text-amber-300/80">Jumu&apos;ah: {getMosqueJumuah(m)}</div>
+                    <div className="text-[11px] text-amber-300/80">{t("Jumu'ah")}: {i18n.time(getMosqueJumuah(m))}</div>
                   </div>
 
                   <div className="shrink-0 flex items-center space-x-2">
                     {m.distanceKm !== undefined && (
                       <span className="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg">
-                        {m.distanceKm} km
+                        {m.distanceKm} {t('km')}
                       </span>
                     )}
                     {isSelected ? (
                       <Check className="w-5 h-5 text-amber-400" />
                     ) : (
-                      <ChevronRight className="w-4 h-4 text-neutral-500" />
+                      <ChevronRight className="w-4 h-4 text-neutral-500 rtl:rotate-180" />
                     )}
                   </div>
                 </div>
@@ -468,18 +476,18 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
       <div className="relative rounded-3xl bg-gradient-to-r from-amber-600/20 via-[#181a26] to-[#10131e] border border-amber-500/40 p-6 md:p-8 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden">
         <IslamicPattern opacity={15} color="#d4af37" />
 
-        <div className="relative z-10 space-y-2 text-center md:text-left">
+        <div className="relative z-10 space-y-2 text-center md:text-start">
           <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold uppercase tracking-wider">
             <Clock className="w-3.5 h-3.5" />
-            <span>Next Prayer ({prayerData.timesSource === 'awqat' ? 'Awqat.com.au' : selectedMosque.isCustom ? 'Custom Coords' : 'Calculated'})</span>
+            <span>{t('Next Prayer')} ({prayerData.timesSource === 'awqat' ? 'Awqat.com.au' : t(selectedMosque.isCustom ? 'Custom Coords' : 'Calculated')})</span>
           </div>
 
           <h2 className="font-serif text-3xl md:text-5xl font-bold text-white">
-            {prayerData.nextPrayer.name} at {prayerData.nextPrayer.time}
+            {t('{prayer} at {time}', { prayer: i18n.prayer(prayerData.nextPrayer.name), time: i18n.time(prayerData.nextPrayer.time) })}
           </h2>
 
           <p className="text-xs md:text-sm text-neutral-300">
-            {selectedMosque.name} • {prayerData.nextPrayer.iqamaTime ? `Iqamah: ${prayerData.nextPrayer.iqamaTime}` : 'Prayer Time'}
+            {selectedMosque.name} • {prayerData.nextPrayer.iqamaTime ? `${t('Iqamah')}: ${i18n.time(prayerData.nextPrayer.iqamaTime)}` : t('Prayer Time')}
           </p>
 
           {/* Auto-Azan Live Status */}
@@ -487,8 +495,8 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
             <span className={`inline-block w-2 h-2 rounded-full ${azanSettings.autoAzanEnabled ? 'bg-emerald-400 animate-ping' : 'bg-neutral-500'}`} />
             <span className="text-neutral-300">
               {azanSettings.autoAzanEnabled
-                ? `Auto-Azan enabled (${MUEZZIN_SOURCES[nextPrayerMuezzin].name})`
-                : 'Auto Azan is paused'}
+                ? t('Auto-Azan enabled ({name})', { name: t(MUEZZIN_SOURCES[nextPrayerMuezzin].name) })
+                : t('Auto Azan is paused')}
             </span>
           </div>
         </div>
@@ -497,10 +505,10 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
         <div className="relative z-10 flex flex-col items-center space-y-3 w-full md:w-auto">
           <div className="p-4 px-6 rounded-2xl bg-black/60 border border-amber-500/30 text-center shadow-inner w-full">
             <div className="text-[11px] uppercase tracking-widest text-neutral-400 font-semibold">
-              Time Remaining
+              {t('Time Remaining')}
             </div>
             <div className="text-2xl md:text-3xl font-mono font-bold text-amber-300 mt-1">
-              {prayerData.nextPrayer.remainingFormatted}
+              {i18n.duration(prayerData.nextPrayer.remainingFormatted)}
             </div>
           </div>
 
@@ -514,7 +522,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
             }`}
           >
             {isPlayingAzan ? <Square className="w-4 h-4 fill-current" /> : <Volume2 className="w-4 h-4" />}
-            <span>{isPlayingAzan ? 'Stop Playing Azan' : `Play Azan (${MUEZZIN_SOURCES[nextPrayerMuezzin].name})`}</span>
+            <span>{isPlayingAzan ? t('Stop Playing Azan') : t('Play Azan ({name})', { name: t(MUEZZIN_SOURCES[nextPrayerMuezzin].name) })}</span>
           </button>
         </div>
       </div>
@@ -524,25 +532,25 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
       <div className="relative rounded-3xl bg-gradient-to-r from-emerald-950/40 via-[#101918] to-[#0c1214] border border-emerald-500/30 p-6 shadow-xl overflow-hidden">
         <IslamicPattern opacity={12} color="#10b981" />
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="space-y-2 text-center md:text-left">
+          <div className="space-y-2 text-center md:text-start">
             <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold uppercase tracking-wider">
               <Utensils className="w-3.5 h-3.5" />
-              <span>Fasting & Meal Schedule</span>
+              <span>{t('Fasting & Meal Schedule')}</span>
             </div>
 
             <div className="text-xl md:text-2xl font-serif font-bold text-white">
               {prayerData.nextFastingEvent.type === 'Iftar'
-                ? `Iftar (Fast Breaking) at Maghrib (${prayerData.maghrib})`
-                : `Suhoor / Imsak End at Fajr (${prayerData.fajr})`}
+                ? t('Iftar (Fast Breaking) at Maghrib ({time})', { time: i18n.time(prayerData.maghrib) })
+                : t('Suhoor / Imsak End at Fajr ({time})', { time: i18n.time(prayerData.nextFastingEvent.time) })}
             </div>
 
             {/* Fasting Du'a */}
-            <div className="pt-2 text-left space-y-1">
+            <div className="pt-2 text-start space-y-1">
               <div className="text-xs font-arabic text-amber-300 font-semibold">
                 {iftarDuaArabic}
               </div>
               <p className="text-[11px] text-neutral-300 italic">
-                &ldquo;{iftarDuaTranslation}&rdquo; <span className="text-neutral-500">(Abu Dawud #2357)</span>
+                {i18n.isArabic ? null : <>&ldquo;{iftarDuaTranslation}&rdquo; </>}<span className="text-neutral-500">({t('Abu Dawud #2357')})</span>
               </p>
             </div>
           </div>
@@ -550,10 +558,10 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
           <div className="flex flex-col items-center space-y-2 w-full md:w-auto">
             <div className="p-4 px-6 rounded-2xl bg-black/60 border border-emerald-500/30 text-center w-full">
               <div className="text-[10px] uppercase tracking-widest text-emerald-400/80 font-semibold">
-                Remaining to {prayerData.nextFastingEvent.type}
+                {t('Remaining to {event}', { event: i18n.prayer(prayerData.nextFastingEvent.type) })}
               </div>
               <div className="text-2xl md:text-3xl font-mono font-bold text-emerald-300 mt-0.5">
-                {prayerData.nextFastingEvent.remainingFormatted}
+                {i18n.duration(prayerData.nextFastingEvent.remainingFormatted)}
               </div>
             </div>
 
@@ -567,14 +575,14 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
                 }`}
               >
                 {isRecitingFastingDua ? <Square className="w-3.5 h-3.5 fill-current" /> : <Volume2 className="w-3.5 h-3.5" />}
-                <span>{isRecitingFastingDua ? 'Stop Du\'a' : 'Recite Du\'a'}</span>
+                <span>{t(isRecitingFastingDua ? "Stop Du'a" : "Recite Du'a")}</span>
               </button>
 
               <button
                 onClick={handleCopyFastingDua}
                 className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-white text-xs font-medium border border-white/10 transition cursor-pointer"
               >
-                {copiedFastingDua ? 'Copied' : 'Copy'}
+                {t(copiedFastingDua ? 'Copied' : 'Copy')}
               </button>
             </div>
           </div>
@@ -589,10 +597,10 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
             <Sliders className="w-5 h-5 text-amber-400" />
             <div>
               <h4 className="font-serif text-lg font-semibold text-white">
-                Authentic Vocal Muezzin Recordings
+                {t('Authentic Vocal Muezzin Recordings')}
               </h4>
               <p className="text-xs text-neutral-400">
-                Choose the Muezzin voice that will play at prayer times (Powered by Islamic Network API)
+                {t('Choose the Muezzin voice that will play at prayer times (Powered by Islamic Network API)')}
               </p>
             </div>
           </div>
@@ -609,12 +617,12 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
                 value={azanSettings.volume}
                 onChange={(e) => updateAzanSetting({ volume: parseFloat(e.target.value) })}
                 className="w-20 accent-amber-400 cursor-pointer"
-                title="Azan Volume"
+                title={t('Azan Volume')}
               />
             </div>
 
             <label className="flex items-center space-x-2 bg-black/40 px-3.5 py-2 rounded-xl border border-white/10 cursor-pointer self-start">
-              <span className="text-xs font-semibold text-neutral-200">Auto-Play on Prayer Time</span>
+              <span className="text-xs font-semibold text-neutral-200">{t('Auto-Play on Prayer Time')}</span>
               <input
                 type="checkbox"
                 checked={azanSettings.autoAzanEnabled}
@@ -644,16 +652,16 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-white flex items-center space-x-1.5">
-                      <span>{m.name}</span>
+                      <span>{t(m.name)}</span>
                     </span>
                     {isSelected && (
                       <span className="text-[9px] px-2 py-0.5 rounded-full bg-amber-500 text-neutral-950 font-bold uppercase">
-                        Default
+                        {t('Default')}
                       </span>
                     )}
                   </div>
-                  <p className="text-[11px] text-amber-300/80 font-medium truncate">{m.subtitle}</p>
-                  <p className="text-[10px] text-neutral-400 truncate">{m.location}</p>
+                  <p className="text-[11px] text-amber-300/80 font-medium truncate">{t(m.subtitle)}</p>
+                  <p className="text-[10px] text-neutral-400 truncate">{t(m.location)}</p>
                 </div>
 
                 <div className="flex items-center space-x-2 pt-2 border-t border-white/5">
@@ -665,7 +673,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
                         : 'bg-white/5 hover:bg-white/10 text-neutral-300'
                     }`}
                   >
-                    {isSelected ? 'Selected' : 'Set as Default'}
+                    {t(isSelected ? 'Selected' : 'Set as Default')}
                   </button>
 
                   <button
@@ -675,7 +683,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
                         ? 'bg-rose-500 text-white animate-pulse'
                         : 'bg-white/10 hover:bg-white/20 text-white'
                     }`}
-                    title={isPlayingThis ? 'Stop' : 'Listen / Test Voice'}
+                    title={t(isPlayingThis ? 'Stop' : 'Listen / Test Voice')}
                   >
                     {isPlayingThis ? <Square className="w-3.5 h-3.5 fill-current" /> : <Play className="w-3.5 h-3.5 fill-current" />}
                   </button>
@@ -688,9 +696,9 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
         {/* Azan voice per prayer */}
         <div className="space-y-2.5 pt-2">
           <div>
-            <h4 className="text-sm font-bold text-white">Azan Voice for Each Prayer</h4>
+            <h4 className="text-sm font-bold text-white">{t('Azan Voice for Each Prayer')}</h4>
             <p className="text-[11px] text-neutral-400">
-              Prayers set to Default use {MUEZZIN_SOURCES[azanSettings.selectedMuezzin]?.name}.
+              {t('Prayers set to Default use {name}.', { name: t(MUEZZIN_SOURCES[azanSettings.selectedMuezzin]?.name ?? '') })}
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2.5">
@@ -701,13 +709,13 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
               return (
                 <div key={prayer} className="p-3 rounded-xl bg-neutral-900/60 border border-white/5 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-white">{prayer}</span>
+                    <span className="text-xs font-bold text-white">{i18n.prayer(prayer)}</span>
                     <button
                       onClick={() => handlePlayMuezzin(effective, prayer)}
                       className={`p-1.5 rounded-lg transition cursor-pointer ${
                         isPlayingThis ? 'bg-rose-500 text-white animate-pulse' : 'bg-white/10 hover:bg-white/20 text-white'
                       }`}
-                      title={isPlayingThis ? 'Stop' : `Listen to ${prayer} Azan`}
+                      title={isPlayingThis ? t('Stop') : t('Listen to {prayer} Azan', { prayer: i18n.prayer(prayer) })}
                     >
                       {isPlayingThis ? <Square className="w-3 h-3 fill-current" /> : <Play className="w-3 h-3 fill-current" />}
                     </button>
@@ -719,12 +727,12 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
                       setAzanSettings(updated);
                       saveAzanSettings(updated);
                     }}
-                    aria-label={`Azan voice for ${prayer}`}
+                    aria-label={t('Azan voice for {prayer}', { prayer: i18n.prayer(prayer) })}
                     className="w-full bg-black/50 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-neutral-100 cursor-pointer"
                   >
-                    <option value="">Default ({MUEZZIN_SOURCES[azanSettings.selectedMuezzin]?.name})</option>
+                    <option value="">{t('Default')} ({t(MUEZZIN_SOURCES[azanSettings.selectedMuezzin]?.name)})</option>
                     {(Object.keys(MUEZZIN_SOURCES) as MuezzinId[]).map((mId) => (
-                      <option key={mId} value={mId}>{MUEZZIN_SOURCES[mId].name}</option>
+                      <option key={mId} value={mId}>{t(MUEZZIN_SOURCES[mId].name)}</option>
                     ))}
                   </select>
                 </div>
@@ -755,18 +763,18 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
                 <span className="text-base">{p.icon}</span>
                 {isNext && (
                   <span className="px-2 py-0.5 rounded-full bg-amber-500 text-neutral-950 font-extrabold text-[9px] uppercase tracking-wider">
-                    Next
+                    {t('Next')}
                   </span>
                 )}
               </div>
 
               <div className="space-y-0.5">
-                <div className="font-semibold text-xs text-neutral-300">{p.name}</div>
-                <div className="font-mono text-base md:text-lg font-bold text-white">{p.time}</div>
+                <div className="font-semibold text-xs text-neutral-300">{i18n.prayer(p.name)}</div>
+                <div className="font-mono text-base md:text-lg font-bold text-white">{i18n.time(p.time)}</div>
               </div>
 
               <div className="pt-2 border-t border-white/5 text-[10px] text-neutral-400">
-                {p.iqama ? `Iqamah ${p.iqama}` : p.key === 'Sunrise' ? 'Sunrise' : 'Iqamah —'}
+                {p.iqama ? `${t('Iqamah')} ${i18n.time(p.iqama)}` : p.key === 'Sunrise' ? t('Sunrise') : `${t('Iqamah')} —`}
               </div>
             </div>
           );
@@ -781,8 +789,8 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
             <Calendar className="w-6 h-6 text-amber-400" />
           </div>
           <div className="space-y-1">
-            <h4 className="font-semibold text-sm text-white">Friday Jumu&apos;ah Prayers</h4>
-            <p className="text-xs text-neutral-300">{prayerData.jumuah}</p>
+            <h4 className="font-semibold text-sm text-white">{t("Friday Jumu'ah Prayers")}</h4>
+            <p className="text-xs text-neutral-300">{i18n.time(prayerData.jumuah)}</p>
             <p className="text-[11px] text-neutral-500">{selectedMosque.name}</p>
           </div>
         </div>
@@ -799,11 +807,11 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
             <Compass className="w-6 h-6 text-sky-400" />
           </div>
           <div className="space-y-1">
-            <h4 className="font-semibold text-sm text-white">Qibla Direction</h4>
+            <h4 className="font-semibold text-sm text-white">{t('Qibla Direction')}</h4>
             <p className="text-xs text-sky-300 font-mono font-bold">
-              {prayerData.qiblaBearing}° from North (North-West)
+              {t('{bearing}° from North ({direction})', { bearing: prayerData.qiblaBearing, direction: qiblaDirection })}
             </p>
-            <p className="text-[11px] text-neutral-500">Toward Kaaba from {selectedMosque.loc}</p>
+            <p className="text-[11px] text-neutral-500">{t('Toward the Kaaba from {place}', { place: selectedMosque.loc })}</p>
           </div>
         </div>
 
@@ -814,14 +822,14 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
         >
           <div className="space-y-1">
             <div className="flex items-center space-x-2">
-              <span className="text-xs font-semibold text-neutral-300">Digital Tasbih</span>
+              <span className="text-xs font-semibold text-neutral-300">{t('Digital Tasbih')}</span>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setDhikrCount(0);
                 }}
                 className="p-1 rounded text-neutral-500 hover:text-white cursor-pointer"
-                title="Reset counter"
+                title={t('Reset counter')}
               >
                 <RotateCcw className="w-3 h-3" />
               </button>
@@ -829,7 +837,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
             <div className="font-arabic text-sm text-amber-300">
               {selectedDhikr === 'SubhanAllah' ? 'سُبْحَانَ اللَّهِ' : selectedDhikr === 'Alhamdulillah' ? 'الْحَمْدُ لِلَّهِ' : 'اللَّهُ أَكْبَرُ'}
             </div>
-            <p className="text-[10px] text-neutral-400">Tap to count • 33x cycle</p>
+            <p className="text-[10px] text-neutral-400">{t('Tap to count • 33x cycle')}</p>
           </div>
 
           <div className="w-14 h-14 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 font-mono text-2xl font-bold group-hover:scale-105 transition-transform">
@@ -845,7 +853,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
             <div className="flex items-center justify-between pb-3 border-b border-white/10">
               <div className="flex items-center space-x-2">
                 <PlusCircle className="w-5 h-5 text-amber-400" />
-                <h3 className="font-serif text-lg font-bold text-white">Add Custom Mosque / Location</h3>
+                <h3 className="font-serif text-lg font-bold text-white">{t('Add Custom Mosque / Location')}</h3>
               </div>
               <button
                 onClick={() => setShowAddCustomModal(false)}
@@ -857,11 +865,11 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
 
             <form onSubmit={handleSaveCustomMosqueSubmit} className="space-y-3.5 text-xs">
               <div>
-                <label className="block text-neutral-300 font-semibold mb-1">Mosque / Location Name *</label>
+                <label className="block text-neutral-300 font-semibold mb-1">{t('Mosque / Location Name *')}</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. East London Mosque or Home Prayer Room"
+                  placeholder={t('e.g. East London Mosque or Home Prayer Room')}
                   value={customForm.name}
                   onChange={(e) => setCustomForm({ ...customForm, name: e.target.value })}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/10 text-white placeholder-neutral-500 focus:outline-none focus:border-amber-400"
@@ -870,20 +878,20 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-neutral-300 font-semibold mb-1">City / Suburb</label>
+                  <label className="block text-neutral-300 font-semibold mb-1">{t('City / Suburb')}</label>
                   <input
                     type="text"
-                    placeholder="e.g. London or Auburn"
+                    placeholder={t('e.g. London or Auburn')}
                     value={customForm.suburb}
                     onChange={(e) => setCustomForm({ ...customForm, suburb: e.target.value })}
                     className="w-full px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/10 text-white placeholder-neutral-500 focus:outline-none focus:border-amber-400"
                   />
                 </div>
                 <div>
-                  <label className="block text-neutral-300 font-semibold mb-1">State / Region</label>
+                  <label className="block text-neutral-300 font-semibold mb-1">{t('State / Region')}</label>
                   <input
                     type="text"
-                    placeholder="e.g. UK, VIC, or CA"
+                    placeholder={t('e.g. UK, VIC, or CA')}
                     value={customForm.state}
                     onChange={(e) => setCustomForm({ ...customForm, state: e.target.value })}
                     className="w-full px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/10 text-white placeholder-neutral-500 focus:outline-none focus:border-amber-400"
@@ -894,14 +902,14 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
               {/* Coordinates with Autofill button */}
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <label className="block text-neutral-300 font-semibold">GPS Coordinates *</label>
+                  <label className="block text-neutral-300 font-semibold">{t('GPS Coordinates *')}</label>
                   <button
                     type="button"
                     onClick={handleAutofillFormGPS}
                     className="text-amber-400 hover:underline flex items-center space-x-1 cursor-pointer"
                   >
                     <Navigation className="w-3 h-3" />
-                    <span>Auto-detect GPS</span>
+                    <span>{t('Auto-detect GPS')}</span>
                   </button>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -909,7 +917,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
                     type="number"
                     step="any"
                     required
-                    placeholder="Latitude (e.g. 51.5186)"
+                    placeholder={t('Latitude (e.g. 51.5186)')}
                     value={customForm.lat}
                     onChange={(e) => setCustomForm({ ...customForm, lat: e.target.value })}
                     className="w-full px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/10 text-white placeholder-neutral-500 focus:outline-none focus:border-amber-400"
@@ -918,7 +926,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
                     type="number"
                     step="any"
                     required
-                    placeholder="Longitude (e.g. -0.0664)"
+                    placeholder={t('Longitude (e.g. -0.0664)')}
                     value={customForm.lng}
                     onChange={(e) => setCustomForm({ ...customForm, lng: e.target.value })}
                     className="w-full px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/10 text-white placeholder-neutral-500 focus:outline-none focus:border-amber-400"
@@ -927,10 +935,10 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
               </div>
 
               <div>
-                <label className="block text-neutral-300 font-semibold mb-1">Friday Jumu&apos;ah Times</label>
+                <label className="block text-neutral-300 font-semibold mb-1">{t("Friday Jumu'ah Times")}</label>
                 <input
                   type="text"
-                  placeholder="e.g. 1:15 PM & 2:15 PM"
+                  placeholder={t('e.g. 1:15 PM & 2:15 PM')}
                   value={customForm.jumuah}
                   onChange={(e) => setCustomForm({ ...customForm, jumuah: e.target.value })}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/10 text-white placeholder-neutral-500 focus:outline-none focus:border-amber-400"
@@ -939,10 +947,10 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
 
               {/* Iqamah Offsets */}
               <div>
-                <label className="block text-neutral-300 font-semibold mb-1">Iqamah Offsets (Minutes after Azan)</label>
+                <label className="block text-neutral-300 font-semibold mb-1">{t('Iqamah Offsets (Minutes after Azan)')}</label>
                 <div className="grid grid-cols-5 gap-2">
                   <div>
-                    <span className="text-[10px] text-neutral-400">Fajr</span>
+                    <span className="text-[10px] text-neutral-400">{i18n.prayer('Fajr')}</span>
                     <input
                       type="number"
                       value={customForm.fajrOffset}
@@ -951,7 +959,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
                     />
                   </div>
                   <div>
-                    <span className="text-[10px] text-neutral-400">Dhuhr</span>
+                    <span className="text-[10px] text-neutral-400">{i18n.prayer('Dhuhr')}</span>
                     <input
                       type="number"
                       value={customForm.dhuhrOffset}
@@ -960,7 +968,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
                     />
                   </div>
                   <div>
-                    <span className="text-[10px] text-neutral-400">Asr</span>
+                    <span className="text-[10px] text-neutral-400">{i18n.prayer('Asr')}</span>
                     <input
                       type="number"
                       value={customForm.asrOffset}
@@ -969,7 +977,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
                     />
                   </div>
                   <div>
-                    <span className="text-[10px] text-neutral-400">Maghrib</span>
+                    <span className="text-[10px] text-neutral-400">{i18n.prayer('Maghrib')}</span>
                     <input
                       type="number"
                       value={customForm.maghribOffset}
@@ -978,7 +986,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
                     />
                   </div>
                   <div>
-                    <span className="text-[10px] text-neutral-400">Isha</span>
+                    <span className="text-[10px] text-neutral-400">{i18n.prayer('Isha')}</span>
                     <input
                       type="number"
                       value={customForm.ishaOffset}
@@ -995,13 +1003,13 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
                   onClick={() => setShowAddCustomModal(false)}
                   className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-neutral-300 cursor-pointer"
                 >
-                  Cancel
+                  {t('Cancel')}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold shadow-lg transition cursor-pointer"
                 >
-                  Save & Apply Mosque
+                  {t('Save & Apply Mosque')}
                 </button>
               </div>
             </form>

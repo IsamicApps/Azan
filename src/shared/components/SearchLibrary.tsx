@@ -3,6 +3,7 @@ import { Hadith, BookMeta } from '../types/hadith';
 import dailyPoolData from '../data/daily_pool.json';
 import booksData from '../data/books.json';
 import { Search, Filter, BookOpen, ExternalLink, Bookmark, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { useI18n } from '../i18n';
 
 const books: BookMeta[] = booksData as BookMeta[];
 
@@ -17,6 +18,7 @@ export const SearchLibrary: React.FC<SearchLibraryProps> = ({
   onToggleFavorite,
   isFavorited
 }) => {
+  const { t, isArabic } = useI18n();
   const [allHadiths, setAllHadiths] = useState<Hadith[]>(dailyPoolData as Hadith[]);
   const [isLoadingFull, setIsLoadingFull] = useState(true);
   const [query, setQuery] = useState('');
@@ -78,20 +80,20 @@ export const SearchLibrary: React.FC<SearchLibraryProps> = ({
         <div className="flex flex-col md:flex-row gap-3">
           {/* Text Input */}
           <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+            <Search className="absolute start-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
             <input
               type="text"
               value={query}
               onChange={handleQueryChange}
-              placeholder="Search 6,720 Hadiths by keyword, narrator, book, or number..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-neutral-100 text-sm placeholder-neutral-500 focus:outline-none focus:border-amber-400/50"
+              placeholder={t('Search 6,720 Hadiths by keyword, narrator, book, or number...')}
+              className="w-full ps-10 pe-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-neutral-100 text-sm placeholder-neutral-500 focus:outline-none focus:border-amber-400/50"
             />
             {query && (
               <button
                 onClick={() => { setQuery(''); setCurrentPage(1); }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-neutral-400 hover:text-white"
+                className="absolute end-3 top-1/2 -translate-y-1/2 text-xs text-neutral-400 hover:text-white"
               >
-                Clear
+                {t('Clear')}
               </button>
             )}
           </div>
@@ -103,10 +105,10 @@ export const SearchLibrary: React.FC<SearchLibraryProps> = ({
               onChange={handleBookChange}
               className="w-full py-2.5 px-3 rounded-xl bg-black/40 border border-white/10 text-neutral-200 text-xs focus:outline-none focus:border-amber-400/50"
             >
-              <option value="all">All 93 Books of Bukhari</option>
+              <option value="all">{t('All 93 Books of Bukhari')}</option>
               {books.map((b) => (
                 <option key={b.bookNumber} value={b.bookNumber}>
-                  Book {b.bookNumber}: {b.bookName} ({b.hadithCount})
+                  {t('Book {n}', { n: b.bookNumber })}: {b.bookName} ({b.hadithCount})
                 </option>
               ))}
             </select>
@@ -122,7 +124,7 @@ export const SearchLibrary: React.FC<SearchLibraryProps> = ({
                   filterLength === len ? 'bg-amber-500 text-neutral-950 font-bold' : 'text-neutral-400 hover:text-white'
                 }`}
               >
-                {len === 'all' ? 'All' : len === 'short' ? 'Concise' : 'Extended'}
+                {t(len === 'all' ? 'All' : len === 'short' ? 'Concise' : 'Extended')}
               </button>
             ))}
           </div>
@@ -132,19 +134,22 @@ export const SearchLibrary: React.FC<SearchLibraryProps> = ({
         <div className="flex items-center justify-between text-xs text-neutral-400 pt-1">
           <div className="flex items-center space-x-2">
             <span>
-              Found <strong className="text-amber-400">{filteredHadiths.length.toLocaleString()}</strong> verified Hadiths
+              {t('Found')} <strong className="text-amber-400">{filteredHadiths.length.toLocaleString()}</strong> {t('verified Hadiths')}
             </span>
             {isLoadingFull && (
               <span className="flex items-center space-x-1 text-[11px] text-amber-300">
                 <Loader2 className="w-3 h-3 animate-spin" />
-                <span>Indexing full dataset...</span>
+                <span>{t('Indexing full dataset...')}</span>
               </span>
             )}
           </div>
           <span>
-            Page {currentPage} of {totalPages}
+            {t('Page {page} of {total}', { page: currentPage, total: totalPages })}
           </span>
         </div>
+        {isArabic && (
+          <p className="text-[11px] text-neutral-500">{t('The texts in this library (Sahih al-Bukhari, English edition) are in English only.')}</p>
+        )}
       </div>
 
       {/* Results List */}
@@ -152,8 +157,8 @@ export const SearchLibrary: React.FC<SearchLibraryProps> = ({
         {currentSlice.length === 0 ? (
           <div className="text-center py-16 p-6 rounded-2xl bg-neutral-900/30 border border-white/5 space-y-3">
             <BookOpen className="w-10 h-10 text-neutral-600 mx-auto" />
-            <p className="text-neutral-300 font-serif text-lg">No Hadiths match your search query</p>
-            <p className="text-xs text-neutral-500">Try searching with different terms or select all books.</p>
+            <p className="text-neutral-300 font-serif text-lg">{t('No Hadiths match your search query')}</p>
+            <p className="text-xs text-neutral-500">{t('Try searching with different terms or select all books.')}</p>
           </div>
         ) : (
           currentSlice.map((h) => {
@@ -167,7 +172,7 @@ export const SearchLibrary: React.FC<SearchLibraryProps> = ({
                   <div className="space-y-1">
                     <div className="flex items-center space-x-2">
                       <span className="text-xs font-sans font-semibold text-amber-400">
-                        Book {h.bookNumber}: {h.bookName}
+                        {t('Book {n}', { n: h.bookNumber })}: {h.bookName}
                       </span>
                       <span className="text-neutral-500">•</span>
                       <span className="text-xs text-neutral-400 font-mono">#{h.hadithNumber}</span>
@@ -185,7 +190,7 @@ export const SearchLibrary: React.FC<SearchLibraryProps> = ({
                           ? 'bg-rose-500/20 text-rose-400'
                           : 'bg-white/5 hover:bg-white/10 text-neutral-400 hover:text-white'
                       }`}
-                      title="Favorite"
+                      title={t('Save to Favourites')}
                     >
                       <Bookmark className="w-3.5 h-3.5" />
                     </button>
@@ -193,7 +198,7 @@ export const SearchLibrary: React.FC<SearchLibraryProps> = ({
                       onClick={() => onSelectHadith(h)}
                       className="px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs font-medium border border-amber-500/20 transition"
                     >
-                      View
+                      {t('View')}
                     </button>
                   </div>
                 </div>
@@ -203,14 +208,14 @@ export const SearchLibrary: React.FC<SearchLibraryProps> = ({
                 </p>
 
                 <div className="pt-2 border-t border-white/5 flex items-center justify-between text-xs text-neutral-400">
-                  <span>Volume {h.volume} • Word count: {h.wordCount}</span>
+                  <span>{t('Volume {volume} • Word count: {count}', { volume: h.volume, count: h.wordCount })}</span>
                   <a
                     href={h.sourceUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center space-x-1 text-emerald-400/90 hover:text-emerald-300 transition"
                   >
-                    <span>PDF Page {h.pdfPage}</span>
+                    <span>{t('PDF Page {page}', { page: h.pdfPage })}</span>
                     <ExternalLink className="w-3 h-3" />
                   </a>
                 </div>
@@ -228,17 +233,17 @@ export const SearchLibrary: React.FC<SearchLibraryProps> = ({
             disabled={currentPage === 1}
             className="p-2.5 rounded-xl bg-neutral-900 border border-white/10 text-neutral-300 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
           >
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft className="w-4 h-4 rtl:rotate-180" />
           </button>
           <span className="text-xs font-sans text-neutral-300">
-            Page <strong className="text-amber-400">{currentPage}</strong> of {totalPages}
+            {t('Page {page} of {total}', { page: currentPage, total: totalPages })}
           </span>
           <button
             onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
             className="p-2.5 rounded-xl bg-neutral-900 border border-white/10 text-neutral-300 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
           >
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight className="w-4 h-4 rtl:rotate-180" />
           </button>
         </div>
       )}

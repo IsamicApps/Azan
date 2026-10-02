@@ -3,6 +3,7 @@ import adhkarData from '../data/adhkar.json';
 import { IslamicPattern, IslamicCornerOrnament } from './IslamicPattern';
 import { speakDua, stopSpeaking, isSpeaking } from '../utils/speech';
 import { Sun, Moon, Volume2, Square, RotateCcw, CheckCircle2, ShieldCheck, Share2, Check } from 'lucide-react';
+import { useI18n } from '../i18n';
 
 interface DhikrItem {
   id: string;
@@ -17,6 +18,7 @@ interface DhikrItem {
 }
 
 export const AdhkarView: React.FC = () => {
+  const { t, isArabic } = useI18n();
   const [activeCategory, setActiveCategory] = useState<'morning' | 'evening'>('morning');
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [playingId, setPlayingId] = useState<string | null>(null);
@@ -53,7 +55,11 @@ export const AdhkarView: React.FC = () => {
 
   const handleCopy = async (item: DhikrItem) => {
     try {
-      await navigator.clipboard.writeText(`${item.title}\n\n${item.arabic}\n\n"${item.translation}"\n\nVirtue: ${item.virtue}\nSource: ${item.source}`);
+      await navigator.clipboard.writeText(
+        isArabic
+          ? `${t(item.title)}\n\n${item.arabic}\n\n${t('Virtue')}: ${t(item.virtue)}\n${t('Source')}: ${t(item.source)}`
+          : `${item.title}\n\n${item.arabic}\n\n"${item.translation}"\n\nVirtue: ${item.virtue}\nSource: ${item.source}`
+      );
       setCopiedId(item.id);
       setTimeout(() => setCopiedId(null), 2000);
     } catch {}
@@ -70,15 +76,15 @@ export const AdhkarView: React.FC = () => {
         <div className="relative z-10 space-y-2">
           <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold uppercase tracking-wider">
             <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Fortress of the Muslim • Hisn al-Muslim</span>
+            <span>{t('Fortress of the Muslim • Hisn al-Muslim')}</span>
           </div>
 
           <h2 className="font-serif text-3xl md:text-5xl font-bold text-white tracking-tight">
-            Daily Morning & Evening Adhkar
+            {t('Daily Morning & Evening Adhkar')}
           </h2>
 
           <p className="text-xs md:text-sm text-neutral-300 max-w-2xl leading-relaxed">
-            Authentic supplications and remembrances prescribed by the Prophet (ﷺ) for daily divine protection and peace of heart.
+            {t('Authentic supplications and remembrances prescribed by the Prophet (ﷺ) for daily divine protection and peace of heart.')}
           </p>
 
           {/* Morning / Evening Toggle Tabs */}
@@ -92,7 +98,7 @@ export const AdhkarView: React.FC = () => {
               }`}
             >
               <Sun className="w-4 h-4" />
-              <span>Morning Adhkar (After Fajr)</span>
+              <span>{t('Morning Adhkar (After Fajr)')}</span>
             </button>
 
             <button
@@ -104,7 +110,7 @@ export const AdhkarView: React.FC = () => {
               }`}
             >
               <Moon className="w-4 h-4" />
-              <span>Evening Adhkar (After Asr/Maghrib)</span>
+              <span>{t('Evening Adhkar (After Asr/Maghrib)')}</span>
             </button>
           </div>
         </div>
@@ -131,7 +137,7 @@ export const AdhkarView: React.FC = () => {
                 <div className="space-y-3 flex-1">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-amber-300 flex items-center space-x-2">
-                      <span>{item.title}</span>
+                      <span>{t(item.title)}</span>
                     </span>
 
                     <div className="flex items-center space-x-1.5" onClick={(e) => e.stopPropagation()}>
@@ -142,7 +148,7 @@ export const AdhkarView: React.FC = () => {
                             ? 'bg-amber-500 text-neutral-950 font-bold animate-pulse'
                             : 'bg-white/5 hover:bg-white/10 text-neutral-300'
                         }`}
-                        title="Listen to audio recitation"
+                        title={t('Listen to audio recitation')}
                       >
                         {isPlayingThis ? <Square className="w-3.5 h-3.5 fill-current" /> : <Volume2 className="w-3.5 h-3.5" />}
                       </button>
@@ -150,7 +156,7 @@ export const AdhkarView: React.FC = () => {
                       <button
                         onClick={() => handleCopy(item)}
                         className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-neutral-300 transition cursor-pointer"
-                        title="Copy Dhikr"
+                        title={t('Copy Dhikr')}
                       >
                         {copiedId === item.id ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5" />}
                       </button>
@@ -158,7 +164,7 @@ export const AdhkarView: React.FC = () => {
                       <button
                         onClick={() => resetCount(item.id)}
                         className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-neutral-400 hover:text-white transition cursor-pointer"
-                        title="Reset counter"
+                        title={t('Reset counter')}
                       >
                         <RotateCcw className="w-3.5 h-3.5" />
                       </button>
@@ -166,19 +172,21 @@ export const AdhkarView: React.FC = () => {
                   </div>
 
                   {/* Arabic Text */}
-                  <div className="font-arabic text-xl md:text-2xl text-amber-200 leading-loose text-right dir-rtl py-1">
+                  <div dir="rtl" className="font-arabic text-xl md:text-2xl text-amber-200 leading-loose text-right py-1">
                     {item.arabic}
                   </div>
 
                   {/* Translation */}
-                  <p className="text-xs text-neutral-300 leading-relaxed font-serif italic">
-                    &ldquo;{item.translation}&rdquo;
-                  </p>
+                  {!isArabic && (
+                    <p className="text-xs text-neutral-300 leading-relaxed font-serif italic">
+                      &ldquo;{item.translation}&rdquo;
+                    </p>
+                  )}
 
                   {/* Virtue & Source Footnote */}
                   <div className="pt-2 border-t border-white/5 flex flex-wrap items-center justify-between gap-2 text-[11px] text-neutral-400">
-                    <span className="text-emerald-400/90 font-medium">✨ {item.virtue}</span>
-                    <span className="font-mono text-neutral-500">{item.source}</span>
+                    <span className="text-emerald-400/90 font-medium">✨ {t(item.virtue)}</span>
+                    <span className="font-mono text-neutral-500">{t(item.source)}</span>
                   </div>
                 </div>
 
@@ -201,7 +209,7 @@ export const AdhkarView: React.FC = () => {
                     )}
                   </div>
                   <span className="text-[10px] text-neutral-400 mt-1.5 font-medium">
-                    {isCompleted ? 'Completed' : 'Tap to Count'}
+                    {t(isCompleted ? 'Completed' : 'Tap to Count')}
                   </span>
                 </div>
               </div>

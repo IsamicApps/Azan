@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { IslamicPattern, IslamicCornerOrnament } from './IslamicPattern';
 import { Mosque } from '../utils/prayerTimes';
 import { Volume2, VolumeX, X, Sparkles, Building2, Bell, Check, Play, Square } from 'lucide-react';
+import { useI18n } from '../i18n';
 import { stopAzan } from '../utils/azanAudio';
 import { speakDua, stopSpeaking, isSpeaking } from '../utils/speech';
 
@@ -25,6 +26,8 @@ export const AzanLiveModal: React.FC<AzanLiveModalProps> = ({
   soundBlocked = false,
   onTapToPlay
 }) => {
+  const i18n = useI18n();
+  const { t } = i18n;
   const [copiedDua, setCopiedDua] = useState(false);
   const [isRecitingDua, setIsRecitingDua] = useState(false);
 
@@ -78,7 +81,7 @@ export const AzanLiveModal: React.FC<AzanLiveModalProps> = ({
           <div className="flex items-center space-x-2">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
             <span className="text-xs font-sans font-bold tracking-widest text-amber-300 uppercase">
-              Azan (Adhan) Now Playing
+              {t('Azan (Adhan) Now Playing')}
             </span>
           </div>
 
@@ -98,11 +101,11 @@ export const AzanLiveModal: React.FC<AzanLiveModalProps> = ({
           </div>
 
           <div>
-            <div className="text-xs uppercase tracking-widest text-neutral-400 font-medium">Time for</div>
+            <div className="text-xs uppercase tracking-widest text-neutral-400 font-medium">{t('Time for')}</div>
             <h2 className="font-serif text-3xl md:text-5xl font-bold text-white tracking-wide mt-1">
-              {prayerName} Prayer
+              {t('{prayer} Prayer', { prayer: i18n.prayer(prayerName) })}
             </h2>
-            <div className="text-sm font-mono text-amber-400 font-semibold mt-0.5">{prayerTime}</div>
+            <div className="text-sm font-mono text-amber-400 font-semibold mt-0.5">{i18n.time(prayerTime)}</div>
           </div>
 
           {/* Arabic Calligraphy Banner */}
@@ -110,9 +113,11 @@ export const AzanLiveModal: React.FC<AzanLiveModalProps> = ({
             <p className="font-arabic text-2xl md:text-3xl text-amber-200 leading-loose">
               حَيَّ عَلَى الصَّلَاةِ • حَيَّ عَلَى الْفَلَاحِ
             </p>
-            <p className="text-xs text-neutral-400 mt-1 italic font-serif">
-              &ldquo;Hasten to Prayer • Hasten to Success&rdquo;
-            </p>
+            {!i18n.isArabic && (
+              <p className="text-xs text-neutral-400 mt-1 italic font-serif">
+                &ldquo;Hasten to Prayer • Hasten to Success&rdquo;
+              </p>
+            )}
           </div>
 
           {soundBlocked && onTapToPlay && (
@@ -122,7 +127,7 @@ export const AzanLiveModal: React.FC<AzanLiveModalProps> = ({
               className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold text-sm shadow-lg animate-pulse cursor-pointer"
             >
               <Play className="w-4 h-4 fill-current" />
-              <span>Tap to play the Azan</span>
+              <span>{t('Tap to play the Azan')}</span>
             </button>
           )}
 
@@ -142,9 +147,9 @@ export const AzanLiveModal: React.FC<AzanLiveModalProps> = ({
           </div>
 
           {/* Du'a after Adhan with Recite Audio Button */}
-          <div className="p-4 rounded-2xl bg-neutral-900/80 border border-white/10 text-left space-y-2.5">
+          <div className="p-4 rounded-2xl bg-neutral-900/80 border border-white/10 text-start space-y-2.5">
             <div className="flex items-center justify-between text-[11px] text-amber-400 font-semibold">
-              <span>Du&apos;a after Azan (Bukhari #614)</span>
+              <span>{t("Du'a after Azan (Bukhari #614)")}</span>
               <div className="flex items-center space-x-2">
                 <button
                   onClick={handleToggleReciteDua}
@@ -153,10 +158,10 @@ export const AzanLiveModal: React.FC<AzanLiveModalProps> = ({
                       ? 'bg-amber-500 text-neutral-950 font-bold animate-pulse'
                       : 'bg-white/10 hover:bg-white/20 text-neutral-200'
                   }`}
-                  title="Listen to Du'a recitation"
+                  title={t("Listen to Du'a recitation")}
                 >
                   {isRecitingDua ? <Square className="w-3 h-3 fill-current" /> : <Volume2 className="w-3 h-3" />}
-                  <span>{isRecitingDua ? 'Stop Du\'a' : 'Recite Du\'a'}</span>
+                  <span>{t(isRecitingDua ? "Stop Du'a" : "Recite Du'a")}</span>
                 </button>
 
                 <button
@@ -164,23 +169,25 @@ export const AzanLiveModal: React.FC<AzanLiveModalProps> = ({
                   className="text-neutral-400 hover:text-white flex items-center space-x-1 px-1.5 py-1 rounded cursor-pointer"
                 >
                   {copiedDua ? <Check className="w-3 h-3 text-emerald-400" /> : null}
-                  <span>{copiedDua ? 'Copied' : 'Copy'}</span>
+                  <span>{t(copiedDua ? 'Copied' : 'Copy')}</span>
                 </button>
               </div>
             </div>
-            <p className="font-arabic text-sm text-neutral-200 leading-relaxed text-right dir-rtl">
+            <p dir="rtl" className="font-arabic text-sm text-neutral-200 leading-relaxed text-right">
               {duaAfterAdhanArabic}
             </p>
-            <p className="font-serif text-xs text-neutral-400 italic">
-              &ldquo;{duaTranslation}&rdquo;
-            </p>
+            {!i18n.isArabic && (
+              <p className="font-serif text-xs text-neutral-400 italic">
+                &ldquo;{duaTranslation}&rdquo;
+              </p>
+            )}
           </div>
         </div>
 
         {/* Action Button */}
         <div className="relative z-10 pt-3 border-t border-white/10 flex items-center justify-between gap-3">
           <div className="text-[11px] text-neutral-400">
-            Source: <a href="https://islamic.network/api/" target="_blank" rel="noopener noreferrer" className="underline text-amber-400">Islamic Network API</a> & <a href="https://www.awqat.com.au/" target="_blank" rel="noopener noreferrer" className="underline text-emerald-400">Awqat.com.au</a>
+            {t('Source')}: <a href="https://islamic.network/api/" target="_blank" rel="noopener noreferrer" className="underline text-amber-400">Islamic Network API</a> & <a href="https://www.awqat.com.au/" target="_blank" rel="noopener noreferrer" className="underline text-emerald-400">Awqat.com.au</a>
           </div>
 
           <button
@@ -188,7 +195,7 @@ export const AzanLiveModal: React.FC<AzanLiveModalProps> = ({
             onClick={handleStop}
             className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold text-xs shadow-lg transition cursor-pointer"
           >
-            Dismiss Azan
+            {t('Dismiss Azan')}
           </button>
         </div>
       </div>

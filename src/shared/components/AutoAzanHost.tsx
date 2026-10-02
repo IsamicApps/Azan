@@ -16,6 +16,7 @@ import {
   unlockAudioOnFirstInteraction
 } from '../utils/azanAudio';
 import { showNotification } from '../utils/notify';
+import { currentI18n } from '../i18n';
 import { AzanLiveModal } from './AzanLiveModal';
 
 /**
@@ -52,8 +53,9 @@ export const AutoAzanHost: React.FC = () => {
       setSoundBlocked(false);
       playAzan(undefined, () => {}, muezzin, () => setSoundBlocked(true));
 
-      showNotification(`Allahu Akbar • Time for ${duePrayer.name} Prayer`, {
-        body: `Prayer time has arrived at ${selectedMosque.name} (${selectedMosque.suburb}).`,
+      const i18n = currentI18n();
+      showNotification(i18n.t('Allahu Akbar • Time for {prayer} Prayer', { prayer: i18n.prayer(duePrayer.name) }), {
+        body: i18n.t('Prayer time has arrived at {mosque} ({suburb}).', { mosque: selectedMosque.name, suburb: selectedMosque.suburb }),
         icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="%23d4af37"/></svg>'
       });
     }, 1000);

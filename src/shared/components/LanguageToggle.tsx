@@ -1,5 +1,6 @@
 import React from 'react';
 import { useHadithLanguage } from '../hooks/useHadithLanguage';
+import { translate } from '../i18n';
 
 interface LanguageToggleProps {
   /** 'tv' uses the 1920-wide TV type scale */
@@ -18,7 +19,7 @@ export const LanguageToggle: React.FC<LanguageToggleProps> = ({ size = 'sm' }) =
   return (
     <div
       role="radiogroup"
-      aria-label="Hadith language"
+      aria-label={translate(language, 'Language')}
       className={`inline-flex items-center p-1 gap-1 bg-white/5 border border-white/10 ${size === 'tv' ? 'rounded-2xl' : 'rounded-full'}`}
     >
       {options.map((option) => (
@@ -26,7 +27,7 @@ export const LanguageToggle: React.FC<LanguageToggleProps> = ({ size = 'sm' }) =
           key={option.value}
           role="radio"
           aria-checked={language === option.value}
-          title={option.value === 'ar' ? 'Show the Hadith in Arabic [L]' : 'Show the Hadith in English [L]'}
+          title={translate(language, option.value === 'ar' ? 'Show the app and Hadith in Arabic [L]' : 'Show the app and Hadith in English [L]')}
           onClick={() => setLanguage(option.value)}
           className={`${sizing} ${option.className} font-semibold whitespace-nowrap transition cursor-pointer ${
             language === option.value

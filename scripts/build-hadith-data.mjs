@@ -175,10 +175,13 @@ for (const c of COLLECTIONS) {
   }
   let graded = 0;
   const chapterNames = new Map(book.chapters.map((ch) => [ch.id, clean(ch.english) || clean(ch.arabic)]));
+  const chapterNamesAr = new Map(book.chapters.map((ch) => [ch.id, clean(ch.arabic)]));
 
   // Books in the order they first appear; each Hadith keeps its position within its book,
   // which matches sunnah.com's "In-book reference" (Book <chapter id>, Hadith <position>)
   const books = [];
+  // Arabic book names, for the Arabic interface
+  const booksAr = [];
   // sunnah.com book id per book, as used in its URLs: the dataset's chapter id, with
   // 0 → "introduction", and an unnumbered book → "<previous>b" (sunnah.com's "8b", "35b")
   const bookRefs = [];
@@ -188,6 +191,7 @@ for (const c of COLLECTIONS) {
     if (!bookIndex.has(h.chapterId)) {
       bookIndex.set(h.chapterId, books.length);
       books.push(chapterNames.get(h.chapterId) || `Book ${books.length + 1}`);
+      booksAr.push(chapterNamesAr.get(h.chapterId) || '');
       const previous = bookRefs[bookRefs.length - 1];
       bookRefs.push(
         h.chapterId === 0 ? 'introduction' : Number.isInteger(h.chapterId) ? String(h.chapterId) : `${previous ?? 0}b`
@@ -233,7 +237,7 @@ for (const c of COLLECTIONS) {
     fs.writeFileSync(path.join(arDir, `${i}.json`), JSON.stringify(arabic.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE)));
   }
 
-  index.collections.push({ slug: c.slug, name: c.name, count: records.length, books, bookRefs });
+  index.collections.push({ slug: c.slug, name: c.name, count: records.length, books, booksAr, bookRefs });
   index.total += records.length;
   console.log(`${c.name.padEnd(34)} ${String(records.length).padStart(6)} Hadiths, ${String(graded).padStart(6)} graded`);
 }
