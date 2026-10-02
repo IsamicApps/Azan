@@ -1,5 +1,6 @@
 import mosquesData from '../data/mosques.json';
 import { getHijriDate } from './hijri';
+import { getAwqatDay, getAwqatJumuah, IqamaPrayer } from './awqat';
 
 export interface Mosque {
   id: string;
@@ -32,6 +33,12 @@ export interface PrayerTimesResult {
   isha24: string;
   suhoorEndTime: string;
   iftarTime: string;
+  /** Iqamah time per prayer ("05:00 AM"), when the mosque has one */
+  iqama: Partial<Record<IqamaPrayer, string>>;
+  /** Jumu'ah times: the mosque's Awqat notice, else the app's list */
+  jumuah: string;
+  /** 'awqat' when the times come from awqat.com.au, 'calculated' otherwise */
+  timesSource: 'awqat' | 'calculated';
   /** True while the next Suhoor/Iftar belongs to a Ramadan fast (from Maghrib before 1 Ramadan until Iftar on its last day) */
   isRamadan: boolean;
   nextFastingEvent: {
@@ -198,7 +205,8 @@ export function calculateMosquePrayerTimes(
   const lat = currentMosque.lat;
   const lng = currentMosque.lng;
   
-  const clock = getZonedClock(date, STATE_TIMEZONES[currentMosque.state?.toUpperCase()]);
+  const timeZone = STATE_TIMEZONES[currentMosque.state?.toUpperCase()];
+  const clock = getZonedClock(date, timeZone);
   const tzOffset = clock.offsetHours;
 
   const oneDay = 1000 * 60 * 60 * 24;
@@ -265,21 +273,56 @@ export function calculateMosquePrayerTimes(
     return { formatted, formatted24, totalMinutes: finalH * 60 + mins };
   };
 
-  const fObj = formatDecTime(fajr_val);
-  const sObj = formatDecTime(sunrise_val);
-  const dObj = formatDecTime(dhuhr_val);
-  const aObj = formatDecTime(asr_val);
-  const mObj = formatDecTime(maghrib_val);
-  const iObj = formatDecTime(isha_val);
+  // Mosques listed on awqat.com.au use Awqat's own timetable, adjustments and Iqamah
+  const awqatDayFor = (offsetDays: number) => {
+    if (!timeZone) return null;
+    const d = new Date(Date.UTC(clock.year, clock.month - 1, clock.day + offsetDays));
+    return getAwqatDay(currentMosque.id, d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate(), timeZone);
+  };
+  const awqat = awqatDayFor(0);
+  const dayTimes = awqat
+    ? awqat.times.map((m) => m / 60)
+    : [fajr_val, sunrise_val, dhuhr_val, asr_val, maghrib_val, isha_val];
+
+  const fObj = formatDecTime(dayTimes[0]);
+  const sObj = formatDecTime(dayTimes[1]);
+  const dObj = formatDecTime(dayTimes[2]);
+  const aObj = formatDecTime(dayTimes[3]);
+  const mObj = formatDecTime(dayTimes[4]);
+  const iObj = formatDecTime(dayTimes[5]);
+
+  // Iqamah: Awqat's times (fixed or minutes after the Adhan), else the app's offsets
+  const iqamaMinutes = (name: IqamaPrayer, adhan: number): number | undefined => {
+    if (awqat) return awqat.iqama[name];
+    const offset = currentMosque.iqamaOffsets?.[name] ?? ({ Fajr: 20, Dhuhr: 15, Asr: 15, Maghrib: 5, Isha: 10 } as const)[name];
+    return adhan + offset;
+  };
+  const iqamaFor = {
+    Fajr: iqamaMinutes('Fajr', fObj.totalMinutes),
+    Dhuhr: iqamaMinutes('Dhuhr', dObj.totalMinutes),
+    Asr: iqamaMinutes('Asr', aObj.totalMinutes),
+    Maghrib: iqamaMinutes('Maghrib', mObj.totalMinutes),
+    Isha: iqamaMinutes('Isha', iObj.totalMinutes)
+  };
+  const iqama: Partial<Record<IqamaPrayer, string>> = {};
+  for (const [name, mins] of Object.entries(iqamaFor)) {
+    if (mins !== undefined) iqama[name as IqamaPrayer] = formatDecTime(mins / 60).formatted;
+  }
+
+  // After Isha the next Fajr is tomorrow's
+  const tomorrow = awqatDayFor(1);
+  const tomorrowFajr = tomorrow ? formatDecTime(tomorrow.times[0] / 60) : fObj;
+  const tomorrowFajrIqama = tomorrow ? tomorrow.iqama.Fajr : iqamaFor.Fajr;
 
   const currentMinutes = clock.hours * 60 + clock.minutes + clock.seconds / 60;
-  const schedule = [
-    { name: 'Fajr' as const, mins: fObj.totalMinutes, time: fObj.formatted, offset: currentMosque.iqamaOffsets?.Fajr ?? 20 },
-    { name: 'Sunrise' as const, mins: sObj.totalMinutes, time: sObj.formatted, offset: 0 },
-    { name: 'Dhuhr' as const, mins: dObj.totalMinutes, time: dObj.formatted, offset: currentMosque.iqamaOffsets?.Dhuhr ?? 15 },
-    { name: 'Asr' as const, mins: aObj.totalMinutes, time: aObj.formatted, offset: currentMosque.iqamaOffsets?.Asr ?? 15 },
-    { name: 'Maghrib' as const, mins: mObj.totalMinutes, time: mObj.formatted, offset: currentMosque.iqamaOffsets?.Maghrib ?? 5 },
-    { name: 'Isha' as const, mins: iObj.totalMinutes, time: iObj.formatted, offset: currentMosque.iqamaOffsets?.Isha ?? 10 }
+  type ScheduleEntry = { name: PrayerTimesResult['nextPrayer']['name']; mins: number; time: string; iqama: number | undefined };
+  const schedule: ScheduleEntry[] = [
+    { name: 'Fajr' as const, mins: fObj.totalMinutes, time: fObj.formatted, iqama: iqamaFor.Fajr },
+    { name: 'Sunrise' as const, mins: sObj.totalMinutes, time: sObj.formatted, iqama: undefined },
+    { name: 'Dhuhr' as const, mins: dObj.totalMinutes, time: dObj.formatted, iqama: iqamaFor.Dhuhr },
+    { name: 'Asr' as const, mins: aObj.totalMinutes, time: aObj.formatted, iqama: iqamaFor.Asr },
+    { name: 'Maghrib' as const, mins: mObj.totalMinutes, time: mObj.formatted, iqama: iqamaFor.Maghrib },
+    { name: 'Isha' as const, mins: iObj.totalMinutes, time: iObj.formatted, iqama: iqamaFor.Isha }
   ];
 
   let next = schedule.find(p => p.mins > currentMinutes);
@@ -291,7 +334,7 @@ export function calculateMosquePrayerTimes(
     const idx = schedule.indexOf(next);
     currentPrayerName = idx === 0 ? 'Isha' : schedule[idx - 1].name;
   } else {
-    next = schedule[0];
+    next = { ...schedule[0], mins: tomorrowFajr.totalMinutes, time: tomorrowFajr.formatted, iqama: tomorrowFajrIqama };
     diffSec = Math.round((1440 - currentMinutes + next.mins) * 60);
     currentPrayerName = 'Isha';
   }
@@ -321,8 +364,8 @@ export function calculateMosquePrayerTimes(
   } else {
     // Past Maghrib -> Next Suhoor ends at tomorrow's Fajr
     fastType = 'Suhoor';
-    fastTime = fObj.formatted;
-    fastDiffSec = Math.round((1440 - currentMinutes + fObj.totalMinutes) * 60);
+    fastTime = tomorrowFajr.formatted;
+    fastDiffSec = Math.round((1440 - currentMinutes + tomorrowFajr.totalMinutes) * 60);
   }
 
   // The fast the next Suhoor/Iftar belongs to: tomorrow's once Maghrib has passed, otherwise today's
@@ -334,8 +377,6 @@ export function calculateMosquePrayerTimes(
   const fSecs = fastDiffSec % 60;
   const fastRemFormatted = fHours > 0 ? `${fHours}h ${fMins}m` : `${fMins}m ${fSecs}s`;
 
-  const iqamaMins = next.mins + next.offset;
-  const iqamaFormatted = formatDecTime(iqamaMins / 60).formatted;
 
   const qibla = calculateQiblaBearing(lat, lng);
 
@@ -353,6 +394,9 @@ export function calculateMosquePrayerTimes(
     isha24: iObj.formatted24,
     suhoorEndTime: fObj.formatted,
     iftarTime: mObj.formatted,
+    iqama,
+    jumuah: getMosqueJumuah(currentMosque),
+    timesSource: awqat ? 'awqat' : 'calculated',
     isRamadan,
     nextFastingEvent: {
       type: fastType,
@@ -365,7 +409,7 @@ export function calculateMosquePrayerTimes(
       time: next.time,
       remainingFormatted,
       remainingSeconds: diffSec,
-      iqamaTime: next.offset > 0 ? iqamaFormatted : undefined
+      iqamaTime: next.iqama !== undefined && next.iqama !== next.mins ? formatDecTime(next.iqama / 60).formatted : undefined
     },
     currentPrayer: currentPrayerName,
     localTime24: `${String(clock.hours).padStart(2, '0')}:${String(clock.minutes).padStart(2, '0')}`,
@@ -373,6 +417,11 @@ export function calculateMosquePrayerTimes(
     qiblaBearing: Math.round(qibla),
     mosque: currentMosque
   };
+}
+
+/** Jumu'ah times: the mosque's Awqat notice when it gives them, else the app's list. */
+export function getMosqueJumuah(mosque: Mosque): string {
+  return getAwqatJumuah(mosque.id) ?? mosque.jumuah;
 }
 
 export function getSelectedMosque(): Mosque {

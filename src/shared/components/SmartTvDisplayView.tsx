@@ -472,12 +472,12 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
   const currentTheme = themes[tvTheme];
 
   const prayerCards = [
-    { name: 'Fajr', arabic: 'الفجر', time: prayerData.fajr, icon: '🌅', offset: selectedMosque.iqamaOffsets?.Fajr ?? 20 },
-    { name: 'Sunrise', arabic: 'الشروق', time: prayerData.sunrise, icon: '☀️', offset: 0 },
-    { name: 'Dhuhr', arabic: 'الظهر', time: prayerData.dhuhr, icon: '☀️', offset: selectedMosque.iqamaOffsets?.Dhuhr ?? 15 },
-    { name: 'Asr', arabic: 'العصر', time: prayerData.asr, icon: '🌤️', offset: selectedMosque.iqamaOffsets?.Asr ?? 15 },
-    { name: 'Maghrib', arabic: 'المغرب', time: prayerData.maghrib, icon: '🌇', offset: selectedMosque.iqamaOffsets?.Maghrib ?? 5 },
-    { name: 'Isha', arabic: 'العشاء', time: prayerData.isha, icon: '🌙', offset: selectedMosque.iqamaOffsets?.Isha ?? 10 }
+    { name: 'Fajr', arabic: 'الفجر', time: prayerData.fajr, icon: '🌅', iqama: prayerData.iqama.Fajr },
+    { name: 'Sunrise', arabic: 'الشروق', time: prayerData.sunrise, icon: '☀️', iqama: undefined },
+    { name: 'Dhuhr', arabic: 'الظهر', time: prayerData.dhuhr, icon: '☀️', iqama: prayerData.iqama.Dhuhr },
+    { name: 'Asr', arabic: 'العصر', time: prayerData.asr, icon: '🌤️', iqama: prayerData.iqama.Asr },
+    { name: 'Maghrib', arabic: 'المغرب', time: prayerData.maghrib, icon: '🌇', iqama: prayerData.iqama.Maghrib },
+    { name: 'Isha', arabic: 'العشاء', time: prayerData.isha, icon: '🌙', iqama: prayerData.iqama.Isha }
   ];
 
   // Designed for a fixed 1920x1080 canvas (scaled to the screen by the TV app),
@@ -683,7 +683,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
                   <div className="text-[18px] text-neutral-400 flex items-center gap-2 whitespace-nowrap">
                     <span className="font-arabic">{p.arabic}</span>
                     <span>•</span>
-                    <span>{p.offset > 0 ? `Iqamah +${p.offset}m` : 'Transit'}</span>
+                    <span>{p.iqama ? <>Iqamah <span className="font-mono text-emerald-300">{p.iqama}</span></> : p.name === 'Sunrise' ? 'Sunrise' : 'Iqamah —'}</span>
                   </div>
                 </div>
               );
@@ -693,7 +693,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
           <div className="shrink-0 px-6 py-4 rounded-3xl bg-[var(--tv-strip)] border border-white/10 flex items-center justify-between gap-4 text-[22px] text-neutral-300">
             <div className="flex items-center gap-3 min-w-0">
               <Calendar className="w-6 h-6 shrink-0 text-amber-400" />
-              <span>Jumu&apos;ah <strong className="text-white">{selectedMosque.jumuah}</strong></span>
+              <span>Jumu&apos;ah <strong className="text-white">{prayerData.jumuah}</strong></span>
             </div>
             <div className="flex items-center gap-3 shrink-0">
               <Compass className="w-6 h-6 text-sky-400" />

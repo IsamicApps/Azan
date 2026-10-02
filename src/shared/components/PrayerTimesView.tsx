@@ -7,7 +7,8 @@ import {
   calculateMosquePrayerTimes,
   getMosquesSortedByDistance,
   getSelectedMosque,
-  saveSelectedMosque
+  saveSelectedMosque,
+  getMosqueJumuah
 } from '../utils/prayerTimes';
 import {
   playAzan,
@@ -295,12 +296,12 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
   });
 
   const prayerCards = [
-    { key: 'Fajr', name: 'Fajr', time: prayerData.fajr, icon: '🌅', offset: selectedMosque.iqamaOffsets?.Fajr ?? 20 },
-    { key: 'Sunrise', name: 'Sunrise', time: prayerData.sunrise, icon: '☀️', offset: 0 },
-    { key: 'Dhuhr', name: 'Dhuhr', time: prayerData.dhuhr, icon: '☀️', offset: selectedMosque.iqamaOffsets?.Dhuhr ?? 15 },
-    { key: 'Asr', name: 'Asr', time: prayerData.asr, icon: '🌤️', offset: selectedMosque.iqamaOffsets?.Asr ?? 15 },
-    { key: 'Maghrib', name: 'Maghrib', time: prayerData.maghrib, icon: '🌇', offset: selectedMosque.iqamaOffsets?.Maghrib ?? 5 },
-    { key: 'Isha', name: 'Isha', time: prayerData.isha, icon: '🌙', offset: selectedMosque.iqamaOffsets?.Isha ?? 10 }
+    { key: 'Fajr', name: 'Fajr', time: prayerData.fajr, icon: '🌅', iqama: prayerData.iqama.Fajr },
+    { key: 'Sunrise', name: 'Sunrise', time: prayerData.sunrise, icon: '☀️', iqama: undefined },
+    { key: 'Dhuhr', name: 'Dhuhr', time: prayerData.dhuhr, icon: '☀️', iqama: prayerData.iqama.Dhuhr },
+    { key: 'Asr', name: 'Asr', time: prayerData.asr, icon: '🌤️', iqama: prayerData.iqama.Asr },
+    { key: 'Maghrib', name: 'Maghrib', time: prayerData.maghrib, icon: '🌇', iqama: prayerData.iqama.Maghrib },
+    { key: 'Isha', name: 'Isha', time: prayerData.isha, icon: '🌙', iqama: prayerData.iqama.Isha }
   ];
 
   const handleDhikrTap = () => {
@@ -320,7 +321,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
             <div className="flex items-center space-x-2">
               <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-semibold tracking-wide uppercase">
                 <Building2 className="w-3.5 h-3.5" />
-                <span>{selectedMosque.isCustom ? 'Custom Location' : 'Selected Mosque (Awqat.com.au)'}</span>
+                <span>{selectedMosque.isCustom ? 'Custom Location' : prayerData.timesSource === 'awqat' ? 'Selected Mosque (Awqat.com.au)' : 'Selected Mosque'}</span>
               </span>
               <span className="text-xs text-amber-300/80 font-medium">
                 {selectedMosque.state}
@@ -441,7 +442,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
                       </span>
                     </div>
                     <div className="text-xs text-neutral-400 truncate">{m.suburb}, {m.state}</div>
-                    <div className="text-[11px] text-amber-300/80">Jumu&apos;ah: {m.jumuah}</div>
+                    <div className="text-[11px] text-amber-300/80">Jumu&apos;ah: {getMosqueJumuah(m)}</div>
                   </div>
 
                   <div className="shrink-0 flex items-center space-x-2">
@@ -470,7 +471,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
         <div className="relative z-10 space-y-2 text-center md:text-left">
           <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold uppercase tracking-wider">
             <Clock className="w-3.5 h-3.5" />
-            <span>Next Prayer ({selectedMosque.isCustom ? 'Custom Coords' : 'Awqat.com.au'})</span>
+            <span>Next Prayer ({prayerData.timesSource === 'awqat' ? 'Awqat.com.au' : selectedMosque.isCustom ? 'Custom Coords' : 'Calculated'})</span>
           </div>
 
           <h2 className="font-serif text-3xl md:text-5xl font-bold text-white">
@@ -765,7 +766,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
               </div>
 
               <div className="pt-2 border-t border-white/5 text-[10px] text-neutral-400">
-                {p.offset > 0 ? `Iqamah +${p.offset}m` : 'Sun Transit'}
+                {p.iqama ? `Iqamah ${p.iqama}` : p.key === 'Sunrise' ? 'Sunrise' : 'Iqamah —'}
               </div>
             </div>
           );
@@ -781,7 +782,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
           </div>
           <div className="space-y-1">
             <h4 className="font-semibold text-sm text-white">Friday Jumu&apos;ah Prayers</h4>
-            <p className="text-xs text-neutral-300">{selectedMosque.jumuah}</p>
+            <p className="text-xs text-neutral-300">{prayerData.jumuah}</p>
             <p className="text-[11px] text-neutral-500">{selectedMosque.name}</p>
           </div>
         </div>
