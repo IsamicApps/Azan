@@ -45,6 +45,8 @@ export const PrayerPhaseOverlay: React.FC<PrayerPhaseOverlayProps> = ({ phase, i
 
   useEffect(() => {
     const hide = (e: KeyboardEvent) => {
+      // The Azan popup sits on top at the Adhan: its buttons get the remote, not this overlay
+      if (document.querySelector('[role="dialog"]')) return;
       e.preventDefault();
       e.stopImmediatePropagation();
       onDismiss();

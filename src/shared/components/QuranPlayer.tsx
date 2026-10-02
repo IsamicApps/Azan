@@ -94,6 +94,8 @@ export function useQuranPlayer(): QuranPlayer {
       const token = ++tokenRef.current;
       const audio = getAudio();
       audio.pause();
+      // Without the old surah's src, Play pressed while this one loads can't resume the old one
+      audio.removeAttribute('src');
       updateSettings({ surah: n });
       setActive(true);
       setLoading(true);
