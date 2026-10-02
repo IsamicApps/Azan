@@ -6,7 +6,15 @@ import {
   getDuePrayer,
   MOSQUE_CHANGE_EVENT
 } from '../utils/prayerTimes';
-import { playAzan, stopAzan, getAzanSettings, getMuezzinForPrayer, claimAzanTrigger } from '../utils/azanAudio';
+import {
+  MuezzinId,
+  playAzan,
+  stopAzan,
+  getAzanSettings,
+  getMuezzinForPrayer,
+  claimAzanTrigger,
+  unlockAudioOnFirstInteraction
+} from '../utils/azanAudio';
 import { showNotification } from '../utils/notify';
 import { AzanLiveModal } from './AzanLiveModal';
 
@@ -16,7 +24,14 @@ import { AzanLiveModal } from './AzanLiveModal';
  */
 export const AutoAzanHost: React.FC = () => {
   const [selectedMosque, setSelectedMosque] = useState<Mosque>(getSelectedMosque());
-  const [activePrayer, setActivePrayer] = useState<{ name: string; time: string } | null>(null);
+  const [activePrayer, setActivePrayer] = useState<{ name: string; time: string; muezzin: MuezzinId } | null>(null);
+  // The browser refused to start the Azan because the page hasn't been tapped since it loaded
+  const [soundBlocked, setSoundBlocked] = useState(false);
+
+  // Any tap or key press unlocks sound so the automatic Azan is allowed to play later
+  useEffect(() => {
+    unlockAudioOnFirstInteraction();
+  }, []);
 
   // Follow whichever mosque was last selected anywhere in the app
   useEffect(() => {
@@ -32,8 +47,10 @@ export const AutoAzanHost: React.FC = () => {
       const duePrayer = azanSettings.autoAzanEnabled ? getDuePrayer(result) : null;
       if (!duePrayer || !claimAzanTrigger(`${result.localDateKey}_${duePrayer.name}`)) return;
 
-      setActivePrayer(duePrayer);
-      playAzan(undefined, () => {}, getMuezzinForPrayer(azanSettings, duePrayer.name));
+      const muezzin = getMuezzinForPrayer(azanSettings, duePrayer.name);
+      setActivePrayer({ ...duePrayer, muezzin });
+      setSoundBlocked(false);
+      playAzan(undefined, () => {}, muezzin, () => setSoundBlocked(true));
 
       showNotification(`Allahu Akbar • Time for ${duePrayer.name} Prayer`, {
         body: `Prayer time has arrived at ${selectedMosque.name} (${selectedMosque.suburb}).`,
@@ -50,8 +67,16 @@ export const AutoAzanHost: React.FC = () => {
       prayerName={activePrayer?.name ?? ''}
       prayerTime={activePrayer?.time ?? ''}
       mosque={selectedMosque}
+      soundBlocked={soundBlocked}
+      onTapToPlay={() => {
+        // Runs inside the tap, so the browser now allows the chosen voice to play
+        if (!activePrayer) return;
+        setSoundBlocked(false);
+        playAzan(undefined, () => {}, activePrayer.muezzin, () => setSoundBlocked(true));
+      }}
       onClose={() => {
         setActivePrayer(null);
+        setSoundBlocked(false);
         stopAzan();
       }}
     />

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { IslamicPattern, IslamicCornerOrnament } from './IslamicPattern';
 import { Mosque } from '../utils/prayerTimes';
 import { Volume2, VolumeX, X, Sparkles, Building2, Bell, Check, Play, Square } from 'lucide-react';
-import { stopAzan, getAzanSettings, saveAzanSettings, AzanSettings } from '../utils/azanAudio';
+import { stopAzan } from '../utils/azanAudio';
 import { speakDua, stopSpeaking, isSpeaking } from '../utils/speech';
 
 interface AzanLiveModalProps {
@@ -11,6 +11,9 @@ interface AzanLiveModalProps {
   prayerTime: string;
   mosque: Mosque;
   onClose: () => void;
+  /** The browser blocked the Azan sound; show a button that plays it from a tap */
+  soundBlocked?: boolean;
+  onTapToPlay?: () => void;
 }
 
 export const AzanLiveModal: React.FC<AzanLiveModalProps> = ({
@@ -18,9 +21,10 @@ export const AzanLiveModal: React.FC<AzanLiveModalProps> = ({
   prayerName,
   prayerTime,
   mosque,
-  onClose
+  onClose,
+  soundBlocked = false,
+  onTapToPlay
 }) => {
-  const [settings, setSettings] = useState<AzanSettings>(getAzanSettings());
   const [copiedDua, setCopiedDua] = useState(false);
   const [isRecitingDua, setIsRecitingDua] = useState(false);
 
@@ -111,6 +115,17 @@ export const AzanLiveModal: React.FC<AzanLiveModalProps> = ({
             </p>
           </div>
 
+          {soundBlocked && onTapToPlay && (
+            <button
+              autoFocus
+              onClick={onTapToPlay}
+              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold text-sm shadow-lg animate-pulse cursor-pointer"
+            >
+              <Play className="w-4 h-4 fill-current" />
+              <span>Tap to play the Azan</span>
+            </button>
+          )}
+
           {/* Animated Audio Equalizer Bars */}
           <div className="flex items-center justify-center space-x-1.5 py-1">
             {[40, 75, 55, 90, 65, 80, 45, 95, 60, 85, 50].map((h, idx) => (
@@ -169,7 +184,7 @@ export const AzanLiveModal: React.FC<AzanLiveModalProps> = ({
           </div>
 
           <button
-            autoFocus
+            autoFocus={!soundBlocked}
             onClick={handleStop}
             className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold text-xs shadow-lg transition cursor-pointer"
           >

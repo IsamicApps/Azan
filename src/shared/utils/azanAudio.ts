@@ -29,8 +29,10 @@ export const DEFAULT_AZAN_SETTINGS: AzanSettings = {
   notifyBrowser: true
 };
 
-const baseUrl = import.meta.env.BASE_URL || './';
-const cleanBase = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
+// Audio lives at the site root (audio/…). The build uses relative paths, so a plain
+// './audio/' would point at /tv/audio/ on the TV page. Built scripts sit in
+// <site root>/assets/, so the root is one level up from this module.
+const cleanBase = import.meta.env.DEV ? import.meta.env.BASE_URL : new URL('../', import.meta.url).href;
 
 export const MUEZZIN_SOURCES: Record<MuezzinId, { name: string; subtitle: string; location: string; url: string }> = {
   makkah: {
@@ -135,16 +137,34 @@ export function getAzanPlayCount(): number {
   return playCount;
 }
 
+// One reusable player for every Azan. iOS only lets a page start audio on an
+// element that was first played during a tap, so this element is unlocked once
+// (see unlockAudio) and then reused for the automatic Azan.
+let azanElement: HTMLAudioElement | null = null;
+const SILENT_WAV = 'data:audio/wav;base64,UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YSADAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA==';
+
+function getAzanElement(): HTMLAudioElement {
+  if (!azanElement) {
+    azanElement = new Audio();
+    azanElement.preload = 'auto';
+  }
+  return azanElement;
+}
+
 /**
- * Plays the authentic vocal Azan audio with callback handlers
+ * Plays the selected muezzin's Azan.
+ * If the browser blocks sound because nobody has tapped the page yet, onBlocked is
+ * called (so the app can offer a "Tap to play" button) instead of playing a substitute.
  */
 export function playAzan(
   onStart?: () => void,
   onEnd?: () => void,
-  muezzinKey?: MuezzinId
+  muezzinKey?: MuezzinId,
+  onBlocked?: () => void
 ): boolean {
   stopAzan();
   playCount += 1;
+  const thisPlay = playCount;
 
   const settings = getAzanSettings();
   const selectedKey = muezzinKey || getMuezzinForPrayer(settings, '');
@@ -158,23 +178,27 @@ export function playAzan(
   const source = MUEZZIN_SOURCES[selectedKey] || MUEZZIN_SOURCES.makkah;
 
   try {
-    const audio = new Audio(source.url);
+    const audio = getAzanElement();
+    const isCurrent = () => playCount === thisPlay && activeAudio === audio;
+    audio.muted = false;
+    audio.src = source.url;
     audio.volume = Math.max(0.1, Math.min(1.0, settings.volume));
 
     audio.onplay = () => {
-      if (onStart) onStart();
+      if (isCurrent() && onStart) onStart();
     };
 
     audio.onended = () => {
+      if (!isCurrent()) return;
       activeAudio = null;
       if (onEnd) onEnd();
     };
 
-    // Both onerror and the play() rejection can fire for one failure; fall back only once
-    let fellBack = false;
+    // Both onerror and the play() rejection can fire for one failure; handle it once
+    let failed = false;
     const fallBackToChime = (reason: unknown) => {
-      if (fellBack || activeAudio !== audio) return;
-      fellBack = true;
+      if (failed || !isCurrent()) return;
+      failed = true;
       console.warn('Azan audio unavailable, falling back to harmonic chime:', reason);
       activeAudio = null;
       playAcousticAdhanChime(onEnd);
@@ -183,15 +207,23 @@ export function playAzan(
 
     audio.onerror = (e) => fallBackToChime(e);
 
+    activeAudio = audio;
     const playPromise = audio.play();
     if (playPromise !== undefined) {
       playPromise.catch((err) => {
-        // AbortError means stopAzan() paused it on purpose
-        if (err?.name !== 'AbortError') fallBackToChime(err);
+        // AbortError means stopAzan() or a newer Azan interrupted it on purpose
+        if (err?.name === 'AbortError') return;
+        if (err?.name === 'NotAllowedError' && onBlocked) {
+          if (failed || !isCurrent()) return;
+          failed = true;
+          activeAudio = null;
+          onBlocked();
+          return;
+        }
+        fallBackToChime(err);
       });
     }
 
-    activeAudio = audio;
     return true;
   } catch (err) {
     console.warn('Azan audio play exception:', err);
@@ -236,15 +268,39 @@ export function isAzanPlaying(): boolean {
 export function unlockAudio(): void {
   try {
     const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContextClass) return;
-    if (!audioContextInstance) audioContextInstance = new AudioContextClass();
-    if (audioContextInstance.state === 'suspended') audioContextInstance.resume();
-    const silent = audioContextInstance.createBuffer(1, 1, 22050);
-    const source = audioContextInstance.createBufferSource();
-    source.buffer = silent;
-    source.connect(audioContextInstance.destination);
-    source.start(0);
+    if (AudioContextClass) {
+      if (!audioContextInstance) audioContextInstance = new AudioContextClass();
+      if (audioContextInstance.state === 'suspended') audioContextInstance.resume();
+      const silent = audioContextInstance.createBuffer(1, 1, 22050);
+      const source = audioContextInstance.createBufferSource();
+      source.buffer = silent;
+      source.connect(audioContextInstance.destination);
+      source.start(0);
+    }
   } catch {}
+
+  // Prime the shared Azan player with a silent clip (skipped while an Azan is playing)
+  try {
+    const audio = getAzanElement();
+    if (activeAudio === audio) return;
+    audio.muted = true;
+    audio.src = SILENT_WAV;
+    audio.play()?.then(() => audio.pause()).catch(() => {});
+  } catch {}
+}
+
+let unlockListening = false;
+
+/** Unlocks audio on the first tap, click or key press anywhere on the page. */
+export function unlockAudioOnFirstInteraction(): void {
+  if (unlockListening) return;
+  unlockListening = true;
+  const events = ['pointerdown', 'touchend', 'keydown'];
+  const handler = () => {
+    unlockAudio();
+    events.forEach((e) => window.removeEventListener(e, handler, true));
+  };
+  events.forEach((e) => window.addEventListener(e, handler, true));
 }
 
 /**
