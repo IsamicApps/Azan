@@ -6,6 +6,7 @@ import { loadDailyHadithOrBundled, loadRandomHadith, loadRandomTopicHadith, load
 import { GradeBadge } from './GradeBadge';
 import { HijriAdjust } from './HijriAdjust';
 import { PrayerPhaseOverlay, getPrayerPhase } from './PrayerPhaseOverlay';
+import { QuranDialog, QuranNowPlaying, useQuranPlayer } from './QuranPlayer';
 import { useDisplayedHadith, useHadithLanguage, useUiLanguage, setUiLanguage, HadithLanguage } from '../hooks/useHadithLanguage';
 import { useI18n } from '../i18n';
 import {
@@ -28,7 +29,8 @@ import {
   withPrayerMuezzin,
   playAzan,
   stopAzan,
-  getAzanPlayCount
+  getAzanPlayCount,
+  isAzanPlaying
 } from '../utils/azanAudio';
 import { speakHadith, stopSpeaking, isSpeaking } from '../utils/speech';
 import {
@@ -139,7 +141,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
   })();
   const [tvTheme, setTvTheme] = useState<TvTheme>(getTvTheme);
   const [driftOffset, setDriftOffset] = useState({ x: 0, y: 0 });
-  const [openDialog, setOpenDialog] = useState<'mosque' | 'azan' | 'notices' | 'topic' | 'language' | null>(null);
+  const [openDialog, setOpenDialog] = useState<'mosque' | 'azan' | 'notices' | 'topic' | 'language' | 'quran' | null>(null);
   // Screen and Hadith languages, chosen separately on the TV
   const uiLanguage = useUiLanguage();
   const [hadithLanguage, setHadithLanguage] = useHadithLanguage();
@@ -160,6 +162,30 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
   const [newNotice, setNewNotice] = useState('');
   const noticeInputRef = useRef<HTMLInputElement>(null);
   const isMosquePickerOpen = openDialog === 'mosque';
+  // Quran recitation: replaces the Hadith slides while it plays
+  const quran = useQuranPlayer();
+  const quranRef = useRef(quran);
+  quranRef.current = quran;
+  // Iqamah countdown / prayer in progress at this moment (Friday Dhuhr is Jumu'ah)
+  const prayerPhase = (() => {
+    const [h, m] = prayerData.localTime24.split(':').map(Number);
+    const isFriday = new Date(`${prayerData.localDateKey}T12:00:00`).getDay() === 5;
+    return getPrayerPhase(prayerData, h * 60 + m + clockDate.getSeconds() / 60, (p) => isFriday && p === 'Dhuhr');
+  })();
+  // The Quran pauses once for each Adhan and prayer; pressing Play again carries on
+  const quranPausedForRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!quran.playing) return;
+    const reason = prayerPhase
+      ? `${prayerData.localDateKey}-${prayerPhase.prayer}`
+      : isAzanPlaying()
+      ? `azan-${getAzanPlayCount()}`
+      : null;
+    if (reason && reason !== quranPausedForRef.current) {
+      quranPausedForRef.current = reason;
+      quran.pauseForPrayer();
+    }
+  }, [clockDate, quran.playing]);
   const [previewingRow, setPreviewingRow] = useState<string | null>(null);
   // playAzan() count of the running preview; a newer count means the real Azan took over
   const previewPlayRef = useRef(0);
@@ -300,7 +326,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
   // picked with Ch +/− also stays up for the full time
   // With notices, every other slide is the next notice
   useEffect(() => {
-    if (!slideSeconds || !activeHadith) return;
+    if (!slideSeconds || !activeHadith || quran.active) return;
     const hadithTimer = setTimeout(() => {
       if (announcementSlide === null && announcements.length > 0) {
         setAnnouncementSlide(announcementTurnRef.current++ % announcements.length);
@@ -309,7 +335,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
       }
     }, slideSeconds * 1000);
     return () => clearTimeout(hadithTimer);
-  }, [slideSeconds, activeHadith, announcementSlide, announcements.length]);
+  }, [slideSeconds, activeHadith, announcementSlide, announcements.length, quran.active]);
 
   const updateAnnouncements = (list: string[]) => {
     setAnnouncements(list);
@@ -323,8 +349,17 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
       // Typing in a text box (notices): letters are text, not shortcuts
       const target = e.target as HTMLElement | null;
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') && e.key !== 'Escape') return;
+      const player = quranRef.current;
       if (e.key === 'f' || e.key === 'F') {
         toggleFullscreen();
+      } else if (e.key === 'q' || e.key === 'Q') {
+        openDialogOf('quran');
+      } else if (e.key === 'MediaPlayPause' || e.key === 'MediaPlay' || e.key === 'MediaPause') {
+        if (player.active) player.toggle();
+      } else if (player.active && !openDialog && (e.key === 'MediaTrackNext' || e.key === 'ChannelUp' || e.key === 'MediaFastForward')) {
+        player.next();
+      } else if (player.active && !openDialog && (e.key === 'MediaTrackPrevious' || e.key === 'ChannelDown' || e.key === 'MediaRewind')) {
+        player.previous();
       } else if (e.key === 'MediaTrackNext' || e.key === 'ChannelUp' || e.key === 'MediaFastForward') {
         showNextHadith();
       } else if (e.key === 'MediaTrackPrevious' || e.key === 'ChannelDown' || e.key === 'MediaRewind') {
@@ -346,6 +381,9 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
         if (openDialog) {
           e.preventDefault();
           closeDialog();
+        } else if (player.active) {
+          e.preventDefault();
+          player.stop();
         } else if (onClose) {
           onClose();
         }
@@ -402,7 +440,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
     setPreviewingRow(null);
   };
 
-  const openDialogOf = (kind: 'mosque' | 'azan' | 'notices' | 'topic' | 'language') => {
+  const openDialogOf = (kind: 'mosque' | 'azan' | 'notices' | 'topic' | 'language' | 'quran') => {
     window.history.pushState({ tvDialog: true }, '');
     setOpenDialog(kind);
   };
@@ -627,7 +665,11 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
             </div>
           )}
 
-          <div className="relative z-10 shrink-0 flex items-center justify-between gap-6">
+          {quran.active && (
+            <QuranNowPlaying player={quran} i18n={i18n} showTranslation={hadithLanguage === 'en'} onChoose={() => openDialogOf('quran')} />
+          )}
+
+          <div className={`relative z-10 shrink-0 flex items-center justify-between gap-6 ${quran.active ? 'invisible' : ''}`}>
             <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[20px] font-bold uppercase tracking-wider whitespace-nowrap">
               <BookOpenText className="w-6 h-6" />
               <span>{activeHadith ? i18n.collection(activeHadith.collection) : 'sunnah.com'}</span>
@@ -662,7 +704,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
             </div>
           </div>
 
-          <div ref={hadithBoxRef} className="relative z-10 flex-1 min-h-0 flex flex-col justify-center overflow-hidden my-6">
+          <div ref={hadithBoxRef} className={`relative z-10 flex-1 min-h-0 flex flex-col justify-center overflow-hidden my-6 ${quran.active ? 'invisible' : ''}`}>
             <div ref={hadithContentRef}>
               {shownHadith?.narrator && (
                 <div className="font-serif text-[34px] font-bold text-amber-300 mb-5">
@@ -684,7 +726,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
             </div>
           </div>
 
-          <div className="relative z-10 shrink-0 pt-6 border-t border-white/10 flex items-center justify-between gap-6">
+          <div className={`relative z-10 shrink-0 pt-6 border-t border-white/10 flex items-center justify-between gap-6 ${quran.active ? 'invisible' : ''}`}>
             <div className="text-[22px] text-neutral-300 font-mono flex flex-wrap items-center gap-x-4 gap-y-1 min-w-0">
               {activeHadith && (
                 <>
@@ -864,6 +906,19 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
               >
                 {effectiveBrightness === 100 ? <Sun className="w-6 h-6" /> : <SunDim className="w-6 h-6" />}
                 <span>{brightness === 'auto' ? `${t('Auto')} ${effectiveBrightness}%` : `${brightness}%`}</span>
+              </button>
+
+              <button
+                onClick={() => openDialogOf('quran')}
+                className={`flex items-center gap-2 px-4 py-3 rounded-2xl transition cursor-pointer text-[20px] font-semibold whitespace-nowrap ${
+                  quran.active
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                    : 'bg-white/10 hover:bg-white/20 text-neutral-200 hover:text-white'
+                }`}
+                title={t('Quran Recitation [Q]')}
+              >
+                <BookOpen className="w-6 h-6" />
+                <span>{quran.active ? <span className="font-arabic">{quran.surah.ar}</span> : t('Quran')}</span>
               </button>
 
               <button
@@ -1186,11 +1241,11 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
         </div>
       )}
 
+      {openDialog === 'quran' && <QuranDialog player={quran} i18n={i18n} onClose={closeDialog} />}
+
       {/* Iqamah countdown after the Adhan, then "prayer in progress" (Friday Dhuhr is Jumu'ah) */}
       {(() => {
-        const [h, m] = prayerData.localTime24.split(':').map(Number);
-        const isFriday = new Date(`${prayerData.localDateKey}T12:00:00`).getDay() === 5;
-        const phase = getPrayerPhase(prayerData, h * 60 + m + clockDate.getSeconds() / 60, (p) => isFriday && p === 'Dhuhr');
+        const phase = prayerPhase;
         return phase && phase.key !== dismissedPhase && !openDialog ? (
           <PrayerPhaseOverlay phase={phase} i18n={i18n} onDismiss={() => setDismissedPhase(phase.key)} />
         ) : null;

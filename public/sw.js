@@ -1,5 +1,5 @@
-// Service Worker for Daily Hadith & Azan (v11 Network-First) — serves both the mobile and TV apps
-const CACHE_NAME = 'daily-hadith-azan-v11';
+// Service Worker for Daily Hadith & Azan (v12 Network-First) — serves both the mobile and TV apps
+const CACHE_NAME = 'daily-hadith-azan-v12';
 
 const ESSENTIAL_ASSETS = [
   './',
@@ -43,6 +43,9 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
+
+  // The Quran API and its audio streams go straight to the network (recitations are large, streamed in parts)
+  if (url.hostname.endsWith('quran.com') || url.hostname.endsWith('quranicaudio.com')) return;
 
   // Network-First for HTML navigation and JS/CSS assets so updates reflect immediately
   if (event.request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname.endsWith('.js') || url.pathname.endsWith('.css')) {
