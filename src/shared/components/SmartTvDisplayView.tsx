@@ -66,7 +66,6 @@ import {
   ChevronLeft,
   ChevronRight,
   BookOpenText,
-  Shield,
   Utensils,
   Tv,
   Sun,
@@ -532,7 +531,6 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
     previewPlayRef.current = getAzanPlayCount();
   };
 
-  const hasCustomPrayerVoices = AZAN_PRAYERS.some((p) => azanSettings.prayerMuezzins?.[p]);
 
   const mosquesByState = getAllMosques()
     .slice()
@@ -909,14 +907,8 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
       {/* 3. FOOTER: status | controls */}
       <footer className="relative z-20 shrink-0 pt-3 border-t border-white/10 flex items-center justify-between gap-6 text-[18px] text-neutral-400">
         <div className="flex items-center gap-4 whitespace-nowrap">
-          <span className="flex items-center gap-2">
-            <Shield className="w-5 h-5 text-emerald-400" />
-            <span>{t('Screen kept awake')}</span>
-          </span>
-          <span>•</span>
           <span>
             {t('Azan')}: <strong className="text-amber-300">{t(MUEZZIN_SOURCES[azanSettings.selectedMuezzin]?.name)}</strong>
-            {hasCustomPrayerVoices && <span className="text-neutral-500"> ({t('custom per prayer')})</span>}
           </span>
         </div>
 
