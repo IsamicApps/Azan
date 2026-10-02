@@ -487,3 +487,36 @@ export function citeHadith(h: Hadith, language: UiLanguage = 'en'): string {
   }
   return `Sahih al-Bukhari, Vol. ${h.volume}, Book ${h.bookNumber} (${h.bookName}), Hadith #${h.hadithNumber}, PDF p. ${h.pdfPage}`;
 }
+
+export interface HadithTopic {
+  id: string;
+  name: string;
+  nameAr: string;
+  positions: number[];
+}
+
+let topicsPromise: Promise<HadithTopic[]> | null = null;
+
+/** Topics found by keyword when the library was built (shown Hadiths only). */
+export function loadTopics(): Promise<HadithTopic[]> {
+  if (!topicsPromise) {
+    topicsPromise = fetchJson<HadithTopic[]>(`${LIBRARY_URL}topics.json`);
+    topicsPromise.catch(() => (topicsPromise = null));
+  }
+  return topicsPromise;
+}
+
+/** One page of a topic's Hadiths. */
+export async function loadTopicPage(topicId: string, page: number, perPage: number): Promise<{ hadiths: Hadith[]; total: number }> {
+  const topic = (await loadTopics()).find((t) => t.id === topicId);
+  if (!topic) return { hadiths: [], total: 0 };
+  const positions = topic.positions.slice((page - 1) * perPage, page * perPage);
+  return { hadiths: await Promise.all(positions.map((p) => loadHadithAt(p))), total: topic.positions.length };
+}
+
+/** A random Hadith from a topic. */
+export async function loadRandomTopicHadith(topicId: string): Promise<Hadith> {
+  const topic = (await loadTopics()).find((t) => t.id === topicId);
+  if (!topic || topic.positions.length === 0) return loadRandomHadith();
+  return loadHadithAt(topic.positions[Math.floor(Math.random() * topic.positions.length)]);
+}

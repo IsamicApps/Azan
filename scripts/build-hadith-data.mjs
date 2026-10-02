@@ -150,6 +150,26 @@ const SHOWN_GRADES = new Set(['sahih', 'hasan']);
 // "The rest of the hadith is the same") — not complete on their own
 const INCOMPLETE =
   /(rest of the (tradition|hadith|narration)|to the same effect|(a |the )?similar (tradition|hadith|narration|version)|(a )?hadith like (it|this|that)|(this|a) tradition has (also )?been (narrated|transmitted|reported)|has been (narrated|reported|transmitted) (on the authority|through|by)|with (this|the same) (chain|isnad)|same as (the )?(above|previous)|as above|like the (previous|preceding)|mentioned above|this hadith has been (narrated|transmitted|reported))/i;
+// Topics for browsing and for the TV slides, found by keyword in the English text
+// (Arabic for Hadiths that have no English translation). Shown Hadiths only.
+const TOPICS = [
+  ['prayer', 'Prayer', 'الصلاة', /\b(prayers?|salat|pray(ed|ing|s)?|rak'?ahs?|prostrat\w*|bow(ed|ing)? down)\b/i, /الصلاة|صلاة|ركعة|سجد/],
+  ['fasting', 'Fasting', 'الصيام', /\b(fast(ing|ed|s)?|ramadan|suhur|sahur|iftar)\b/i, /الصيام|الصوم|صام|رمضان|السحور/],
+  ['charity', 'Charity', 'الصدقة', /\b(charity|charitable|sadaqa\w*|zakat|alms)\b/i, /الصدقة|صدقة|الزكاة/],
+  ['parents', 'Parents', 'بر الوالدين', /\b(parents|dutiful|to (his|your|their|one's) (mother|father))\b/i, /الوالدين|والديه|بر أمك|بر/],
+  ['patience', 'Patience', 'الصبر', /\b(patience|patiently|(be|is|was|were|remains?|remained|being) patient|persever\w*)\b/i, /الصبر|صبر/],
+  ['knowledge', 'Knowledge', 'العلم', /\b(knowledge|scholars?|learn(s|ed|ing)?|teach(es|ing)?)\b/i, /العلم|علم/],
+  ['manners', 'Good Character', 'حسن الخلق', /\b(good (manners|character|conduct)|kindness|gentle(ness)?|modesty|bashful\w*|truthful\w*)\b/i, /الخلق|خلق|الحياء|الرفق/],
+  ['hajj', 'Hajj & Umrah', 'الحج والعمرة', /\b(hajj|umra[h]?|'umra[h]?|pilgrim\w*|ihram|`?arafat|tawaf|ka'?ba)\b/i, /الحج|العمرة|عرفة|الطواف|الكعبة/],
+  ['quran', "The Qur'an", 'القرآن', /\b(qur'?an|recit(e|ed|es|ing|ation)|surat?|verses?)\b/i, /القرآن|سورة|آية/],
+  ['dua', "Du'a", 'الدعاء', /\b(supplicat\w*|invok(e|ed|ing)|invocations?|du'?a)\b/i, /الدعاء|دعا|اللهم/],
+  ['repentance', 'Repentance & Forgiveness', 'التوبة والاستغفار', /\b(repent\w*|forgiv\w*|pardon\w*)\b/i, /التوبة|تاب|الاستغفار|مغفرة|غفر/],
+  ['paradise', 'Paradise', 'الجنة', /\b(paradise|jannah)\b/i, /الجنة/],
+  ['family', 'Family & Neighbours', 'الأهل والجيران', /\b(neighbou?rs?|kinship|ties of (the )?womb|relatives|wives|husbands?|children)\b/i, /الجار|الرحم|أهله|أولاده/],
+  ['dhikr', 'Remembrance of Allah', 'ذكر الله', /\b(remembrance|glorif\w*|subhan\w*|tasbih|takbir|praise be)\b/i, /ذكر الله|سبحان|الحمد لله|لا إله إلا الله/]
+];
+const topicPositions = new Map(TOPICS.map(([id]) => [id, []]));
+
 let excludedGrades = 0;
 let excludedIncomplete = 0;
 const gradeIds = new Map();
@@ -216,6 +236,11 @@ for (const c of COLLECTIONS) {
       excludedIncomplete++;
       index.excluded.push(index.total + i);
     }
+    const isExcluded = index.excluded[index.excluded.length - 1] === index.total + i;
+    if (!isExcluded) {
+      const text = english ? `${narrator} ${english}` : clean(h.arabic);
+      for (const [id, , , en, ar] of TOPICS) if ((english ? en : ar).test(text)) topicPositions.get(id).push(index.total + i);
+    }
     // [book index, number within book, narrator, English text, Arabic (only when there is no English), grade id]
     const record = [b, pos, narrator, english];
     if (!english || grade !== undefined) record.push(english ? '' : clean(h.arabic));
@@ -248,5 +273,10 @@ for (const c of COLLECTIONS) {
 }
 
 fs.writeFileSync(path.join(OUT_DIR, 'index.json'), JSON.stringify(index));
+fs.writeFileSync(
+  path.join(OUT_DIR, 'topics.json'),
+  JSON.stringify(TOPICS.map(([id, name, nameAr]) => ({ id, name, nameAr, positions: topicPositions.get(id) })))
+);
+console.log(`Topics: ${TOPICS.map(([id]) => `${id} ${topicPositions.get(id).length}`).join(', ')}`);
 console.log(`Not shown: ${excludedGrades} graded Daʻif, Mawduʻ or other; ${excludedIncomplete} incomplete (refer to another Hadith)`);
 console.log(`Total: ${index.total} Hadiths → ${path.relative(process.cwd(), OUT_DIR)}`);

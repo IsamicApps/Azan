@@ -163,3 +163,21 @@ export function saveAnnouncements(list: string[]): void {
     localStorage.setItem(ANNOUNCEMENTS_KEY, JSON.stringify(list.slice(0, 10)));
   } catch {}
 }
+
+const TOPIC_KEY = 'daily_hadith_tv_topic';
+
+/** Topic the TV's Hadith slides come from; null = the whole library. */
+export function getTvTopic(): string | null {
+  try {
+    return localStorage.getItem(TOPIC_KEY) || null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveTvTopic(topic: string | null): void {
+  try {
+    if (topic) localStorage.setItem(TOPIC_KEY, topic);
+    else localStorage.removeItem(TOPIC_KEY);
+  } catch {}
+}

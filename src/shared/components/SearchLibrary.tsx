@@ -6,6 +6,9 @@ import {
   loadCollectionRange,
   loadArabicText,
   describeHadith,
+  loadTopics,
+  loadTopicPage,
+  HadithTopic,
   LibraryCollectionInfo
 } from '../utils/hadithLibrary';
 import { useDisplayedHadith } from '../hooks/useHadithLanguage';
@@ -43,6 +46,26 @@ export const SearchLibrary: React.FC<SearchLibraryProps> = ({ onSelectHadith, on
   const [page, setPage] = useState(1);
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Topic view: a page of a topic's Hadiths instead of a collection
+  const [topics, setTopics] = useState<HadithTopic[]>([]);
+  const [topicId, setTopicId] = useState<string | null>(null);
+  const [topicPage, setTopicPage] = useState<{ hadiths: Hadith[]; total: number } | null>(null);
+
+  useEffect(() => {
+    loadTopics().then(setTopics).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!topicId) return;
+    let cancelled = false;
+    setTopicPage(null);
+    loadTopicPage(topicId, page, PER_PAGE)
+      .then((result) => !cancelled && setTopicPage(result))
+      .catch(() => !cancelled && setError(t('Could not load this part of the library. Check the internet connection.')));
+    return () => {
+      cancelled = true;
+    };
+  }, [topicId, page]);
 
   useEffect(() => {
     loadLibraryCollections()
@@ -157,10 +180,67 @@ export const SearchLibrary: React.FC<SearchLibraryProps> = ({ onSelectHadith, on
         )}
       </div>
 
+      {/* Topics (found by keyword) */}
+      {topics.length > 0 && (
+        <div className="space-y-2">
+          <div className="text-xs text-neutral-400">{t('Topics (found by keyword)')}</div>
+          <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+            {topics.map((topic) => (
+              <button
+                key={topic.id}
+                onClick={() => {
+                  setTopicId(topicId === topic.id ? null : topic.id);
+                  setPage(1);
+                }}
+                className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border cursor-pointer ${
+                  topicId === topic.id ? 'bg-amber-500 text-neutral-950 border-amber-400' : 'bg-white/5 text-neutral-300 border-white/10'
+                }`}
+              >
+                {isArabic ? topic.nameAr : topic.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* A topic's Hadiths */}
+      {topicId && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between text-xs text-neutral-400">
+            <span>{(() => { const topic = topics.find((x) => x.id === topicId); return topic ? (isArabic ? topic.nameAr : topic.name) : ''; })()}</span>
+            {topicPage && <span>{t('{n} Hadiths', { n: topicPage.total })}</span>}
+          </div>
+          {!topicPage && (
+            <div className="p-8 text-center text-sm text-neutral-400 flex items-center justify-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>{t('Loading…')}</span>
+            </div>
+          )}
+          {topicPage?.hadiths.map((h) => (
+            <LibraryHadithCard key={h.id} hadith={h} fav={isFavorited(h.id)} onView={() => onSelectHadith(h)} onFavorite={() => onToggleFavorite(h)} showCollection />
+          ))}
+          {topicPage && topicPage.total > PER_PAGE && (
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="p-2.5 rounded-xl bg-neutral-900 border border-white/10 text-neutral-300 disabled:opacity-30 cursor-pointer">
+                <ChevronLeft className="w-4 h-4 rtl:rotate-180" />
+              </button>
+              <span className="text-xs text-neutral-300">{t('Page {page} of {total}', { page, total: Math.ceil(topicPage.total / PER_PAGE) })}</span>
+              <button
+                onClick={() => setPage((p) => Math.min(Math.ceil(topicPage.total / PER_PAGE), p + 1))}
+                disabled={page >= Math.ceil(topicPage.total / PER_PAGE)}
+                className="p-2.5 rounded-xl bg-neutral-900 border border-white/10 text-neutral-300 disabled:opacity-30 cursor-pointer"
+              >
+                <ChevronRight className="w-4 h-4 rtl:rotate-180" />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {error && <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-300">{error}</div>}
 
       {/* Book list */}
-      {collection && !book && !searchingCollection && (
+      {!topicId && collection && !book && !searchingCollection && (
         <div className="space-y-2">
           {collection.books.map((b, i) => (
             <button
@@ -181,7 +261,7 @@ export const SearchLibrary: React.FC<SearchLibraryProps> = ({ onSelectHadith, on
       )}
 
       {/* Hadiths of the book / search results */}
-      {(book || searchingCollection) && (
+      {!topicId && (book || searchingCollection) && (
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-2 text-xs text-neutral-400">
             <span dir="auto" className="truncate">
@@ -236,11 +316,12 @@ export const SearchLibrary: React.FC<SearchLibraryProps> = ({ onSelectHadith, on
 };
 
 /** One Hadith in the Library, in the chosen language. */
-const LibraryHadithCard: React.FC<{ hadith: Hadith; fav: boolean; onView: () => void; onFavorite: () => void }> = ({
+const LibraryHadithCard: React.FC<{ hadith: Hadith; fav: boolean; onView: () => void; onFavorite: () => void; showCollection?: boolean }> = ({
   hadith: source,
   fav,
   onView,
-  onFavorite
+  onFavorite,
+  showCollection
 }) => {
   const { t, language } = useI18n();
   const { hadith } = useDisplayedHadith(source);
@@ -250,7 +331,7 @@ const LibraryHadithCard: React.FC<{ hadith: Hadith; fav: boolean; onView: () => 
     <div className="p-4 rounded-2xl bg-[#11131b]/80 border border-white/5 hover:border-amber-500/30 space-y-2.5">
       <div className="flex items-start justify-between gap-2">
         <div className="space-y-1 min-w-0">
-          <div className="text-xs font-semibold text-amber-400">{info.detail}</div>
+          <div className="text-xs font-semibold text-amber-400">{showCollection ? `${info.collection} • ${info.detail}` : info.detail}</div>
           <GradeBadge hadith={hadith} />
         </div>
         <div className="flex items-center gap-1 shrink-0">

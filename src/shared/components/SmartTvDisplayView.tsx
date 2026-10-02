@@ -2,7 +2,7 @@ import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { Hadith } from '../types/hadith';
 import dailyPoolData from '../data/daily_pool.json';
 import { getHijriDate } from '../utils/hijri';
-import { loadDailyHadithOrBundled, loadRandomHadith, describeHadith } from '../utils/hadithLibrary';
+import { loadDailyHadithOrBundled, loadRandomHadith, loadRandomTopicHadith, loadTopics, HadithTopic, describeHadith } from '../utils/hadithLibrary';
 import { GradeBadge } from './GradeBadge';
 import { LanguageToggle } from './LanguageToggle';
 import { HijriAdjust } from './HijriAdjust';
@@ -47,7 +47,9 @@ import {
   nextTvTheme,
   tvThemeVariables,
   getAnnouncements,
-  saveAnnouncements
+  saveAnnouncements,
+  getTvTopic,
+  saveTvTopic
 } from '../utils/tvSettings';
 import { IslamicPattern, IslamicCornerOrnament } from './IslamicPattern';
 import { AppLogo } from './AppLogo';
@@ -95,10 +97,10 @@ const pool = dailyPoolData as Hadith[];
 const CROSS_REFERENCE = /^[\s(\["]*(as above|see (the )?(previous|above|next) hadith|see hadith)/i;
 
 /** A random Hadith from the whole sunnah.com library (skipping "As above" stubs). */
-async function pickRandomHadith(): Promise<Hadith> {
+async function pickRandomHadith(topic: string | null): Promise<Hadith> {
   try {
     for (let i = 0; i < 5; i++) {
-      const h = await loadRandomHadith();
+      const h = topic ? await loadRandomTopicHadith(topic) : await loadRandomHadith();
       if (!(h.text.length < 80 && CROSS_REFERENCE.test(h.text))) return h;
     }
   } catch {}
@@ -137,7 +139,16 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
   })();
   const [tvTheme, setTvTheme] = useState<TvTheme>(getTvTheme);
   const [driftOffset, setDriftOffset] = useState({ x: 0, y: 0 });
-  const [openDialog, setOpenDialog] = useState<'mosque' | 'azan' | 'notices' | null>(null);
+  const [openDialog, setOpenDialog] = useState<'mosque' | 'azan' | 'notices' | 'topic' | null>(null);
+  // Slides from one topic (or the whole library)
+  const [topic, setTopic] = useState<string | null>(getTvTopic);
+  const topicRef = useRef(topic);
+  topicRef.current = topic;
+  const [topics, setTopics] = useState<HadithTopic[]>([]);
+  useEffect(() => {
+    loadTopics().then(setTopics).catch(() => {});
+  }, []);
+  const topicButtonRef = useRef<HTMLButtonElement>(null);
   // Mosque notices shown as their own slides between Hadiths
   const [announcements, setAnnouncements] = useState<string[]>(getAnnouncements);
   const [announcementSlide, setAnnouncementSlide] = useState<number | null>(null);
@@ -240,7 +251,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
   activeHadithRef.current = { hadith: activeHadith, isDaily: isDailyHadith };
 
   const showNextHadith = async () => {
-    const next = await pickRandomHadith();
+    const next = await pickRandomHadith(topicRef.current);
     const { hadith, isDaily } = activeHadithRef.current;
     if (hadith) shownHadithsRef.current = [...shownHadithsRef.current.slice(-49), { hadith, isDaily }];
     showHadith(next, false);
@@ -362,6 +373,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
     if (openDialog === 'mosque') selectedMosqueButtonRef.current?.focus();
     if (openDialog === 'azan') azanDialogFirstButtonRef.current?.focus();
     if (openDialog === 'notices') noticeInputRef.current?.focus();
+    if (openDialog === 'topic') topicButtonRef.current?.focus();
   }, [openDialog]);
 
   // The remote's Back button (and Esc in fullscreen) never reaches the page as a key;
@@ -385,7 +397,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
     setPreviewingRow(null);
   };
 
-  const openDialogOf = (kind: 'mosque' | 'azan' | 'notices') => {
+  const openDialogOf = (kind: 'mosque' | 'azan' | 'notices' | 'topic') => {
     window.history.pushState({ tvDialog: true }, '');
     setOpenDialog(kind);
   };
@@ -618,6 +630,16 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
 
             <div className="flex items-center gap-3 text-[20px] text-neutral-400">
               {isDailyHadith && <span className="whitespace-nowrap">{t('Hadith of the Day')}</span>}
+              <button
+                onClick={() => openDialogOf('topic')}
+                className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-[20px] whitespace-nowrap cursor-pointer"
+                title={t('Hadith topic for the slides')}
+              >
+                {(() => {
+                  const current = topics.find((x) => x.id === topic);
+                  return current ? (i18n.isArabic ? current.nameAr : current.name) : t('All topics');
+                })()}
+              </button>
               <button
                 onClick={showPreviousHadith}
                 title={t('Previous Hadith')}
@@ -1016,6 +1038,49 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
                   </button>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hadith topic for the slides */}
+      {openDialog === 'topic' && (
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center px-[96px] py-[54px] bg-black/85 backdrop-blur-md">
+          <div className="w-full max-w-[1300px] max-h-full flex flex-col rounded-[36px] bg-[var(--tv-dialog)] border border-amber-500/30 p-10 shadow-2xl">
+            <div className="flex items-center justify-between pb-6 mb-6 border-b border-white/10">
+              <div>
+                <h3 className="font-serif text-[48px] leading-tight font-bold text-white">{t('Hadith topic for the slides')}</h3>
+                <p className="text-[22px] text-neutral-400">{t('Topics are found by keyword, so a few Hadiths may only mention the topic.')}</p>
+              </div>
+              <button onClick={closeDialog} className="p-4 rounded-2xl bg-white/10 hover:bg-white/20 text-neutral-200 cursor-pointer" title={t('Close')}>
+                <X className="w-8 h-8" />
+              </button>
+            </div>
+            <div className="grid grid-cols-3 gap-4 overflow-y-auto p-2">
+              {[null, ...topics.map((x) => x.id)].map((id) => {
+                const item = topics.find((x) => x.id === id);
+                const selected = id === topic;
+                return (
+                  <button
+                    key={id ?? 'all'}
+                    ref={selected ? topicButtonRef : undefined}
+                    onClick={() => {
+                      setTopic(id);
+                      saveTvTopic(id);
+                      closeDialog();
+                      if (id) {
+                        loadRandomTopicHadith(id).then((h) => showHadith(h, false)).catch(() => {});
+                      }
+                    }}
+                    className={`px-6 py-5 rounded-3xl border text-[26px] font-semibold text-start cursor-pointer ${
+                      selected ? 'bg-amber-500/20 border-amber-400 text-white' : 'bg-white/5 border-white/10 text-neutral-200 hover:bg-white/10'
+                    }`}
+                  >
+                    {item ? (i18n.isArabic ? item.nameAr : item.name) : t('All topics')}
+                    {item && <div className="text-[18px] text-neutral-400 mt-1">{t('{n} Hadiths', { n: item.positions.length })}</div>}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>

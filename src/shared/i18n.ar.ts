@@ -429,6 +429,10 @@ export const AR: Record<string, string> = {
   '{n} Hadiths': '{n} حديث',
   'Search results in {name}': 'نتائج البحث في {name}',
   'Loading…': 'جارٍ التحميل…',
+  'Topics (found by keyword)': 'المواضيع (حسب الكلمات)',
+  'Hadith topic for the slides': 'موضوع الأحاديث المعروضة',
+  'All topics': 'كل المواضيع',
+  'Topics are found by keyword, so a few Hadiths may only mention the topic.': 'المواضيع مستخرجة بالكلمات، فقد يذكر بعض الأحاديث الموضوع عرضًا.',
   // TV start screen
   'Prayer times, live Azan and Hadith from sunnah.com for your TV': 'مواقيت الصلاة والأذان المباشر وأحاديث من sunnah.com لشاشتك',
   'Press OK to Start': 'اضغط OK للبدء',
