@@ -37,7 +37,8 @@ import {
   Sliders,
   Play,
   Square,
-  Radio
+  RotateCcw,
+  Volume1
 } from 'lucide-react';
 
 interface PrayerTimesViewProps {
@@ -60,6 +61,10 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
   const [showAzanLiveModal, setShowAzanLiveModal] = useState(false);
   const [activeAzanPrayer, setActiveAzanPrayer] = useState({ name: 'Asr', time: '03:43 PM' });
 
+  // Digital Tasbih Counter State
+  const [dhikrCount, setDhikrCount] = useState(0);
+  const [selectedDhikr, setSelectedDhikr] = useState<'SubhanAllah' | 'Alhamdulillah' | 'AllahuAkbar' | 'Astaghfirullah'>('SubhanAllah');
+
   // Update countdown every second and monitor automatic prayer time Azan trigger
   useEffect(() => {
     const timer = setInterval(() => {
@@ -70,8 +75,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
       setIsPlayingAzan(isPlaying);
       if (!isPlaying) setCurrentlyPlayingMuezzin(null);
 
-      // AUTO-AZAN TRIGGER ENGINE:
-      // Check if current minute matches any prayer time
+      // AUTO-AZAN TRIGGER ENGINE
       if (azanSettings.autoAzanEnabled) {
         const schedule = [
           { name: 'Fajr', time: currentResult.fajr },
@@ -223,6 +227,10 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
     { key: 'Maghrib', name: 'Maghrib', time: prayerData.maghrib, icon: '🌇', offset: selectedMosque.iqamaOffsets?.Maghrib || 5 },
     { key: 'Isha', name: 'Isha', time: prayerData.isha, icon: '🌙', offset: selectedMosque.iqamaOffsets?.Isha || 10 }
   ];
+
+  const handleDhikrTap = () => {
+    setDhikrCount((prev) => prev + 1);
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -437,16 +445,32 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
             </div>
           </div>
 
-          {/* Auto Azan Toggle */}
-          <label className="flex items-center space-x-2 bg-black/40 px-3.5 py-2 rounded-xl border border-white/10 cursor-pointer self-start">
-            <span className="text-xs font-semibold text-neutral-200">Auto-Play on Prayer Time</span>
-            <input
-              type="checkbox"
-              checked={azanSettings.autoAzanEnabled}
-              onChange={(e) => updateAzanSetting({ autoAzanEnabled: e.target.checked })}
-              className="w-4 h-4 accent-amber-400 rounded cursor-pointer"
-            />
-          </label>
+          {/* Auto Azan Toggle & Volume Slider */}
+          <div className="flex items-center space-x-3">
+            <div className="hidden sm:flex items-center space-x-2 bg-black/40 px-3 py-1.5 rounded-xl border border-white/10 text-xs">
+              <Volume1 className="w-3.5 h-3.5 text-neutral-400" />
+              <input
+                type="range"
+                min="0.2"
+                max="1.0"
+                step="0.05"
+                value={azanSettings.volume}
+                onChange={(e) => updateAzanSetting({ volume: parseFloat(e.target.value) })}
+                className="w-20 accent-amber-400 cursor-pointer"
+                title="Azan Volume"
+              />
+            </div>
+
+            <label className="flex items-center space-x-2 bg-black/40 px-3.5 py-2 rounded-xl border border-white/10 cursor-pointer self-start">
+              <span className="text-xs font-semibold text-neutral-200">Auto-Play on Prayer Time</span>
+              <input
+                type="checkbox"
+                checked={azanSettings.autoAzanEnabled}
+                onChange={(e) => updateAzanSetting({ autoAzanEnabled: e.target.checked })}
+                className="w-4 h-4 accent-amber-400 rounded cursor-pointer"
+              />
+            </label>
+          </div>
         </div>
 
         {/* Muezzin Reciters Grid */}
@@ -549,8 +573,8 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
         })}
       </div>
 
-      {/* 6. JUMU'AH & QIBLA EXTRA INFO CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* 6. INTERACTIVE QIBLA COMPASS & DIGITAL TASBIH DHIKR COUNTER */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Friday Jumu'ah Card */}
         <div className="p-5 rounded-3xl bg-[#11131c] border border-white/10 flex items-center space-x-4">
           <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
@@ -563,17 +587,53 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
           </div>
         </div>
 
-        {/* Qibla Direction Compass Card */}
+        {/* Rotating Qibla Compass Dial */}
         <div className="p-5 rounded-3xl bg-[#11131c] border border-white/10 flex items-center space-x-4">
-          <div className="w-12 h-12 rounded-2xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center shrink-0">
+          <div className="relative w-14 h-14 rounded-full bg-sky-950/40 border border-sky-500/40 flex items-center justify-center shrink-0">
+            <div
+              className="absolute inset-0 flex items-center justify-center transition-transform duration-700"
+              style={{ transform: `rotate(${prayerData.qiblaBearing}deg)` }}
+            >
+              <div className="w-1.5 h-6 bg-gradient-to-t from-amber-400 to-red-500 rounded-full mb-6" />
+            </div>
             <Compass className="w-6 h-6 text-sky-400" />
           </div>
           <div className="space-y-1">
-            <h4 className="font-semibold text-sm text-white">Qibla Direction (Makkah)</h4>
+            <h4 className="font-semibold text-sm text-white">Qibla Direction</h4>
             <p className="text-xs text-sky-300 font-mono font-bold">
               {prayerData.qiblaBearing}° from North (North-West)
             </p>
-            <p className="text-[11px] text-neutral-500">Calculated from {selectedMosque.loc}</p>
+            <p className="text-[11px] text-neutral-500">Toward Kaaba from {selectedMosque.loc}</p>
+          </div>
+        </div>
+
+        {/* Digital Tasbih Dhikr Counter */}
+        <div
+          onClick={handleDhikrTap}
+          className="p-5 rounded-3xl bg-gradient-to-br from-neutral-900 to-[#121622] border border-amber-500/25 hover:border-amber-400/50 transition cursor-pointer flex items-center justify-between shadow-lg group select-none"
+        >
+          <div className="space-y-1">
+            <div className="flex items-center space-x-2">
+              <span className="text-xs font-semibold text-neutral-300">Digital Tasbih</span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDhikrCount(0);
+                }}
+                className="p-1 rounded text-neutral-500 hover:text-white"
+                title="Reset counter"
+              >
+                <RotateCcw className="w-3 h-3" />
+              </button>
+            </div>
+            <div className="font-arabic text-sm text-amber-300">
+              {selectedDhikr === 'SubhanAllah' ? 'سُبْحَانَ اللَّهِ' : selectedDhikr === 'Alhamdulillah' ? 'الْحَمْدُ لِلَّهِ' : 'اللَّهُ أَكْبَرُ'}
+            </div>
+            <p className="text-[10px] text-neutral-400">Tap to count • 33x cycle</p>
+          </div>
+
+          <div className="w-14 h-14 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 font-mono text-2xl font-bold group-hover:scale-105 transition-transform">
+            {dhikrCount}
           </div>
         </div>
       </div>

@@ -23,6 +23,11 @@ export interface PrayerTimesResult {
   asr: string;
   maghrib: string;
   isha: string;
+  fajr24: string;
+  dhuhr24: string;
+  asr24: string;
+  maghrib24: string;
+  isha24: string;
   nextPrayer: {
     name: 'Fajr' | 'Sunrise' | 'Dhuhr' | 'Asr' | 'Maghrib' | 'Isha';
     time: string;
@@ -89,10 +94,10 @@ export function calculateMosquePrayerTimes(
   const lat = mosque.lat;
   const lng = mosque.lng;
   
-  // Timezone offset in hours
+  // Timezone offset in hours (automatically respects device DST)
   const tzOffset = -date.getTimezoneOffset() / 60;
 
-  // Day of year
+  // Day of year calculation
   const startOfYear = new Date(date.getFullYear(), 0, 0);
   const diff = (date.getTime() - startOfYear.getTime()) + ((startOfYear.getTimezoneOffset() - date.getTimezoneOffset()) * 60 * 1000);
   const oneDay = 1000 * 60 * 60 * 24;
@@ -141,7 +146,7 @@ export function calculateMosquePrayerTimes(
   const asr_val = dhuhr_val + ha_asr;
   const maghrib_val = sunset_val;
 
-  const formatDecTime = (t: number): { formatted: string; totalMinutes: number } => {
+  const formatDecTime = (t: number): { formatted: string; formatted24: string; totalMinutes: number } => {
     let normalized = (t % 24 + 24) % 24;
     const hours = Math.floor(normalized);
     let mins = Math.round((normalized - hours) * 60);
@@ -153,8 +158,11 @@ export function calculateMosquePrayerTimes(
     const period = finalH < 12 ? 'AM' : 'PM';
     let h12 = finalH % 12;
     if (h12 === 0) h12 = 12;
+    
     const formatted = `${String(h12).padStart(2, '0')}:${String(mins).padStart(2, '0')} ${period}`;
-    return { formatted, totalMinutes: finalH * 60 + mins };
+    const formatted24 = `${String(finalH).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+    
+    return { formatted, formatted24, totalMinutes: finalH * 60 + mins };
   };
 
   const fObj = formatDecTime(fajr_val);
@@ -181,7 +189,6 @@ export function calculateMosquePrayerTimes(
 
   if (next) {
     diffSec = Math.round((next.mins - currentMinutes) * 60);
-    // Find current prayer
     const idx = schedule.indexOf(next);
     currentPrayerName = idx === 0 ? 'Isha' : schedule[idx - 1].name;
   } else {
@@ -211,6 +218,11 @@ export function calculateMosquePrayerTimes(
     asr: aObj.formatted,
     maghrib: mObj.formatted,
     isha: iObj.formatted,
+    fajr24: fObj.formatted24,
+    dhuhr24: dObj.formatted24,
+    asr24: aObj.formatted24,
+    maghrib24: mObj.formatted24,
+    isha24: iObj.formatted24,
     nextPrayer: {
       name: next.name,
       time: next.time,
@@ -224,9 +236,6 @@ export function calculateMosquePrayerTimes(
   };
 }
 
-/**
- * Storage helpers for selected Mosque
- */
 const SELECTED_MOSQUE_KEY = 'daily_hadith_selected_mosque_id_v1';
 
 export function getSelectedMosque(): Mosque {
