@@ -1,0 +1,209 @@
+import React, { useState } from 'react';
+import { IslamicPattern, IslamicCornerOrnament } from './IslamicPattern';
+import { getHijriDate } from '../utils/hijri';
+import { Calendar, Sparkles, Moon, Sun, Heart, Info, ChevronLeft, ChevronRight } from 'lucide-react';
+
+export const HijriCalendarView: React.FC = () => {
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const today = new Date();
+
+  const hijriObj = getHijriDate(selectedDate);
+  const hijriStr = hijriObj.formatted;
+  const gregFormatted = selectedDate.toLocaleDateString(undefined, {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+
+  // Calculate day of month and month grid
+  const year = selectedDate.getFullYear();
+  const month = selectedDate.getMonth();
+  const firstDayIndex = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const changeMonth = (delta: number) => {
+    const nextDate = new Date(year, month + delta, 1);
+    setSelectedDate(nextDate);
+  };
+
+  const isToday = (dayNum: number) => {
+    return (
+      dayNum === today.getDate() &&
+      month === today.getMonth() &&
+      year === today.getFullYear()
+    );
+  };
+
+  const isSunnahFastingDay = (d: Date) => {
+    const dayOfWeek = d.getDay(); // 1 = Monday, 4 = Thursday
+    const isMondayOrThursday = dayOfWeek === 1 || dayOfWeek === 4;
+    return isMondayOrThursday;
+  };
+
+  const isFriday = (d: Date) => d.getDay() === 5;
+
+  const islamicEvents = [
+    { name: 'Ramadan Fasting', desc: 'The holy month of obligatory fasting and Quran revelation', icon: '🌙' },
+    { name: 'Laylat al-Qadr', desc: 'The Night of Decree, better than 1,000 months', icon: '✨' },
+    { name: 'Eid al-Fitr', desc: '1st Shawwal - Festival of breaking the Ramadan fast', icon: '🎉' },
+    { name: 'Day of Arafah', desc: '9th Dhul-Hijjah - Greatest day of Hajj, highly recommended fasting', icon: '🕋' },
+    { name: 'Eid al-Adha', desc: '10th Dhul-Hijjah - Feast of the Sacrifice', icon: '🐑' },
+    { name: 'Day of Ashura', desc: '10th Muharram - Sunnah fasting that expiates sins of previous year', icon: '🌊' },
+    { name: 'Ayyam al-Beed (White Days)', desc: '13th, 14th & 15th of every lunar month - Sunnah fasting', icon: '🌕' }
+  ];
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+      {/* Header Banner */}
+      <div className="relative rounded-3xl bg-gradient-to-r from-amber-600/20 via-[#181a26] to-[#0e111a] border border-amber-500/40 p-6 md:p-8 shadow-2xl overflow-hidden">
+        <IslamicPattern opacity={18} color="#d4af37" />
+        <IslamicCornerOrnament className="absolute top-2 left-2 rotate-0 opacity-30" />
+        <IslamicCornerOrnament className="absolute top-2 right-2 rotate-90 opacity-30" />
+
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-2">
+            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold uppercase tracking-wider">
+              <Calendar className="w-3.5 h-3.5" />
+              <span>Islamic Hijri & Gregorian Calendar</span>
+            </div>
+
+            <h2 className="font-serif text-3xl md:text-5xl font-bold text-white tracking-tight">
+              {hijriStr}
+            </h2>
+
+            <p className="text-xs md:text-sm text-neutral-300">
+              Gregorian: <span className="text-amber-300 font-semibold">{gregFormatted}</span>
+            </p>
+          </div>
+
+          <div className="flex items-center space-x-2 self-start md:self-auto">
+            <button
+              onClick={() => changeMonth(-1)}
+              className="p-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white transition cursor-pointer"
+              title="Previous Month"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setSelectedDate(new Date())}
+              className="px-4 py-2 rounded-xl bg-amber-500 text-neutral-950 font-bold text-xs shadow-md transition cursor-pointer"
+            >
+              Today
+            </button>
+            <button
+              onClick={() => changeMonth(1)}
+              className="p-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white transition cursor-pointer"
+              title="Next Month"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Calendar Grid & Sunnah Fasting Badges */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Month Calendar Grid */}
+        <div className="lg:col-span-2 p-6 rounded-3xl bg-[#11131c] border border-white/10 space-y-4 shadow-xl">
+          <div className="flex items-center justify-between pb-2 border-b border-white/10">
+            <h3 className="font-serif text-lg font-bold text-white">
+              {selectedDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
+            </h3>
+            <div className="flex items-center space-x-3 text-[11px] text-neutral-400">
+              <span className="flex items-center space-x-1">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block" />
+                <span>Sunnah Fasting (Mon/Thu)</span>
+              </span>
+              <span className="flex items-center space-x-1">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block" />
+                <span>Friday (Jumu&apos;ah)</span>
+              </span>
+            </div>
+          </div>
+
+          {/* Days of week header */}
+          <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-neutral-400">
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
+              <div key={d} className="py-1">{d}</div>
+            ))}
+          </div>
+
+          {/* Day Cells */}
+          <div className="grid grid-cols-7 gap-2">
+            {Array.from({ length: firstDayIndex }).map((_, i) => (
+              <div key={`empty-${i}`} className="p-3 rounded-2xl bg-transparent" />
+            ))}
+
+            {Array.from({ length: daysInMonth }).map((_, i) => {
+              const dayNum = i + 1;
+              const dateObj = new Date(year, month, dayNum);
+              const isTodayCell = isToday(dayNum);
+              const isFasting = isSunnahFastingDay(dateObj);
+              const isFri = isFriday(dateObj);
+
+              return (
+                <div
+                  key={dayNum}
+                  className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-between min-h-[64px] ${
+                    isTodayCell
+                      ? 'bg-amber-500 text-neutral-950 font-bold border-amber-400 shadow-lg scale-105 z-10'
+                      : isFri
+                      ? 'bg-amber-500/10 border-amber-500/30 text-amber-200'
+                      : isFasting
+                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                      : 'bg-black/30 border-white/5 text-neutral-200 hover:border-white/20'
+                  }`}
+                >
+                  <span className="text-sm font-semibold">{dayNum}</span>
+
+                  <div className="flex space-x-0.5 mt-1">
+                    {isFri && (
+                      <span className={`text-[9px] px-1 rounded ${isTodayCell ? 'bg-black/30 text-white' : 'text-amber-300'}`}>
+                        Jum
+                      </span>
+                    )}
+                    {isFasting && (
+                      <span className={`text-[9px] px-1 rounded ${isTodayCell ? 'bg-black/30 text-white' : 'text-emerald-300'}`}>
+                        Fast
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Sacred Islamic Days & Sunnah Fasting Guide */}
+        <div className="p-6 rounded-3xl bg-[#11131c] border border-white/10 space-y-4 shadow-xl flex flex-col justify-between">
+          <div className="space-y-3">
+            <h3 className="font-serif text-lg font-bold text-white flex items-center space-x-2">
+              <Sparkles className="w-4 h-4 text-amber-400" />
+              <span>Sacred Islamic Occasions</span>
+            </h3>
+
+            <div className="space-y-2.5 max-h-96 overflow-y-auto pr-1 text-xs">
+              {islamicEvents.map((ev) => (
+                <div key={ev.name} className="p-3 rounded-2xl bg-black/40 border border-white/5 space-y-1">
+                  <div className="font-semibold text-white flex items-center space-x-1.5">
+                    <span>{ev.icon}</span>
+                    <span>{ev.name}</span>
+                  </div>
+                  <p className="text-[11px] text-neutral-400 leading-relaxed">{ev.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-300 flex items-start space-x-2">
+            <Info className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+            <span>
+              &ldquo;Fasting on the Day of &lsquo;Arafah expiates the sins of the preceding year and the coming year.&rdquo; — Sahih Muslim
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};

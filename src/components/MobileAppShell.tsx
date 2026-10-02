@@ -14,6 +14,10 @@ import {
   calculateMosquePrayerTimes,
   getSelectedMosque
 } from '../utils/prayerTimes';
+import { AppLogo } from './AppLogo';
+import { NamesOfAllahView } from './NamesOfAllahView';
+import { AdhkarView } from './AdhkarView';
+import { HijriCalendarView } from './HijriCalendarView';
 import { DailyHadithCard } from './DailyHadithCard';
 import { HistoryBrowser } from './HistoryBrowser';
 import { SearchLibrary } from './SearchLibrary';
@@ -33,11 +37,12 @@ import {
   ChevronRight,
   Volume2,
   VolumeX,
-  Clock
+  Clock,
+  Heart
 } from 'lucide-react';
 import { speakHadith, stopSpeaking, isSpeaking } from '../utils/speech';
 
-export type MobileTab = 'today' | 'prayer' | 'library' | 'history' | 'favorites';
+export type MobileTab = 'today' | 'prayer' | 'names' | 'adhkar' | 'calendar' | 'library' | 'history' | 'favorites';
 
 interface MobileAppShellProps {
   onOpenScreensaver: () => void;
@@ -176,11 +181,7 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
           }}
           className="flex items-center space-x-2.5 cursor-pointer"
         >
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-200 p-0.5 shadow-md shadow-amber-500/20 flex items-center justify-center">
-            <div className="w-full h-full bg-[#0b0d13] rounded-[10px] flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-amber-400" />
-            </div>
-          </div>
+          <AppLogo size={34} glow={false} />
           <div>
             <div className="font-serif text-base font-bold text-white leading-tight flex items-center space-x-1.5">
               <span>Daily Hadith</span>
@@ -340,6 +341,18 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
           <PrayerTimesView onMosqueChange={(m) => setSelectedMosque(m)} />
         )}
 
+        {activeTab === 'names' && (
+          <NamesOfAllahView />
+        )}
+
+        {activeTab === 'adhkar' && (
+          <AdhkarView />
+        )}
+
+        {activeTab === 'calendar' && (
+          <HijriCalendarView />
+        )}
+
         {activeTab === 'library' && (
           <SearchLibrary
             onSelectHadith={handleSelectHadith}
@@ -376,7 +389,7 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
           </div>
           <button
             onClick={handleAudioToggle}
-            className="px-2 py-0.5 rounded bg-black/20 text-neutral-950 font-bold hover:bg-black/30"
+            className="px-2 py-0.5 rounded bg-black/20 text-neutral-950 font-bold hover:bg-black/30 cursor-pointer"
           >
             Stop
           </button>
@@ -384,12 +397,14 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
       )}
 
       {/* Native Mobile Bottom Navigation Bar */}
-      <nav className="shrink-0 border-t border-white/10 bg-[#0b0d14]/98 backdrop-blur-xl px-1 py-1 flex items-center justify-around z-30 pb-safe">
+      <nav className="shrink-0 border-t border-white/10 bg-[#0b0d14]/98 backdrop-blur-xl px-1 py-1 flex items-center justify-around z-30 pb-safe overflow-x-auto scrollbar-none">
         {[
           { id: 'today', label: 'Today', icon: Sparkles },
           { id: 'prayer', label: 'Awqat', icon: Clock },
-          { id: 'library', label: 'Explore', icon: Search },
-          { id: 'history', label: 'Archive', icon: Calendar },
+          { id: 'names', label: '99 Names', icon: Heart },
+          { id: 'adhkar', label: 'Adhkar', icon: ShieldCheck },
+          { id: 'calendar', label: 'Hijri', icon: Calendar },
+          { id: 'library', label: 'Library', icon: Search },
           { id: 'favorites', label: `Saved (${favorites.length})`, icon: Bookmark }
         ].map((tab) => {
           const Icon = tab.icon;
@@ -401,12 +416,12 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
                 setActiveTab(tab.id as MobileTab);
                 if (tab.id === 'today') setActiveHadithOverride(null);
               }}
-              className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all ${
+              className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all cursor-pointer ${
                 isActive ? 'text-amber-400 font-bold scale-105' : 'text-neutral-400 hover:text-neutral-200'
               }`}
             >
               <Icon className={`w-4 h-4 mb-0.5 ${isActive ? 'text-amber-400 stroke-[2.5]' : 'text-neutral-400'}`} />
-              <span className="text-[10px] tracking-tight">{tab.label}</span>
+              <span className="text-[9.5px] tracking-tight whitespace-nowrap">{tab.label}</span>
             </button>
           );
         })}

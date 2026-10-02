@@ -1,0 +1,79 @@
+[
+  {
+    "id": "morning-ayat-kursi",
+    "category": "morning",
+    "title": "Ayat al-Kursi (The Throne Verse)",
+    "arabic": "اللَّهُ لاَ إِلَـهَ إِلاَّ هُوَ الْحَيُّ الْقَيُّومُ لاَ تَأْخُذُهُ سِنَةٌ وَلاَ نَوْمٌ لَّهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الأَرْضِ مَن ذَا الَّذِي يَشْفَعُ عِنْدَهُ إِلاَّ بِإِذْنِهِ يَعْلَمُ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ وَلاَ يُحِيطُونَ بِشَيْءٍ مِّنْ عِلْمِهِ إِلاَّ بِمَا شَاء وَسِعَ كُرْسِيُّهُ السَّمَاوَاتِ وَالأَرْضَ وَلاَ يَؤُودُهُ حِفْظُهُمَا وَهُوَ الْعَلِيُّ الْعَظِيمُ",
+    "transliteration": "Allahu la ilaha illa Huwa, Al-Hayyul-Qayyum. La ta'khudhuhu sinatun wa la nawm...",
+    "translation": "Allah! There is no deity except Him, the Ever-Living, the Sustainer of all existence. Neither drowsiness overtakes Him nor sleep...",
+    "targetCount": 1,
+    "virtue": "Whoever recites this in the morning will be protected from jinn until the evening.",
+    "source": "Sahih al-Bukhari & An-Nasa'i"
+  },
+  {
+    "id": "sayyid-istighfar",
+    "category": "morning",
+    "title": "Sayyid al-Istighfar (Chief Du'a for Forgiveness)",
+    "arabic": "اللَّهُمَّ أَنْتَ رَبِّي لَا إِلَهَ إِلَّا أَنْتَ، خَلَقْتَنِي وَأَنَا عَبْدُكَ، وَأَنَا عَلَى عَهْدِكَ وَوَعْدِكَ مَا اسْتَطَعْتُ، أَعُوذُ بِكَ مِنْ شَرِّ مَا صَنَعْتُ، أَبُوءُ لَكَ بِنِعْمَتِكَ عَلَيَّ، وَأَبُوءُ بِذَنْبِي فَاغْفِرْ لِي فَإِنَّهُ لَا يَغْفِرُ الذُّنُوبَ إِلَّا أَنْتَ",
+    "transliteration": "Allahumma Anta Rabbi la ilaha illa Anta, khalaqtani wa ana 'abduka, wa ana 'ala 'ahdika wa wa'dika mastata'tu...",
+    "translation": "O Allah, You are my Lord; there is no god but You. You created me and I am Your slave. I abide by Your covenant as much as I am able...",
+    "targetCount": 1,
+    "virtue": "Whoever says this in the morning with firm faith and dies that day will be among the people of Paradise.",
+    "source": "Sahih al-Bukhari #6306"
+  },
+  {
+    "id": "morning-protection-3x",
+    "category": "morning",
+    "title": "Protection from all Harm (3x)",
+    "arabic": "بِسْمِ اللَّهِ الَّذِي لَا يَضُرُّ مَعَ اسْمِهِ شَيْءٌ فِي الْأَرْضِ وَلَا فِي السَّمَاءِ وَهُوَ السَّمِيعُ الْعَلِيمُ",
+    "transliteration": "Bismillahil-ladhi la yadurru ma'as-mihi shay'un fil-ardi wa la fis-sama'i wa Huwas-Sami'ul-'Alim",
+    "translation": "In the Name of Allah with Whose Name nothing can cause harm in the earth nor in the heavens, and He is the All-Hearing, the All-Knowing.",
+    "targetCount": 3,
+    "virtue": "Whoever says this three times in the morning and evening, nothing will harm him.",
+    "source": "Sunan Abi Dawud & At-Tirmidhi"
+  },
+  {
+    "id": "morning-ridha-3x",
+    "category": "morning",
+    "title": "Contentment with Allah, Islam, and the Prophet (3x)",
+    "arabic": "رَضِيتُ بِاللَّهِ رَبًّا، وَبِالْإِسْلَامِ دِينًا، وَبِمُحَمَّدٍ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ نَبِيًّا",
+    "transliteration": "Raditu billahi Rabba, wa bil-Islami dina, wa bi Muhammadin sallallahu 'alayhi wa sallama Nabiyya",
+    "translation": "I am pleased with Allah as my Lord, with Islam as my religion, and with Muhammad (peace and blessings be upon him) as my Prophet.",
+    "targetCount": 3,
+    "virtue": "Allah guarantees to satisfy whoever recites this thrice every morning and evening.",
+    "source": "Abu Dawud & At-Tirmidhi"
+  },
+  {
+    "id": "morning-subhanallah-100x",
+    "category": "morning",
+    "title": "SubhanAllahi wa bihamdihi (100x)",
+    "arabic": "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ",
+    "transliteration": "SubhanAllahi wa bihamdihi",
+    "translation": "Glory be to Allah and all praise is due to Him.",
+    "targetCount": 100,
+    "virtue": "Whoever says this 100 times in a day, his sins will be forgiven even if they were like the foam of the sea.",
+    "source": "Sahih al-Bukhari #6405"
+  },
+  {
+    "id": "evening-protection-amantu",
+    "category": "evening",
+    "title": "Evening Refuge in Allah's Perfect Words (3x)",
+    "arabic": "أَعُوذُ بِكَلِمَاتِ اللَّهِ التَّامَّاتِ مِنْ شَرِّ مَا خَلَقَ",
+    "transliteration": "A'udhu bi kalimatillahit-tammati min sharri ma khalaq",
+    "translation": "I seek refuge in the perfect words of Allah from the evil of what He has created.",
+    "targetCount": 3,
+    "virtue": "Whoever says this in the evening will not be harmed by poisonous stings or evils that night.",
+    "source": "Sahih Muslim #2709"
+  },
+  {
+    "id": "evening-hasbiyallah-7x",
+    "category": "evening",
+    "title": "Allah is Sufficient for me (7x)",
+    "arabic": "حَسْبِيَ اللَّهُ لَا إِلَهَ إِلَّا هُوَ عَلَيْهِ تَوَكَّلْتُ وَهُوَ رَبُّ الْعَرْشِ الْعَظِيمِ",
+    "transliteration": "Hasbiyallahu la ilaha illa Huwa, 'alayhi tawakkaltu wa Huwa Rabbul-'Arshil-'Azim",
+    "translation": "Allah is sufficient for me; there is no deity except Him. Upon Him I have relied, and He is the Lord of the Great Throne.",
+    "targetCount": 7,
+    "virtue": "Allah will grant relief from whatever worries him of worldly and spiritual matters.",
+    "source": "Abu Dawud"
+  }
+]

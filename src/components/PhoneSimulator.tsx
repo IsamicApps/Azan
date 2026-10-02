@@ -5,6 +5,7 @@ import { MobileAppShell } from './MobileAppShell';
 import { ScreensaverView } from './ScreensaverView';
 import { WidgetSimulator } from './WidgetSimulator';
 import { IslamicPattern } from './IslamicPattern';
+import { AppLogo } from './AppLogo';
 import {
   Wifi,
   Battery,
@@ -306,11 +307,7 @@ export const PhoneSimulator: React.FC<PhoneSimulatorProps> = ({ onDirectFullscre
                         onClick={() => openApp()}
                         className="flex flex-col items-center space-y-1.5 cursor-pointer group"
                       >
-                        <div className="w-[56px] h-[56px] rounded-[15px] bg-gradient-to-tr from-amber-600 via-amber-400 to-amber-200 p-0.5 shadow-lg group-hover:scale-105 transition-transform flex items-center justify-center">
-                          <div className="w-full h-full bg-[#0c0e15] rounded-[13px] flex items-center justify-center">
-                            <Sparkles className="w-6 h-6 text-amber-400" />
-                          </div>
-                        </div>
+                        <AppLogo size={56} glow={true} className="group-hover:scale-105 transition-transform" />
                         <span className="text-[10.5px] text-white font-medium text-center truncate w-full">
                           Daily Hadith
                         </span>
@@ -344,19 +341,15 @@ export const PhoneSimulator: React.FC<PhoneSimulatorProps> = ({ onDirectFullscre
                   {/* Phone Dock Bar */}
                   <div className="relative z-10 mx-auto w-full p-2.5 rounded-[28px] bg-white/10 backdrop-blur-2xl border border-white/15 flex items-center justify-around mb-2 shadow-2xl">
                     <div onClick={() => openApp()} className="cursor-pointer">
-                      <div className="w-[50px] h-[50px] rounded-[13px] bg-gradient-to-tr from-amber-600 via-amber-400 to-amber-200 p-0.5 shadow-lg flex items-center justify-center">
-                        <div className="w-full h-full bg-[#0c0e15] rounded-[11px] flex items-center justify-center">
-                          <Sparkles className="w-5 h-5 text-amber-400" />
-                        </div>
-                      </div>
+                      <AppLogo size={48} glow={false} className="hover:scale-105 transition-transform" />
                     </div>
                     <div onClick={() => setPhoneState('screensaver')} className="cursor-pointer">
-                      <div className="w-[50px] h-[50px] rounded-[13px] bg-gradient-to-tr from-purple-700 to-indigo-900 p-0.5 shadow-lg flex items-center justify-center text-white">
+                      <div className="w-[48px] h-[48px] rounded-[13px] bg-gradient-to-tr from-purple-700 to-indigo-900 p-0.5 shadow-lg flex items-center justify-center text-white">
                         <Moon className="w-5 h-5" />
                       </div>
                     </div>
                     <div onClick={() => openApp()} className="cursor-pointer">
-                      <div className="w-[50px] h-[50px] rounded-[13px] bg-gradient-to-tr from-emerald-600 to-teal-800 p-0.5 shadow-lg flex items-center justify-center text-white">
+                      <div className="w-[48px] h-[48px] rounded-[13px] bg-gradient-to-tr from-emerald-600 to-teal-800 p-0.5 shadow-lg flex items-center justify-center text-white">
                         <BookOpen className="w-5 h-5" />
                       </div>
                     </div>

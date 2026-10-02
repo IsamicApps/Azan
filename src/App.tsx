@@ -26,6 +26,10 @@ import {
   AzanSettings
 } from './utils/azanAudio';
 import { AzanLiveModal } from './components/AzanLiveModal';
+import { AppLogo } from './components/AppLogo';
+import { NamesOfAllahView } from './components/NamesOfAllahView';
+import { AdhkarView } from './components/AdhkarView';
+import { HijriCalendarView } from './components/HijriCalendarView';
 import { DailyHadithCard } from './components/DailyHadithCard';
 import { ScreensaverView } from './components/ScreensaverView';
 import { WidgetSimulator } from './components/WidgetSimulator';
@@ -49,10 +53,23 @@ import {
   Code2,
   Layout,
   Clock,
-  Building2
+  Building2,
+  Heart,
+  Sun
 } from 'lucide-react';
 
-type Tab = 'mobile-phone' | 'today' | 'prayer' | 'widgets' | 'library' | 'history' | 'favorites' | 'native';
+type Tab =
+  | 'mobile-phone'
+  | 'today'
+  | 'prayer'
+  | 'names-of-allah'
+  | 'adhkar'
+  | 'calendar'
+  | 'widgets'
+  | 'library'
+  | 'history'
+  | 'favorites'
+  | 'native';
 
 export function App() {
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
@@ -175,19 +192,15 @@ export function App() {
       {/* Top Navigation Header */}
       <header className="sticky top-0 z-40 border-b border-white/10 bg-[#0c0e16]/90 backdrop-blur-lg px-4 lg:px-8 py-3.5">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          {/* Logo & Branding */}
+          {/* Logo & Branding with new custom AppLogo */}
           <div
             onClick={resetToToday}
-            className="flex items-center space-x-3 cursor-pointer group"
+            className="flex items-center space-x-3.5 cursor-pointer group"
           >
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-600 via-amber-400 to-amber-200 p-0.5 shadow-lg shadow-amber-500/20 group-hover:scale-105 transition-transform">
-              <div className="w-full h-full bg-[#0b0d13] rounded-[14px] flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-amber-400" />
-              </div>
-            </div>
+            <AppLogo size={42} glow={true} className="group-hover:scale-105 transition-transform" />
             <div>
-              <div className="font-serif text-xl font-bold tracking-tight text-white flex items-center space-x-2">
-                <span>Daily Hadith</span>
+              <div className="font-serif text-xl md:text-2xl font-bold tracking-tight text-white flex items-center space-x-2">
+                <span>Daily Hadith & Azan</span>
                 <span className="text-[10px] font-sans px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30">
                   Sahih al-Bukhari
                 </span>
@@ -213,7 +226,7 @@ export function App() {
           <div className="flex items-center space-x-2">
             <button
               onClick={() => setActiveTab(activeTab === 'mobile-phone' ? 'today' : 'mobile-phone')}
-              className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-xl border text-xs font-semibold shadow-md transition ${
+              className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-xl border text-xs font-semibold shadow-md transition cursor-pointer ${
                 activeTab === 'mobile-phone'
                   ? 'bg-amber-500 text-neutral-950 border-amber-400 font-bold'
                   : 'bg-white/5 hover:bg-white/10 text-amber-300 border-amber-500/30'
@@ -226,7 +239,7 @@ export function App() {
 
             <button
               onClick={() => setIsScreensaverOpen(true)}
-              className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500/20 to-amber-600/20 hover:from-amber-500/30 hover:to-amber-600/30 border border-amber-500/30 text-amber-300 text-xs font-semibold shadow-md transition"
+              className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500/20 to-amber-600/20 hover:from-amber-500/30 hover:to-amber-600/30 border border-amber-500/30 text-amber-300 text-xs font-semibold shadow-md transition cursor-pointer"
               title="Peaceful Full-Screen Screensaver"
             >
               <Moon className="w-4 h-4 text-amber-400" />
@@ -235,7 +248,7 @@ export function App() {
 
             <button
               onClick={() => setIsReminderOpen(true)}
-              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-amber-300 border border-white/5 transition"
+              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-amber-300 border border-white/5 transition cursor-pointer"
               title="Daily Reminder Settings"
             >
               <Bell className="w-4 h-4" />
@@ -243,7 +256,7 @@ export function App() {
 
             <button
               onClick={() => setIsVerificationOpen(true)}
-              className="flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-xs font-medium transition"
+              className="flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-xs font-medium transition cursor-pointer"
               title="Verification & Accuracy Suite"
             >
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
@@ -257,9 +270,12 @@ export function App() {
       <nav className="border-b border-white/5 bg-[#090b11] px-4">
         <div className="max-w-7xl mx-auto flex items-center space-x-1 overflow-x-auto py-2 scrollbar-none">
           {[
-            { id: 'mobile-phone', label: '📱 Mobile Phone Experience', icon: Smartphone },
+            { id: 'mobile-phone', label: '📱 Mobile Experience', icon: Smartphone },
             { id: 'today', label: "Today's Hadith", icon: Sparkles },
             { id: 'prayer', label: '🕌 Prayer Times (Awqat)', icon: Clock },
+            { id: 'names-of-allah', label: '✨ 99 Names of Allah', icon: Heart },
+            { id: 'adhkar', label: '🛡️ Daily Adhkar', icon: ShieldCheck },
+            { id: 'calendar', label: '📅 Hijri & Fasting', icon: Calendar },
             { id: 'widgets', label: 'Mobile Widgets Preview', icon: Layout },
             { id: 'library', label: 'Library (6,720)', icon: Search },
             { id: 'history', label: 'Daily Archive', icon: Calendar },
@@ -275,7 +291,7 @@ export function App() {
                   setActiveTab(tab.id as Tab);
                   if (tab.id === 'today') setActiveHadithOverride(null);
                 }}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-all ${
+                className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-all cursor-pointer ${
                   isActive
                     ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
                     : 'text-neutral-400 hover:text-white hover:bg-white/5'
@@ -304,7 +320,7 @@ export function App() {
                 <span>Viewing selected Hadith from Archive/Library</span>
                 <button
                   onClick={resetToToday}
-                  className="font-bold underline hover:text-white"
+                  className="font-bold underline hover:text-white cursor-pointer"
                 >
                   Return to Today&apos;s Hadith
                 </button>
@@ -320,13 +336,13 @@ export function App() {
                 <span className="text-[11px] text-neutral-500">Text Size:</span>
                 <button
                   onClick={() => setTextSize('normal')}
-                  className={`px-2 py-0.5 rounded text-xs ${textSize === 'normal' ? 'bg-amber-500/20 text-amber-300 font-bold' : 'text-neutral-400'}`}
+                  className={`px-2 py-0.5 rounded text-xs cursor-pointer ${textSize === 'normal' ? 'bg-amber-500/20 text-amber-300 font-bold' : 'text-neutral-400'}`}
                 >
                   Regular
                 </button>
                 <button
                   onClick={() => setTextSize('large')}
-                  className={`px-2 py-0.5 rounded text-xs ${textSize === 'large' ? 'bg-amber-500/20 text-amber-300 font-bold' : 'text-neutral-400'}`}
+                  className={`px-2 py-0.5 rounded text-xs cursor-pointer ${textSize === 'large' ? 'bg-amber-500/20 text-amber-300 font-bold' : 'text-neutral-400'}`}
                 >
                   Large
                 </button>
@@ -345,52 +361,68 @@ export function App() {
             />
 
             {/* Quick Feature Highlights Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-4">
               <div
                 onClick={() => setActiveTab('prayer')}
                 className="p-5 rounded-2xl bg-gradient-to-br from-emerald-950/40 to-neutral-900/40 border border-emerald-500/30 hover:border-emerald-400/50 transition cursor-pointer space-y-2 group"
               >
                 <div className="flex items-center justify-between">
                   <Clock className="w-5 h-5 text-emerald-400" />
-                  <span className="text-[10px] text-emerald-400/80 font-mono">Awqat.com.au</span>
+                  <span className="text-[10px] text-emerald-400/80 font-mono">Awqat</span>
                 </div>
                 <h4 className="font-serif text-base font-semibold text-neutral-200 group-hover:text-emerald-300 transition">
                   Prayer Times & Azan
                 </h4>
                 <p className="text-xs text-neutral-400 leading-relaxed">
-                  Next: {prayerData.nextPrayer.name} at {prayerData.nextPrayer.time} • Closest mosque selection.
+                  Next: {prayerData.nextPrayer.name} at {prayerData.nextPrayer.time}
                 </p>
               </div>
 
               <div
-                onClick={() => setActiveTab('widgets')}
+                onClick={() => setActiveTab('names-of-allah')}
                 className="p-5 rounded-2xl bg-neutral-900/40 border border-white/5 hover:border-amber-500/30 transition cursor-pointer space-y-2 group"
               >
                 <div className="flex items-center justify-between">
-                  <Smartphone className="w-5 h-5 text-amber-400" />
-                  <span className="text-[10px] text-neutral-500">Preview</span>
+                  <Heart className="w-5 h-5 text-amber-400" />
+                  <span className="text-[10px] text-amber-400/80 font-mono">99 Names</span>
                 </div>
                 <h4 className="font-serif text-base font-semibold text-neutral-200 group-hover:text-amber-300 transition">
-                  Mobile Widgets
+                  Asma-ul-Husna
                 </h4>
                 <p className="text-xs text-neutral-400 leading-relaxed">
-                  Small, medium, and large home widgets plus lock-screen accessories.
+                  Audio recitation & meanings of Allah&apos;s Divine Names.
                 </p>
               </div>
 
               <div
-                onClick={() => setIsScreensaverOpen(true)}
+                onClick={() => setActiveTab('adhkar')}
                 className="p-5 rounded-2xl bg-neutral-900/40 border border-white/5 hover:border-amber-500/30 transition cursor-pointer space-y-2 group"
               >
                 <div className="flex items-center justify-between">
-                  <Moon className="w-5 h-5 text-amber-400" />
-                  <span className="text-[10px] text-neutral-500">Launch</span>
+                  <ShieldCheck className="w-5 h-5 text-sky-400" />
+                  <span className="text-[10px] text-sky-400/80 font-mono">Adhkar</span>
                 </div>
-                <h4 className="font-serif text-base font-semibold text-neutral-200 group-hover:text-amber-300 transition">
-                  Peaceful Screensaver
+                <h4 className="font-serif text-base font-semibold text-neutral-200 group-hover:text-sky-300 transition">
+                  Morning & Evening
                 </h4>
                 <p className="text-xs text-neutral-400 leading-relaxed">
-                  Ambient dark themes with subtle geometric patterns and OLED burn-in drift.
+                  Hisn al-Muslim supplications with tap-to-count circles.
+                </p>
+              </div>
+
+              <div
+                onClick={() => setActiveTab('calendar')}
+                className="p-5 rounded-2xl bg-neutral-900/40 border border-white/5 hover:border-amber-500/30 transition cursor-pointer space-y-2 group"
+              >
+                <div className="flex items-center justify-between">
+                  <Calendar className="w-5 h-5 text-amber-400" />
+                  <span className="text-[10px] text-neutral-500">Hijri</span>
+                </div>
+                <h4 className="font-serif text-base font-semibold text-neutral-200 group-hover:text-amber-300 transition">
+                  Fasting Calendar
+                </h4>
+                <p className="text-xs text-neutral-400 leading-relaxed">
+                  Sunnah White Days (Ayyam al-Beed) & Islamic occasions.
                 </p>
               </div>
             </div>
@@ -400,6 +432,24 @@ export function App() {
         {activeTab === 'prayer' && (
           <div className="max-w-5xl mx-auto w-full px-4 py-8">
             <PrayerTimesView onMosqueChange={(m) => setSelectedMosque(m)} />
+          </div>
+        )}
+
+        {activeTab === 'names-of-allah' && (
+          <div className="max-w-5xl mx-auto w-full px-4 py-8">
+            <NamesOfAllahView />
+          </div>
+        )}
+
+        {activeTab === 'adhkar' && (
+          <div className="max-w-5xl mx-auto w-full px-4 py-8">
+            <AdhkarView />
+          </div>
+        )}
+
+        {activeTab === 'calendar' && (
+          <div className="max-w-5xl mx-auto w-full px-4 py-8">
+            <HijriCalendarView />
           </div>
         )}
 
