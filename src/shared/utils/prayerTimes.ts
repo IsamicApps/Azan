@@ -1,6 +1,7 @@
 import mosquesData from '../data/mosques.json';
 import { getHijriDate } from './hijri';
 import { getAwqatDay, getAwqatJumuah, IqamaPrayer } from './awqat';
+import { getTimetableDay, getTimetableJumuah, getTimetableSite } from './mosqueTimetable';
 
 export interface Mosque {
   id: string;
@@ -41,12 +42,14 @@ export interface PrayerTimesResult {
   adhanMinutes: Record<IqamaPrayer, number>;
   /** Prayers whose published Iqamah looks out of date: "check with the mosque" */
   iqamaCheck: Partial<Record<IqamaPrayer, true>>;
-  /** Jumu'ah times: the mosque's Awqat notice, else the app's list */
+  /** Jumu'ah times: the mosque's Awqat notice or own timetable, else the app's list */
   jumuah: string;
   /** Friday at the mosque: Dhuhr is Jumu'ah */
   isFriday: boolean;
-  /** 'awqat' when the times come from awqat.com.au, 'calculated' otherwise */
-  timesSource: 'awqat' | 'calculated';
+  /** 'awqat' when the times come from awqat.com.au, 'mosque' from the mosque's own website, 'calculated' otherwise */
+  timesSource: 'awqat' | 'mosque' | 'calculated';
+  /** Website the times come from, e.g. "Awqat.com.au" or "isv.org.au" (none when calculated) */
+  timesSite?: string;
   /** True while the next Suhoor/Iftar belongs to a Ramadan fast (from Maghrib before 1 Ramadan until Iftar on its last day) */
   isRamadan: boolean;
   /** Day of Ramadan (1-30) of the fast the next Suhoor/Iftar belongs to */
@@ -290,11 +293,20 @@ export function calculateMosquePrayerTimes(
     return { formatted, formatted24, totalMinutes: finalH * 60 + mins };
   };
 
-  // Mosques listed on awqat.com.au use Awqat's own timetable, adjustments and Iqamah
+  // Mosques listed on awqat.com.au use Awqat's own timetable, adjustments and Iqamah;
+  // mosques that publish a yearly timetable on their website use that
+  const timesSource: PrayerTimesResult['timesSource'] = !timeZone
+    ? 'calculated'
+    : getAwqatDay(currentMosque.id, clock.year, clock.month, clock.day, timeZone)
+      ? 'awqat'
+      : getTimetableDay(currentMosque.id, clock.year, clock.month, clock.day, timeZone)
+        ? 'mosque'
+        : 'calculated';
   const awqatDayFor = (offsetDays: number) => {
-    if (!timeZone) return null;
+    if (!timeZone || timesSource === 'calculated') return null;
     const d = new Date(Date.UTC(clock.year, clock.month - 1, clock.day + offsetDays));
-    return getAwqatDay(currentMosque.id, d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate(), timeZone);
+    const get = timesSource === 'awqat' ? getAwqatDay : getTimetableDay;
+    return get(currentMosque.id, d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate(), timeZone);
   };
   const awqat = awqatDayFor(0);
   const dayTimes = awqat
@@ -427,7 +439,8 @@ export function calculateMosquePrayerTimes(
     adhanMinutes: { Fajr: fObj.totalMinutes, Dhuhr: dObj.totalMinutes, Asr: aObj.totalMinutes, Maghrib: mObj.totalMinutes, Isha: iObj.totalMinutes },
     iqamaCheck: awqat?.iqamaCheck ?? {},
     jumuah: getMosqueJumuah(currentMosque),
-    timesSource: awqat ? 'awqat' : 'calculated',
+    timesSource: awqat ? timesSource : 'calculated',
+    timesSite: !awqat ? undefined : timesSource === 'awqat' ? 'Awqat.com.au' : getTimetableSite(currentMosque.id) ?? undefined,
     isFriday: new Date(Date.UTC(clock.year, clock.month - 1, clock.day)).getUTCDay() === 5,
     isRamadan,
     ramadanDay: isRamadan ? fastHijri.day : undefined,
@@ -452,9 +465,9 @@ export function calculateMosquePrayerTimes(
   };
 }
 
-/** Jumu'ah times: the mosque's Awqat notice when it gives them, else the app's list. */
+/** Jumu'ah times: the mosque's Awqat notice or own timetable when they give them, else the app's list. */
 export function getMosqueJumuah(mosque: Mosque): string {
-  return getAwqatJumuah(mosque.id) ?? mosque.jumuah;
+  return getAwqatJumuah(mosque.id) ?? getTimetableJumuah(mosque.id) ?? mosque.jumuah;
 }
 
 export function getSelectedMosque(): Mosque {

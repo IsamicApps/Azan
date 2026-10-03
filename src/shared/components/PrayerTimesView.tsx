@@ -332,7 +332,13 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
             <div className="flex items-center space-x-2">
               <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-semibold tracking-wide uppercase">
                 <Building2 className="w-3.5 h-3.5" />
-                <span>{t(selectedMosque.isCustom ? 'Custom Location' : prayerData.timesSource === 'awqat' ? 'Selected Mosque (Awqat.com.au)' : 'Selected Mosque')}</span>
+                <span>
+                  {selectedMosque.isCustom
+                    ? t('Custom Location')
+                    : prayerData.timesSite
+                      ? t('Selected Mosque ({site})', { site: prayerData.timesSite })
+                      : t('Selected Mosque')}
+                </span>
               </span>
               <span className="text-xs text-amber-300/80 font-medium">
                 {selectedMosque.state}
@@ -380,7 +386,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
               target="_blank"
               rel="noopener noreferrer"
               className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-amber-300 border border-white/5 transition"
-              title={t('View on Awqat.com.au')}
+              title={selectedMosque.link.includes('awqat.com.au') ? t('View on Awqat.com.au') : t('Mosque website')}
             >
               <ExternalLink className="w-4 h-4" />
             </a>
@@ -482,7 +488,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
         <div className="relative z-10 space-y-2 text-center md:text-start">
           <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold uppercase tracking-wider">
             <Clock className="w-3.5 h-3.5" />
-            <span>{t('Next Prayer')} ({prayerData.timesSource === 'awqat' ? 'Awqat.com.au' : t(selectedMosque.isCustom ? 'Custom Coords' : 'Calculated')})</span>
+            <span>{t('Next Prayer')} ({prayerData.timesSite ?? t(selectedMosque.isCustom ? 'Custom Coords' : 'Calculated')})</span>
           </div>
 
           <h2 className="font-serif text-3xl md:text-5xl font-bold text-white">

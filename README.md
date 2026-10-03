@@ -37,6 +37,7 @@ Both apps share everything in `src/shared/` (components, prayer-time & Azan engi
   - 🇪🇬 **Sheikh Abdul Basit Abdul Samad** (Egypt)
   - 🔔 **Gentle Acoustic Chime**
 - **Same times as Awqat**: for the 28 mosques on [awqat.com.au](https://www.awqat.com.au/), Adhan times, Iqamah (fixed times or minutes after the Adhan), Jumu'ah and the Hijri date follow each mosque's Awqat page — its timetable file, or Awqat's own PrayTimes.js settings, plus its minute adjustments. Daylight saving is applied automatically. `npm run awqat:data` re-downloads everything (then build and deploy) when Awqat changes. Mosques not on Awqat use the built-in calculation.
+- **Mosques' own timetables**: Preston Mosque (Islamic Society of Victoria, [isv.org.au](https://isv.org.au/)) uses the yearly Adhan and Iqamah timetable and Jumu'ah time it publishes on its website (The Masjid App widget). `npm run mosques:data` re-downloads it (then build and deploy); add another Masjid App mosque in `scripts/sync-mosque-timetables.mjs`.
 - **Hijri calendar as on Awqat**: the arithmetic Islamic calendar moved by the selected mosque's Awqat day offset (+1 on most pages).
 - **Qibla Direction Compass**: Exact degree bearing to the Holy Kaaba in Makkah.
 

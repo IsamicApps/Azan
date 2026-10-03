@@ -84,7 +84,7 @@ function zoneOffsetMinutes(instant: number, timeZone: string): number {
 }
 
 /** Daylight-saving minutes in effect on a calendar day (after the 2–3 am change). */
-function daylightSavingMinutes(year: number, month: number, day: number, timeZone: string): number {
+export function daylightSavingMinutes(year: number, month: number, day: number, timeZone: string): number {
   try {
     const standard = Math.min(
       zoneOffsetMinutes(Date.UTC(year, 0, 1, 12), timeZone),

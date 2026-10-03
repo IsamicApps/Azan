@@ -31,6 +31,17 @@ describe('prayer times', () => {
     expect(r.timesSource).toBe('awqat');
   });
 
+  it("match Preston Mosque's own timetable (isv.org.au), Iqamah and Jumu'ah", () => {
+    const r = calculateMosquePrayerTimes(mosque('isv'), new Date('2026-10-03T09:00:00+10:00'));
+    expect([r.fajr, r.sunrise, r.dhuhr, r.asr, r.maghrib, r.isha]).toEqual(['04:21 AM', '05:53 AM', '12:09 PM', '03:43 PM', '06:26 PM', '07:56 PM']);
+    expect(r.iqama).toEqual({ Fajr: '04:51 AM', Dhuhr: '12:19 PM', Asr: '03:53 PM', Maghrib: '06:31 PM', Isha: '08:06 PM' });
+    expect(r.timesSource).toBe('mosque');
+    expect(r.timesSite).toBe('isv.org.au');
+    expect(r.jumuah).toBe('12:30 PM');
+    // Daylight saving from 4 October
+    expect(calculateMosquePrayerTimes(mosque('isv'), new Date('2026-10-04T09:00:00+11:00')).fajr).toBe('05:20 AM');
+  });
+
   it('apply daylight saving on the day the clocks change', () => {
     const r = calculateMosquePrayerTimes(mosque('amssa'), new Date('2026-10-04T09:00:00+11:00'));
     expect(r.fajr).toBe('05:20 AM');

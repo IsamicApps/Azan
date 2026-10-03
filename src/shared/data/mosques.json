@@ -98,6 +98,20 @@
     "jumuah": "1:00 PM & 1:45 PM"
   },
   {
+    "id": "isv",
+    "name": "Preston Mosque (Islamic Society of Victoria)",
+    "loc": "Preston",
+    "suburb": "Preston",
+    "state": "VIC",
+    "area": "NORTH",
+    "address": "90 Cramer Street, Preston VIC 3072",
+    "lat": -37.739,
+    "lng": 144.993,
+    "link": "https://isv.org.au/",
+    "iqamaOffsets": { "Fajr": 30, "Dhuhr": 10, "Asr": 10, "Maghrib": 5, "Isha": 10 },
+    "jumuah": "12:30 PM"
+  },
+  {
     "id": "aycc",
     "name": "AYCC Islamic Centre",
     "loc": "Hoppers Crossing",
