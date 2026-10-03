@@ -40,10 +40,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
       await navigator.clipboard.writeText(formattedText);
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
-    } catch {
-      // Fallback
-      setCopied(true);
-    }
+    } catch {}
   };
 
   const handleDownloadImage = async () => {

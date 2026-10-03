@@ -168,7 +168,6 @@ export const AR: Record<string, string> = {
   'Daily reminders disabled.': 'تم إيقاف التذكير اليومي.',
   'Notification permission granted! Daily Hadith reminder scheduled.': 'تم منح إذن الإشعارات! تمت جدولة تذكير الحديث اليومي.',
   'Notification permission was declined. Please enable in browser settings.': 'تم رفض إذن الإشعارات. يرجى تفعيله من إعدادات المتصفح.',
-  'In-app scheduled reminder enabled.': 'تم تفعيل التذكير داخل التطبيق.',
   'Test notification sent successfully!': 'تم إرسال إشعار تجريبي بنجاح!',
   'Please grant notification permission first.': 'يرجى منح إذن الإشعارات أولًا.',
   "Today's Hadith is ready for you.": 'حديث اليوم جاهز لك.',

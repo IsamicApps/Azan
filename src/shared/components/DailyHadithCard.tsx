@@ -61,9 +61,7 @@ export const DailyHadithCard: React.FC<DailyHadithCardProps> = ({
       await navigator.clipboard.writeText(textToCopy);
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2000);
-    } catch {
-      setCopiedLink(true);
-    }
+    } catch {}
   };
 
   return (

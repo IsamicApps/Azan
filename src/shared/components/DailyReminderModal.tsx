@@ -49,11 +49,9 @@ export const DailyReminderModal: React.FC<DailyReminderModalProps> = ({
         setStatusMessage(t('Notification permission was declined. Please enable in browser settings.'));
       }
     } else {
-      setEnabled(true);
-      const updated = { enabled: true, time, hasPermission: false };
-      onUpdateConfig(updated);
-      saveReminderConfig(updated);
-      setStatusMessage(t('In-app scheduled reminder enabled.'));
+      // Reminders are notifications; without them nothing would ever arrive
+      setEnabled(false);
+      setStatusMessage(t('This browser cannot show notifications.'));
     }
   };
 
