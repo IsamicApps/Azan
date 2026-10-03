@@ -57,6 +57,14 @@ interface MobileAppShellProps {
   initialHadith?: Hadith | null;
 }
 
+const MOBILE_TABS: MobileTab[] = ['today', 'prayer', 'names', 'adhkar', 'calendar', 'library', 'favorites'];
+
+/** Tab named in the address, e.g. "#prayer" (the native app's widgets open the app this way). */
+function tabFromHash(): MobileTab | null {
+  const tab = window.location.hash.slice(1) as MobileTab;
+  return MOBILE_TABS.includes(tab) ? tab : null;
+}
+
 export const MobileAppShell: React.FC<MobileAppShellProps> = ({
   onOpenScreensaver,
   onHadithPlayStatusChange,
@@ -65,8 +73,25 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
   const i18n = useI18n();
   const { t } = i18n;
   const [dayOffset, setDayOffset] = useState(0);
-  const [activeTab, setActiveTab] = useState<MobileTab>('today');
+  const [activeTab, setActiveTab] = useState<MobileTab>(() => tabFromHash() ?? 'today');
   const [activeHadithOverride, setActiveHadithOverride] = useState<Hadith | null>(initialHadith || null);
+
+  // "#prayer" in the address opens that tab; the hash is then removed so the same link works again
+  useEffect(() => {
+    const openFromHash = () => {
+      const tab = tabFromHash();
+      if (!tab) return;
+      setActiveTab(tab);
+      if (tab === 'today') {
+        setDayOffset(0);
+        setActiveHadithOverride(null);
+      }
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+    };
+    openFromHash();
+    window.addEventListener('hashchange', openFromHash);
+    return () => window.removeEventListener('hashchange', openFromHash);
+  }, []);
   const [favorites, setFavorites] = useState<FavoriteItem[]>(getFavorites());
   const [reminderConfig, setReminderConfig] = useState<ReminderConfig>(getReminderConfig());
   const [isReminderOpen, setIsReminderOpen] = useState(false);

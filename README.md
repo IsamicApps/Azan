@@ -51,7 +51,7 @@ One theme choice for the whole app (palette button in the phone header, or the s
 - **Full-screen installable PWA** with bottom tab navigation: Today, Awqat, 99 Names, Adhkar, Hijri, Library, Saved.
 - **Library**: the whole sunnah.com library by collection and book, in English or Arabic, with search in a book or a whole collection (Arabic search ignores vowel marks). Only Hadiths the app displays (Sahih, Hasan, ungraded) are listed.
 - **Daily Hadith reminder notification** at your chosen time.
-- **Widget reference code**: Swift (iOS WidgetKit) and Kotlin (Android Glance / AppWidget) in `src/native/`.
+- **Home-screen widgets (iPhone and Android)**: Prayer Times (next prayer with a countdown, Adhan and Iqamah) and Daily Hadith, in the native apps: [Android](https://github.com/IslamicApplications/Andriodapps) and [iPhone](https://github.com/IslamicApplications/Appleiosapp). `npm run build` writes their data to `widget/v1/` on the site (`scripts/build-widget-feed.ts`).
 
 ### 4. 🌙 Peaceful Ambient Screensaver
 - **Follows the app theme** (below).

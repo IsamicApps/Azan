@@ -72,12 +72,17 @@ jobs:
           git commit -m "Sync prayer times from awqat.com.au and mosque websites"
           git push origin HEAD:main
 
+      # The widget feed (widget/v1/) covers 200 days from the build: redeploy weekly even without changes
+      - name: Weekly redeploy for the widget feed
+        id: weekly
+        run: echo "due=$([ "$(date -u +%u)" = 5 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
       - name: Build
-        if: steps.changes.outputs.changed == 'true' || inputs.deploy
+        if: steps.changes.outputs.changed == 'true' || inputs.deploy || steps.weekly.outputs.due == 'true'
         run: npm run build
 
       - name: Deploy to gh-pages
-        if: steps.changes.outputs.changed == 'true' || inputs.deploy
+        if: steps.changes.outputs.changed == 'true' || inputs.deploy || steps.weekly.outputs.due == 'true'
         run: |
           git fetch origin gh-pages
           git worktree add --detach ../ghp origin/gh-pages

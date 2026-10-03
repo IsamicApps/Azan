@@ -40,6 +40,8 @@ export interface PrayerTimesResult {
   iqamaMinutes: Partial<Record<IqamaPrayer, number>>;
   /** Adhan per prayer as minutes after local midnight */
   adhanMinutes: Record<IqamaPrayer, number>;
+  /** Sunrise as minutes after local midnight */
+  sunriseMinutes: number;
   /** Prayers whose published Iqamah looks out of date: "check with the mosque" */
   iqamaCheck: Partial<Record<IqamaPrayer, true>>;
   /** Jumu'ah times: the mosque's Awqat notice or own timetable, else the app's list */
@@ -142,6 +144,11 @@ const STATE_TIMEZONES: Record<string, string> = {
   NT: 'Australia/Darwin'
 };
 
+/** The mosque's time zone, or undefined for custom mosques outside the known Australian states (device time zone). */
+export function getMosqueTimeZone(mosque: Mosque): string | undefined {
+  return STATE_TIMEZONES[mosque.state?.toUpperCase()];
+}
+
 interface ZonedClock {
   year: number;
   month: number;
@@ -225,7 +232,7 @@ export function calculateMosquePrayerTimes(
   const lat = currentMosque.lat;
   const lng = currentMosque.lng;
   
-  const timeZone = STATE_TIMEZONES[currentMosque.state?.toUpperCase()];
+  const timeZone = getMosqueTimeZone(currentMosque);
   const clock = getZonedClock(date, timeZone);
   const tzOffset = clock.offsetHours;
 
@@ -437,6 +444,7 @@ export function calculateMosquePrayerTimes(
     iqama,
     iqamaMinutes: Object.fromEntries(Object.entries(iqamaFor).filter(([, m]) => m !== undefined)) as Partial<Record<IqamaPrayer, number>>,
     adhanMinutes: { Fajr: fObj.totalMinutes, Dhuhr: dObj.totalMinutes, Asr: aObj.totalMinutes, Maghrib: mObj.totalMinutes, Isha: iObj.totalMinutes },
+    sunriseMinutes: sObj.totalMinutes,
     iqamaCheck: awqat?.iqamaCheck ?? {},
     jumuah: getMosqueJumuah(currentMosque),
     timesSource: awqat ? timesSource : 'calculated',

@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && npm run widget:data",
+    "widget:data": "vite-node scripts/build-widget-feed.ts",
     "preview": "vite preview",
     "hadith:data": "node scripts/build-hadith-data.mjs",
     "awqat:data": "node scripts/sync-awqat.mjs",
@@ -30,6 +31,7 @@
     "tailwindcss": "^4.3.3",
     "typescript": "^5.7.2",
     "vite": "^6.0.7",
+    "vite-node": "^3.2.4",
     "vitest": "^3.2.7"
   }
 }

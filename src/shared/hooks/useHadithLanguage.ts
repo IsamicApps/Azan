@@ -5,7 +5,7 @@ import { loadArabicText, peekArabicText, withArabicText } from '../utils/hadithL
 export type HadithLanguage = 'en' | 'ar';
 
 const STORAGE_KEY = 'daily_hadith_language';
-const CHANGE_EVENT = 'hadith-language-change';
+export const HADITH_LANGUAGE_EVENT = 'hadith-language-change';
 
 export function getHadithLanguage(): HadithLanguage {
   try {
@@ -21,7 +21,7 @@ export function setHadithLanguage(language: HadithLanguage): void {
   } catch {
     // Storage blocked: the choice still applies until the page is reloaded
   }
-  window.dispatchEvent(new CustomEvent(CHANGE_EVENT, { detail: language }));
+  window.dispatchEvent(new CustomEvent(HADITH_LANGUAGE_EVENT, { detail: language }));
 }
 
 /** The chosen Hadith language, kept in sync across every view that uses it. */
@@ -30,10 +30,10 @@ export function useHadithLanguage(): [HadithLanguage, (language: HadithLanguage)
   useEffect(() => {
     const onChange = (e: Event) => setLanguage((e as CustomEvent<HadithLanguage>).detail);
     const onStorage = (e: StorageEvent) => e.key === STORAGE_KEY && setLanguage(getHadithLanguage());
-    window.addEventListener(CHANGE_EVENT, onChange);
+    window.addEventListener(HADITH_LANGUAGE_EVENT, onChange);
     window.addEventListener('storage', onStorage);
     return () => {
-      window.removeEventListener(CHANGE_EVENT, onChange);
+      window.removeEventListener(HADITH_LANGUAGE_EVENT, onChange);
       window.removeEventListener('storage', onStorage);
     };
   }, []);
@@ -81,11 +81,11 @@ export function useUiLanguage(): HadithLanguage {
   useEffect(() => {
     const sync = () => setLanguage(getUiLanguage());
     window.addEventListener(UI_EVENT, sync);
-    window.addEventListener(CHANGE_EVENT, sync);
+    window.addEventListener(HADITH_LANGUAGE_EVENT, sync);
     window.addEventListener('storage', sync);
     return () => {
       window.removeEventListener(UI_EVENT, sync);
-      window.removeEventListener(CHANGE_EVENT, sync);
+      window.removeEventListener(HADITH_LANGUAGE_EVENT, sync);
       window.removeEventListener('storage', sync);
     };
   }, []);
