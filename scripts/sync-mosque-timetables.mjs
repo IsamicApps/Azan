@@ -7,6 +7,7 @@
 import fs from 'node:fs';
 
 const OUT = new URL('../src/shared/data/mosqueTimetables.json', import.meta.url);
+const previous = fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : {};
 
 // App mosque id -> mosque website and its Masjid App id
 const MOSQUES = {
@@ -74,7 +75,7 @@ for (const [appId, { site, masjidApp }] of Object.entries(MOSQUES)) {
     .map((e) => e.timeDesc.trim())
     .join(' & ');
 
-  out[appId] = {
+  const entry = {
     site,
     widget: `https://themasjidapp.org/${masjidApp}/prayers`,
     name: masjid.name,
@@ -84,6 +85,10 @@ for (const [appId, { site, masjidApp }] of Object.entries(MOSQUES)) {
     /** "MM-DD" -> Fajr, Sunrise, Dhuhr, Asr, Maghrib, Isha Adhan, then Fajr, Dhuhr, Asr, Maghrib, Isha Iqamah, in standard-time minutes */
     days
   };
+  // The date moves only when something changed, so the daily sync doesn't redeploy for nothing
+  const before = previous[appId];
+  if (before && JSON.stringify({ ...before, fetched: '' }) === JSON.stringify({ ...entry, fetched: '' })) entry.fetched = before.fetched;
+  out[appId] = entry;
   console.log(`${appId}: ${masjid.name}, 365 days (${dstDays} with daylight saving), Jumu'ah ${jumuah || 'none'}`);
 }
 

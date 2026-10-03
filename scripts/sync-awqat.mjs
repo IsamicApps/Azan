@@ -203,5 +203,9 @@ if (prayTimesSource) {
   );
 }
 
-fs.writeFileSync(OUT, JSON.stringify({ source: BASE, fetched: new Date().toISOString().slice(0, 10), cities, mosques }));
+// The date moves only when something changed, so the daily sync doesn't redeploy for nothing
+const previous = fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : null;
+const unchanged = previous && JSON.stringify({ cities: previous.cities, mosques: previous.mosques }) === JSON.stringify({ cities, mosques });
+const fetched = unchanged ? previous.fetched : new Date().toISOString().slice(0, 10);
+fs.writeFileSync(OUT, JSON.stringify({ source: BASE, fetched, cities, mosques }));
 console.log(`Wrote ${OUT.pathname} (${(fs.statSync(OUT).size / 1024).toFixed(1)} KB)`);
