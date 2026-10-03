@@ -47,8 +47,6 @@ import {
   saveTvTheme,
   nextTvTheme,
   tvThemeVariables,
-  getAnnouncements,
-  saveAnnouncements,
   getTvTopic,
   saveTvTopic
 } from '../utils/tvSettings';
@@ -80,10 +78,7 @@ import {
   Square,
   Timer,
   SunDim,
-  Megaphone,
-  Languages,
-  Trash2,
-  Plus
+  Languages
 } from 'lucide-react';
 
 const MUEZZIN_IDS = Object.keys(MUEZZIN_SOURCES) as MuezzinId[];
@@ -153,7 +148,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
   })();
   const [tvTheme, setTvTheme] = useState<TvTheme>(getTvTheme);
   const [driftOffset, setDriftOffset] = useState({ x: 0, y: 0 });
-  const [openDialog, setOpenDialog] = useState<'mosque' | 'azan' | 'notices' | 'topic' | 'language' | 'quran' | null>(null);
+  const [openDialog, setOpenDialog] = useState<'mosque' | 'azan' | 'topic' | 'language' | 'quran' | null>(null);
   // Screen and Hadith languages, chosen separately on the TV
   const uiLanguage = useUiLanguage();
   const [hadithLanguage, setHadithLanguage] = useHadithLanguage();
@@ -167,12 +162,6 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
     loadTopics().then(setTopics).catch(() => {});
   }, []);
   const topicButtonRef = useRef<HTMLButtonElement>(null);
-  // Mosque notices shown as their own slides between Hadiths
-  const [announcements, setAnnouncements] = useState<string[]>(getAnnouncements);
-  const [announcementSlide, setAnnouncementSlide] = useState<number | null>(null);
-  const announcementTurnRef = useRef(0);
-  const [newNotice, setNewNotice] = useState('');
-  const noticeInputRef = useRef<HTMLInputElement>(null);
   const isMosquePickerOpen = openDialog === 'mosque';
   // Quran recitation: replaces the Hadith slides while it plays
   const quran = useQuranPlayer();
@@ -285,7 +274,6 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
   }, []);
 
   const showHadith = (hadith: Hadith, isDaily: boolean) => {
-    setAnnouncementSlide(null);
     setShowExcerpt(false);
     setActiveHadith(hadith);
     setIsDailyHadith(isDaily);
@@ -338,29 +326,16 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
 
   // Next Hadith after the chosen time; restarts whenever the Hadith changes, so one
   // picked with Ch +/− also stays up for the full time
-  // With notices, every other slide is the next notice
   useEffect(() => {
     if (!slideSeconds || !activeHadith || quran.active) return;
-    const hadithTimer = setTimeout(() => {
-      if (announcementSlide === null && announcements.length > 0) {
-        setAnnouncementSlide(announcementTurnRef.current++ % announcements.length);
-      } else {
-        showNextHadith();
-      }
-    }, slideSeconds * 1000);
+    const hadithTimer = setTimeout(showNextHadith, slideSeconds * 1000);
     return () => clearTimeout(hadithTimer);
-  }, [slideSeconds, activeHadith, announcementSlide, announcements.length, quran.active]);
-
-  const updateAnnouncements = (list: string[]) => {
-    setAnnouncements(list);
-    saveAnnouncements(list);
-    setAnnouncementSlide(null);
-  };
+  }, [slideSeconds, activeHadith, quran.active]);
 
   // Keyboard navigation for TV Remotes (D-Pad / Keys)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Typing in a text box (notices): letters are text, not shortcuts
+      // Typing in a text box: letters are text, not shortcuts
       const target = e.target as HTMLElement | null;
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') && e.key !== 'Escape') return;
       const player = quranRef.current;
@@ -428,7 +403,6 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
   useEffect(() => {
     if (openDialog === 'mosque') selectedMosqueButtonRef.current?.focus();
     if (openDialog === 'azan') azanDialogFirstButtonRef.current?.focus();
-    if (openDialog === 'notices') noticeInputRef.current?.focus();
     if (openDialog === 'topic') topicButtonRef.current?.focus();
     if (openDialog === 'language') languageFirstButtonRef.current?.focus();
   }, [openDialog]);
@@ -483,7 +457,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
     setPreviewingRow(null);
   };
 
-  const openDialogOf = (kind: 'mosque' | 'azan' | 'notices' | 'topic' | 'language' | 'quran') => {
+  const openDialogOf = (kind: 'mosque' | 'azan' | 'topic' | 'language' | 'quran') => {
     window.history.pushState({ tvDialog: true }, '');
     setOpenDialog(kind);
   };
@@ -696,22 +670,6 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
         {/* Featured Hadith */}
         <div className="col-span-7 min-h-0 flex flex-col rounded-[32px] bg-[var(--tv-panel)] border border-amber-500/30 px-12 py-10 shadow-2xl relative overflow-hidden backdrop-blur-md">
           <IslamicPattern opacity={16} color={currentTheme.patternColor} />
-
-          {/* Mosque notice slide (between Hadiths) */}
-          {announcementSlide !== null && announcements[announcementSlide] && (
-            <div className="absolute inset-0 z-20 bg-[var(--tv-panel)] backdrop-blur-md flex flex-col items-center justify-center gap-8 px-16 text-center">
-              <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[26px] font-bold">
-                <Megaphone className="w-8 h-8" />
-                <span>{t('Mosque Announcement')}</span>
-              </div>
-              <p dir="auto" className="font-serif text-[64px] leading-snug text-white whitespace-pre-line">
-                {announcements[announcementSlide]}
-              </p>
-              {announcements.length > 1 && (
-                <div className="text-[22px] text-neutral-400">{t('{n} of {total}', { n: announcementSlide + 1, total: announcements.length })}</div>
-              )}
-            </div>
-          )}
 
           {quran.active && (
             <QuranNowPlaying player={quran} i18n={i18n} showTranslation={hadithLanguage === 'en'} onChoose={() => openDialogOf('quran')} />
@@ -967,14 +925,6 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
               </button>
 
               <button
-                onClick={() => openDialogOf('notices')}
-                className="p-3 rounded-2xl bg-white/10 hover:bg-white/20 text-neutral-200 hover:text-white transition cursor-pointer"
-                title={t('Mosque Announcements')}
-              >
-                <Megaphone className="w-6 h-6" />
-              </button>
-
-              <button
                 onClick={() => openDialogOf('mosque')}
                 className="p-3 rounded-2xl bg-white/10 hover:bg-white/20 text-neutral-200 hover:text-white transition cursor-pointer"
                 title={t('Choose Mosque')}
@@ -1093,66 +1043,6 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
                   </div>
                 );
               })}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Mosque notices: typed on the TV (Google TV shows its keyboard) */}
-      {openDialog === 'notices' && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center px-[96px] py-[54px] bg-black/85 backdrop-blur-md">
-          <div className="w-full max-w-[1300px] max-h-full flex flex-col rounded-[36px] bg-[var(--tv-dialog)] border border-amber-500/30 p-10 shadow-2xl">
-            <div className="flex items-center justify-between pb-6 mb-6 border-b border-white/10">
-              <div>
-                <h3 className="font-serif text-[48px] leading-tight font-bold text-white">{t('Mosque Announcements')}</h3>
-                <p className="text-[22px] text-neutral-400">{t('Shown between the Hadiths, one slide each. Saved on this TV.')}</p>
-              </div>
-              <button onClick={closeDialog} className="p-4 rounded-2xl bg-white/10 hover:bg-white/20 text-neutral-200 cursor-pointer" title={t('Close')}>
-                <X className="w-8 h-8" />
-              </button>
-            </div>
-            <form
-              className="flex gap-4 mb-6"
-              onSubmit={(e) => {
-                e.preventDefault();
-                const text = newNotice.trim();
-                if (!text) return;
-                updateAnnouncements([...announcements, text.slice(0, 200)]);
-                setNewNotice('');
-              }}
-            >
-              <input
-                ref={noticeInputRef}
-                dir="auto"
-                value={newNotice}
-                onChange={(e) => setNewNotice(e.target.value)}
-                maxLength={200}
-                placeholder={t('e.g. Tafsir class after Isha on Thursday')}
-                className="flex-1 px-6 py-4 rounded-2xl bg-black/50 border border-white/15 text-[28px] text-white placeholder-neutral-500 focus:outline-none focus:border-amber-400"
-              />
-              <button
-                type="submit"
-                disabled={!newNotice.trim() || announcements.length >= 10}
-                className="flex items-center gap-2 px-7 py-4 rounded-2xl bg-amber-500 text-neutral-950 text-[24px] font-bold disabled:opacity-40 cursor-pointer"
-              >
-                <Plus className="w-7 h-7" />
-                <span>{t('Add')}</span>
-              </button>
-            </form>
-            <div className="flex flex-col gap-3 overflow-y-auto p-2">
-              {announcements.length === 0 && <p className="text-[24px] text-neutral-500">{t('No announcements yet.')}</p>}
-              {announcements.map((text, i) => (
-                <div key={i} className="flex items-center gap-4 px-6 py-4 rounded-2xl bg-white/5 border border-white/10">
-                  <p dir="auto" className="flex-1 text-[26px] text-white">{text}</p>
-                  <button
-                    onClick={() => updateAnnouncements(announcements.filter((_, j) => j !== i))}
-                    className="p-4 rounded-2xl bg-white/10 hover:bg-rose-500/30 text-neutral-200 cursor-pointer"
-                    title={t('Remove')}
-                  >
-                    <Trash2 className="w-7 h-7" />
-                  </button>
-                </div>
-              ))}
             </div>
           </div>
         </div>

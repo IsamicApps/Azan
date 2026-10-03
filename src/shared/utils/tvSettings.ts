@@ -146,24 +146,6 @@ export function tvThemeVariables(accent: keyof typeof ACCENT_PALETTES | null, su
   return vars;
 }
 
-const ANNOUNCEMENTS_KEY = 'daily_hadith_tv_announcements';
-
-/** Mosque notices shown on the TV between Hadiths (stored on this TV). */
-export function getAnnouncements(): string[] {
-  try {
-    const list = JSON.parse(localStorage.getItem(ANNOUNCEMENTS_KEY) || '[]');
-    return Array.isArray(list) ? list.filter((x) => typeof x === 'string' && x.trim()).slice(0, 10) : [];
-  } catch {
-    return [];
-  }
-}
-
-export function saveAnnouncements(list: string[]): void {
-  try {
-    localStorage.setItem(ANNOUNCEMENTS_KEY, JSON.stringify(list.slice(0, 10)));
-  } catch {}
-}
-
 const TOPIC_KEY = 'daily_hadith_tv_topic';
 
 /** Topic the TV's Hadith slides come from; null = the whole library. */
