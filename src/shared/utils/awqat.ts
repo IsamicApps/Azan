@@ -64,7 +64,7 @@ export function getAwqatPage(mosqueId: string): string | null {
 /** Offset of `timeZone` from UTC in minutes at the given instant */
 const zoneFormatters = new Map<string, Intl.DateTimeFormat>();
 
-function zoneOffsetMinutes(instant: number, timeZone: string): number {
+export function zoneOffsetMinutes(instant: number, timeZone: string): number {
   let formatter = zoneFormatters.get(timeZone);
   if (!formatter) {
     formatter = new Intl.DateTimeFormat('en-US', {

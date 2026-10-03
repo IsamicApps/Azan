@@ -10,6 +10,7 @@ import { GradeBadge } from './GradeBadge';
 import { useDisplayedHadith } from '../hooks/useHadithLanguage';
 import { useI18n } from '../i18n';
 import { PrayerTimesResult, calculateMosquePrayerTimes, getSelectedMosque } from '../utils/prayerTimes';
+import { setNativeKeepAwake } from '../utils/nativeBridge';
 
 interface ScreensaverViewProps {
   hadith: Hadith;
@@ -51,6 +52,8 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
       }
     };
     requestWakeLock();
+    // In the phone apps the app keeps the screen on (the browser wake lock is refused on iPhone)
+    setNativeKeepAwake(true);
 
     // The browser drops the wake lock whenever the page is hidden; take it again on return
     const handleVisibilityChange = () => {
@@ -60,6 +63,7 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      setNativeKeepAwake(false);
       if (wakeLockRef.current) {
         wakeLockRef.current.release().catch(() => {});
         wakeLockRef.current = null;

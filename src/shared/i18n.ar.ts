@@ -357,6 +357,8 @@ export const AR: Record<string, string> = {
   'Clock Format': 'نظام الساعة',
   'Display Date & Hijri Calendar': 'عرض التاريخ الميلادي والهجري',
   'Display Next Prayer': 'عرض الصلاة القادمة',
+  '{prayer} · {time}': '{prayer} · {time}',
+  'Time for {prayer} at {mosque}': 'حان وقت صلاة {prayer} في {mosque}',
   'OLED Anti-Burn-in Drift': 'إزاحة لحماية الشاشة',
   'Gentle micro-shifts to protect screen': 'تحريك خفيف لحماية الشاشة',
   'Screensaver Integration': 'استخدام شاشة التوقف',

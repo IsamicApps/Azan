@@ -103,12 +103,15 @@ export function withPrayerMuezzin(settings: AzanSettings, prayer: AzanPrayer, mu
   return { ...settings, prayerMuezzins };
 }
 
+export const AZAN_SETTINGS_EVENT = 'daily-hadith:azan-settings-change';
+
 export function saveAzanSettings(settings: AzanSettings): void {
   // lastPlayedPrayerKey is tracked separately so stale settings copies can't roll it back
   const { lastPlayedPrayerKey, ...rest } = settings;
   try {
     localStorage.setItem(AZAN_SETTINGS_KEY, JSON.stringify(rest));
   } catch {}
+  window.dispatchEvent(new Event(AZAN_SETTINGS_EVENT));
 }
 
 const LAST_PLAYED_KEY = 'daily_hadith_azan_last_played_v1';
