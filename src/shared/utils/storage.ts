@@ -12,6 +12,7 @@ export const DEFAULT_SCREENSAVER_CONFIG: ScreensaverConfig = {
   clockFormat: '12h',
   showDate: true,
   showHijri: true,
+  showNextPrayer: true,
   patternOpacity: 25,
   driftEnabled: true,
   driftIntervalSeconds: 45

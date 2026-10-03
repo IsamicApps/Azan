@@ -60,6 +60,8 @@ export interface ScreensaverConfig {
   clockFormat: '12h' | '24h';
   showDate: boolean;
   showHijri: boolean;
+  /** Next prayer at the selected mosque, with a countdown and its Iqamah */
+  showNextPrayer: boolean;
   patternOpacity: number; // 0 to 100
   driftEnabled: boolean;
   driftIntervalSeconds: number;

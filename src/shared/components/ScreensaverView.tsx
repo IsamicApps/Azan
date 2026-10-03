@@ -9,6 +9,7 @@ import { describeHadith } from '../utils/hadithLibrary';
 import { GradeBadge } from './GradeBadge';
 import { useDisplayedHadith } from '../hooks/useHadithLanguage';
 import { useI18n } from '../i18n';
+import { PrayerTimesResult, calculateMosquePrayerTimes, getSelectedMosque } from '../utils/prayerTimes';
 
 interface ScreensaverViewProps {
   hadith: Hadith;
@@ -33,6 +34,7 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
   const [currentDate, setCurrentDate] = useState<string>('');
   const [driftOffset, setDriftOffset] = useState({ x: 0, y: 0 });
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [prayer, setPrayer] = useState<PrayerTimesResult>(() => calculateMosquePrayerTimes(getSelectedMosque(), new Date()));
 
   const hideTimerRef = useRef<number | null>(null);
   const wakeLockRef = useRef<any>(null);
@@ -85,6 +87,8 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
       });
       setCurrentTime(timeStr);
       setCurrentDate(dateStr);
+      // The selected mosque is read each time, so a change elsewhere in the app shows here too
+      setPrayer(calculateMosquePrayerTimes(getSelectedMosque(), now));
     };
 
     updateTime();
@@ -275,6 +279,25 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
           </div>
         )}
 
+        {/* Next prayer at the selected mosque, counting down */}
+        {config.showNextPrayer && (
+          <div className="mb-6 md:mb-10 inline-flex flex-wrap items-center justify-center gap-x-3 gap-y-1 px-5 py-2.5 rounded-2xl bg-white/5 border border-amber-400/20 font-sans">
+            <span className="text-[11px] md:text-xs uppercase tracking-[0.2em] text-amber-300/80">{t('Next Prayer')}</span>
+            <span className="text-lg md:text-2xl text-neutral-100 font-medium">
+              {i18n.prayer(prayer.nextPrayer.name === 'Dhuhr' && prayer.isFriday ? "Jumu'ah" : prayer.nextPrayer.name)}{' '}
+              {i18n.time(prayer.nextPrayer.time)}
+            </span>
+            <span className="text-base md:text-xl text-amber-400 tabular-nums">
+              {t('in {time}', { time: i18n.duration(prayer.nextPrayer.remainingFormatted) })}
+            </span>
+            {prayer.nextPrayer.iqamaTime && (
+              <span className="text-xs md:text-sm text-neutral-400">
+                {t('Iqamah')} {i18n.time(prayer.nextPrayer.iqamaTime)}
+              </span>
+            )}
+          </div>
+        )}
+
         {/* Narrator */}
         {hadith.narrator && (
           <div className="mb-4">
@@ -443,6 +466,16 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
                   type="checkbox"
                   checked={config.showDate}
                   onChange={(e) => updateConfig({ showDate: e.target.checked })}
+                  className="rounded accent-amber-400 w-4 h-4"
+                />
+              </label>
+
+              <label className="flex items-center justify-between text-sm cursor-pointer">
+                <span>{t('Display Next Prayer')}</span>
+                <input
+                  type="checkbox"
+                  checked={config.showNextPrayer}
+                  onChange={(e) => updateConfig({ showNextPrayer: e.target.checked })}
                   className="rounded accent-amber-400 w-4 h-4"
                 />
               </label>
