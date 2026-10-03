@@ -390,10 +390,18 @@ export const QuranDialog: React.FC<QuranDialogProps> = ({ player, i18n, onClose,
     currentRef.current?.scrollIntoView({ block: 'center' });
   }, []);
 
-  const cycleReciter = () => {
-    const index = RECITERS.findIndex((r) => r.id === settings.reciter);
-    player.updateSettings({ reciter: RECITERS[(index + 1) % RECITERS.length].id });
+  const reciterRowRef = useRef<HTMLDivElement>(null);
+  const reciterIndex = Math.max(0, RECITERS.findIndex((r) => r.id === settings.reciter));
+  const chooseReciter = (index: number) => {
+    player.updateSettings({ reciter: RECITERS[(index + RECITERS.length) % RECITERS.length].id });
   };
+
+  // Keep the chosen reciter in view in the scrolling row
+  useEffect(() => {
+    reciterRowRef.current
+      ?.querySelector<HTMLElement>('[aria-pressed="true"]')
+      ?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+  }, [settings.reciter]);
 
   return (
     <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center px-[96px] py-[54px] bg-black/85 backdrop-blur-md">
@@ -408,15 +416,42 @@ export const QuranDialog: React.FC<QuranDialogProps> = ({ player, i18n, onClose,
           </button>
         </div>
 
-        <div className="flex items-center gap-4 mb-6">
+        <div className="flex items-center gap-3 mb-4">
+          <span className="shrink-0 text-[24px] text-neutral-400">{t('Reciter')}</span>
           <button
-            onClick={cycleReciter}
-            className="flex-1 flex items-center justify-between gap-4 px-7 py-5 rounded-3xl bg-white/5 hover:bg-white/10 border border-white/10 text-start cursor-pointer"
+            onClick={() => chooseReciter(reciterIndex - 1)}
+            className="shrink-0 p-4 rounded-2xl bg-white/10 hover:bg-white/20 text-neutral-200 cursor-pointer"
+            title={t('Previous reciter')}
           >
-            <span className="text-[24px] text-neutral-400">{t('Reciter')}</span>
-            <span className="text-[28px] font-bold text-amber-300">{reciterName(settings.reciter, i18n)}</span>
-            <span className="text-[18px] text-neutral-500">{t('OK to change')}</span>
+            <ChevronLeft className="w-8 h-8 rtl:rotate-180" />
           </button>
+          <div ref={reciterRowRef} className="flex-1 min-w-0 flex gap-3 overflow-x-auto scroll-smooth p-2 [scrollbar-width:thin]">
+            {RECITERS.map((r, i) => {
+              const selected = i === reciterIndex;
+              return (
+                <button
+                  key={r.id}
+                  onClick={() => chooseReciter(i)}
+                  aria-pressed={selected}
+                  className={`shrink-0 px-6 py-4 rounded-3xl text-[24px] font-semibold whitespace-nowrap cursor-pointer border ${
+                    selected ? 'bg-amber-500 text-neutral-950 border-amber-400' : 'bg-white/5 hover:bg-white/15 text-white border-white/10'
+                  }`}
+                >
+                  {i18n.isArabic ? r.nameAr : r.name}
+                </button>
+              );
+            })}
+          </div>
+          <button
+            onClick={() => chooseReciter(reciterIndex + 1)}
+            className="shrink-0 p-4 rounded-2xl bg-white/10 hover:bg-white/20 text-neutral-200 cursor-pointer"
+            title={t('Next reciter')}
+          >
+            <ChevronRight className="w-8 h-8 rtl:rotate-180" />
+          </button>
+        </div>
+
+        <div className="flex items-center gap-4 mb-6">
           <button
             onClick={() => player.updateSettings({ continuous: !settings.continuous })}
             aria-pressed={settings.continuous}
