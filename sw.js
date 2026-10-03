@@ -1,5 +1,6 @@
-// Service Worker for Daily Hadith & Azan (v13 Network-First) — serves both the mobile and TV apps
-const CACHE_NAME = 'daily-hadith-azan-v13';
+// Service Worker for Daily Hadith & Azan (v14 Network-First). The TV app moved to
+// islamicapplications.github.io/IslamicTvApps; ./tv/ is now a page that redirects there.
+const CACHE_NAME = 'daily-hadith-azan-v14';
 
 const ESSENTIAL_ASSETS = [
   './',
@@ -7,9 +8,7 @@ const ESSENTIAL_ASSETS = [
   './favicon.svg',
   './logo.svg',
   './manifest.webmanifest',
-  './tv/',
   './tv/index.html',
-  './tv/manifest.webmanifest',
   './hadith/v3/index.json'
 ];
 
