@@ -104,8 +104,8 @@ export const NamesOfAllahView: React.FC = () => {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Hero Header Banner */}
-      <div className="relative rounded-3xl bg-gradient-to-r from-amber-600/25 via-[#181a26] to-[#0d1018] border border-amber-500/40 p-6 md:p-8 shadow-2xl overflow-hidden">
-        <IslamicPattern opacity={18} color="#d4af37" />
+      <div className="relative rounded-3xl bg-gradient-to-r from-amber-600/25 via-(--s3) to-(--s1) border border-amber-500/40 p-6 md:p-8 shadow-2xl overflow-hidden">
+        <IslamicPattern opacity={18} />
         <IslamicCornerOrnament className="absolute top-2 left-2 rotate-0 opacity-30" />
         <IslamicCornerOrnament className="absolute top-2 right-2 rotate-90 opacity-30" />
 
@@ -132,7 +132,7 @@ export const NamesOfAllahView: React.FC = () => {
       </div>
 
       {/* Search & Statistics Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-2xl bg-[#11131c] border border-white/10">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-2xl bg-(--s2) border border-white/10">
         <div className="relative w-full sm:w-80">
           <Search className="absolute start-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
           <input
@@ -160,7 +160,7 @@ export const NamesOfAllahView: React.FC = () => {
           return (
             <div
               key={item.id}
-              className="p-5 rounded-3xl bg-gradient-to-b from-[#141724] via-[#0f121d] to-[#0a0c14] border border-white/10 hover:border-amber-500/40 transition-all duration-300 shadow-xl flex flex-col justify-between space-y-4 group hover:scale-[1.01]"
+              className="p-5 rounded-3xl bg-gradient-to-b from-(--s3) via-(--s2) to-(--s0) border border-white/10 hover:border-amber-500/40 transition-all duration-300 shadow-xl flex flex-col justify-between space-y-4 group hover:scale-[1.01]"
             >
               <div className="space-y-3">
                 {/* Number Badge & Action Controls */}

@@ -69,8 +69,8 @@ export const AzanLiveModal: React.FC<AzanLiveModalProps> = ({
 
   return (
     <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-lg animate-fade-in select-none">
-      <div className="azan-live-modal relative w-full max-w-lg rounded-3xl bg-gradient-to-b from-[#161a28] via-[#0f1320] to-[#080a10] border border-amber-500/40 p-6 md:p-8 shadow-2xl overflow-hidden flex flex-col justify-between text-neutral-100 max-h-[var(--azan-modal-max-h,92vh)] overflow-y-auto">
-        <IslamicPattern opacity={24} color="#d4af37" />
+      <div className="azan-live-modal relative w-full max-w-lg rounded-3xl bg-gradient-to-b from-(--s3) via-(--s2) to-(--s0) border border-amber-500/40 p-6 md:p-8 shadow-2xl overflow-hidden flex flex-col justify-between text-neutral-100 max-h-[var(--azan-modal-max-h,92vh)] overflow-y-auto">
+        <IslamicPattern opacity={24} />
         <IslamicCornerOrnament className="absolute top-3 left-3 rotate-0 opacity-40" />
         <IslamicCornerOrnament className="absolute top-3 right-3 rotate-90 opacity-40" />
         <IslamicCornerOrnament className="absolute bottom-3 left-3 -rotate-90 opacity-40" />

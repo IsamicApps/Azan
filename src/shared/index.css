@@ -1,10 +1,32 @@
 @import "tailwindcss";
 
+/* Theme colours (see src/shared/theme.ts). Registered as colours so a change of
+   theme, or of the time of day, fades instead of jumping. Defaults: Obsidian. */
+@property --bg-from { syntax: '<color>'; inherits: true; initial-value: #06080e; }
+@property --bg-via { syntax: '<color>'; inherits: true; initial-value: #090d18; }
+@property --bg-to { syntax: '<color>'; inherits: true; initial-value: #040508; }
+@property --s0 { syntax: '<color>'; inherits: true; initial-value: #090b10; }
+@property --s1 { syntax: '<color>'; inherits: true; initial-value: #0e111a; }
+@property --s2 { syntax: '<color>'; inherits: true; initial-value: #11131c; }
+@property --s3 { syntax: '<color>'; inherits: true; initial-value: #151824; }
+@property --s4 { syntax: '<color>'; inherits: true; initial-value: #1a1f30; }
+@property --s5 { syntax: '<color>'; inherits: true; initial-value: #22293d; }
+
+:root {
+  --pattern: #d4af37;
+  transition: --bg-from 2s ease, --bg-via 2s ease, --bg-to 2s ease, --s0 2s ease, --s1 2s ease, --s2 2s ease, --s3 2s ease, --s4 2s ease, --s5 2s ease;
+}
+
+/* The theme's background gradient */
+.app-bg {
+  background-image: linear-gradient(135deg, var(--bg-from), var(--bg-via), var(--bg-to));
+}
+
 @layer base {
   body {
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    background-color: #080a0f;
-    color: #f3f4f6;
+    background-color: var(--s0);
+    color: var(--color-neutral-100);
     overflow-x: hidden;
     -webkit-tap-highlight-color: transparent;
   }
@@ -66,12 +88,12 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(217, 171, 61, 0.3);
+  background: color-mix(in srgb, var(--pattern) 30%, transparent);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(217, 171, 61, 0.6);
+  background: color-mix(in srgb, var(--pattern) 60%, transparent);
 }
 
 /* Monthly timetable: print only the table */

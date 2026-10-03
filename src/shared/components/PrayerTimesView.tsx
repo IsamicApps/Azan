@@ -322,8 +322,8 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
   return (
     <div className="space-y-6 animate-fade-in">
       {/* 1. TOP MOSQUE SELECTOR HERO BANNER */}
-      <div className="relative rounded-3xl bg-gradient-to-b from-[#141926] via-[#0f121d] to-[#0a0c14] border border-amber-500/30 p-6 shadow-2xl overflow-hidden backdrop-blur-md">
-        <IslamicPattern opacity={20} color="#d4af37" />
+      <div className="relative rounded-3xl bg-gradient-to-b from-(--s3) via-(--s2) to-(--s0) border border-amber-500/30 p-6 shadow-2xl overflow-hidden backdrop-blur-md">
+        <IslamicPattern opacity={20} />
         <IslamicCornerOrnament className="absolute top-2 left-2 rotate-0 opacity-25" />
         <IslamicCornerOrnament className="absolute top-2 right-2 rotate-90 opacity-25" />
 
@@ -402,7 +402,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
 
       {/* 2. SEARCHABLE MOSQUE DIRECTORY DRAWER */}
       {showMosqueSelector && (
-        <div className="p-6 rounded-3xl bg-[#11131c] border border-amber-500/30 space-y-4 animate-fade-in shadow-2xl">
+        <div className="p-6 rounded-3xl bg-(--s2) border border-amber-500/30 space-y-4 animate-fade-in shadow-2xl">
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
               <Search className="absolute start-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
@@ -482,8 +482,8 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
       )}
 
       {/* 3. NEXT PRAYER & AZAN AUTO-PLAY CONTROLS */}
-      <div className="relative rounded-3xl bg-gradient-to-r from-amber-600/20 via-[#181a26] to-[#10131e] border border-amber-500/40 p-6 md:p-8 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden">
-        <IslamicPattern opacity={15} color="#d4af37" />
+      <div className="relative rounded-3xl bg-gradient-to-r from-amber-600/20 via-(--s3) to-(--s2) border border-amber-500/40 p-6 md:p-8 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden">
+        <IslamicPattern opacity={15} />
 
         <div className="relative z-10 space-y-2 text-center md:text-start">
           <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold uppercase tracking-wider">
@@ -541,8 +541,8 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
 
       {/* 4. FASTING / IFTAR & SUHOOR (IMSAK) COUNTDOWN CARD — Ramadan only */}
       {prayerData.isRamadan && (
-      <div className="relative rounded-3xl bg-gradient-to-r from-emerald-950/40 via-[#101918] to-[#0c1214] border border-emerald-500/30 p-6 shadow-xl overflow-hidden">
-        <IslamicPattern opacity={12} color="#10b981" />
+      <div className="relative rounded-3xl bg-gradient-to-r from-emerald-950/40 via-(--s2) to-(--s1) border border-emerald-500/30 p-6 shadow-xl overflow-hidden">
+        <IslamicPattern opacity={12} color="var(--color-emerald-500)" />
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="space-y-2 text-center md:text-start">
             <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold uppercase tracking-wider">
@@ -626,7 +626,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
       )}
 
       {/* 5. AUTHENTIC VOCAL MUEZZIN SOUND SELECTOR & PREVIEW */}
-      <div className="p-6 rounded-3xl bg-[#11131c] border border-white/10 space-y-4 shadow-xl">
+      <div className="p-6 rounded-3xl bg-(--s2) border border-white/10 space-y-4 shadow-xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-white/10">
           <div className="flex items-center space-x-2">
             <Sliders className="w-5 h-5 text-amber-400" />
@@ -788,10 +788,10 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
               key={p.name}
               className={`p-4 rounded-2xl border transition-all flex flex-col justify-between space-y-2 text-center ${
                 isNext
-                  ? 'bg-gradient-to-b from-amber-500/25 via-[#1a1e2c] to-[#121520] border-amber-400 ring-2 ring-amber-500/30 shadow-xl scale-[1.02]'
+                  ? 'bg-gradient-to-b from-amber-500/25 via-(--s4) to-(--s2) border-amber-400 ring-2 ring-amber-500/30 shadow-xl scale-[1.02]'
                   : isCurrent
                   ? 'bg-neutral-900/80 border-emerald-500/40'
-                  : 'bg-[#11131c]/70 border-white/5 hover:border-white/15'
+                  : 'bg-(--s2)/70 border-white/5 hover:border-white/15'
               }`}
             >
               <div className="flex items-center justify-between text-xs">
@@ -838,7 +838,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
       {/* 7. INTERACTIVE QIBLA COMPASS & DIGITAL TASBIH DHIKR COUNTER */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Friday Jumu'ah Card */}
-        <div className="p-5 rounded-3xl bg-[#11131c] border border-white/10 flex items-center space-x-4">
+        <div className="p-5 rounded-3xl bg-(--s2) border border-white/10 flex items-center space-x-4">
           <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
             <Calendar className="w-6 h-6 text-amber-400" />
           </div>
@@ -850,7 +850,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
         </div>
 
         {/* Rotating Qibla Compass Dial */}
-        <div className="p-5 rounded-3xl bg-[#11131c] border border-white/10 flex items-center space-x-4">
+        <div className="p-5 rounded-3xl bg-(--s2) border border-white/10 flex items-center space-x-4">
           <div className="relative w-14 h-14 rounded-full bg-sky-950/40 border border-sky-500/40 flex items-center justify-center shrink-0">
             <div
               className="absolute inset-0 flex items-center justify-center transition-transform duration-700"
@@ -872,7 +872,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
         {/* Digital Tasbih Dhikr Counter */}
         <div
           onClick={handleDhikrTap}
-          className="p-5 rounded-3xl bg-gradient-to-br from-neutral-900 to-[#121622] border border-amber-500/25 hover:border-amber-400/50 transition cursor-pointer flex items-center justify-between shadow-lg group select-none"
+          className="p-5 rounded-3xl bg-gradient-to-br from-neutral-900 to-(--s3) border border-amber-500/25 hover:border-amber-400/50 transition cursor-pointer flex items-center justify-between shadow-lg group select-none"
         >
           <div className="space-y-1">
             <div className="flex items-center space-x-2">
@@ -903,7 +903,7 @@ export const PrayerTimesView: React.FC<PrayerTimesViewProps> = ({ onMosqueChange
       {/* 8. ADD CUSTOM MOSQUE MODAL */}
       {showAddCustomModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
-          <div className="relative w-full max-w-lg rounded-3xl bg-[#11131c] border border-amber-500/40 p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+          <div className="relative w-full max-w-lg rounded-3xl bg-(--s2) border border-amber-500/40 p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-white/10">
               <div className="flex items-center space-x-2">
                 <PlusCircle className="w-5 h-5 text-amber-400" />

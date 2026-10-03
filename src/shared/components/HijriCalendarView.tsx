@@ -79,8 +79,8 @@ export const HijriCalendarView: React.FC = () => {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header Banner */}
-      <div className="relative rounded-3xl bg-gradient-to-r from-amber-600/20 via-[#181a26] to-[#0e111a] border border-amber-500/40 p-6 md:p-8 shadow-2xl overflow-hidden">
-        <IslamicPattern opacity={18} color="#d4af37" />
+      <div className="relative rounded-3xl bg-gradient-to-r from-amber-600/20 via-(--s3) to-(--s1) border border-amber-500/40 p-6 md:p-8 shadow-2xl overflow-hidden">
+        <IslamicPattern opacity={18} />
         <IslamicCornerOrnament className="absolute top-2 left-2 rotate-0 opacity-30" />
         <IslamicCornerOrnament className="absolute top-2 right-2 rotate-90 opacity-30" />
 
@@ -129,7 +129,7 @@ export const HijriCalendarView: React.FC = () => {
       {/* Calendar Grid & Sunnah Fasting Badges */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Month Calendar Grid */}
-        <div className="lg:col-span-2 p-6 rounded-3xl bg-[#11131c] border border-white/10 space-y-4 shadow-xl">
+        <div className="lg:col-span-2 p-6 rounded-3xl bg-(--s2) border border-white/10 space-y-4 shadow-xl">
           <div className="flex items-center justify-between pb-2 border-b border-white/10">
             <div>
               <h3 className="font-serif text-lg font-bold text-white">
@@ -205,7 +205,7 @@ export const HijriCalendarView: React.FC = () => {
         </div>
 
         {/* Sacred Islamic Days & Sunnah Fasting Guide */}
-        <div className="p-6 rounded-3xl bg-[#11131c] border border-white/10 space-y-4 shadow-xl flex flex-col justify-between">
+        <div className="p-6 rounded-3xl bg-(--s2) border border-white/10 space-y-4 shadow-xl flex flex-col justify-between">
           <div className="space-y-3">
             <h3 className="font-serif text-lg font-bold text-white flex items-center space-x-2">
               <Sparkles className="w-4 h-4 text-amber-400" />

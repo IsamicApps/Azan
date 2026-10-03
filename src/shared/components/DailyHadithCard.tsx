@@ -66,9 +66,9 @@ export const DailyHadithCard: React.FC<DailyHadithCardProps> = ({
 
   return (
     <>
-      <div className="relative w-full rounded-3xl bg-gradient-to-b from-[#131722]/90 via-[#0e111a]/95 to-[#090b10] border border-amber-500/25 shadow-2xl p-6 md:p-10 overflow-hidden transition-all duration-300 backdrop-blur-md">
+      <div className="relative w-full rounded-3xl bg-gradient-to-b from-(--s3)/90 via-(--s1)/95 to-(--s0) border border-amber-500/25 shadow-2xl p-6 md:p-10 overflow-hidden transition-all duration-300 backdrop-blur-md">
         {/* Subtle Background Pattern */}
-        <IslamicPattern opacity={18} color="#d4af37" />
+        <IslamicPattern opacity={18} />
 
         {/* Decorative Islamic Corner Ornaments */}
         <IslamicCornerOrnament className="absolute top-3 left-3 rotate-0 opacity-30" />

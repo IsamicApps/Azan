@@ -78,7 +78,7 @@ export const DailyReminderModal: React.FC<DailyReminderModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div className="bg-[#12141c] border border-amber-500/30 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-6 text-neutral-100">
+      <div className="bg-(--s2) border border-amber-500/30 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-6 text-neutral-100">
         <div className="flex items-center justify-between pb-4 border-b border-white/10">
           <div className="flex items-center space-x-2">
             <Bell className="w-5 h-5 text-amber-400" />

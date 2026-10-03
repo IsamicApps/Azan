@@ -42,15 +42,12 @@ import {
   getTvBrightness,
   saveTvBrightness,
   nextTvBrightness,
-  TvTheme,
-  getTvTheme,
-  saveTvTheme,
-  nextTvTheme,
-  tvThemeVariables,
   getTvTopic,
   saveTvTopic
 } from '../utils/tvSettings';
 import { IslamicPattern, IslamicCornerOrnament } from './IslamicPattern';
+import { RamadanAccent } from './RamadanAccent';
+import { THEMES, nextTheme, useAppTheme } from '../theme';
 import { AppLogo } from './AppLogo';
 import {
   Maximize,
@@ -78,7 +75,8 @@ import {
   Square,
   Timer,
   SunDim,
-  Languages
+  Languages,
+  Palette
 } from 'lucide-react';
 
 const MUEZZIN_IDS = Object.keys(MUEZZIN_SOURCES) as MuezzinId[];
@@ -146,7 +144,9 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
     const night = now >= prayerData.adhanMinutes.Isha + 60 || now < prayerData.adhanMinutes.Fajr - 30;
     return night ? 25 : 100;
   })();
-  const [tvTheme, setTvTheme] = useState<TvTheme>(getTvTheme);
+  // Shared app theme; time-based ones follow the selected mosque's prayer times
+  const appTheme = useAppTheme();
+  const themeLabel = t(THEMES.find((x) => x.id === appTheme.theme)!.label);
   const [driftOffset, setDriftOffset] = useState({ x: 0, y: 0 });
   const [openDialog, setOpenDialog] = useState<'mosque' | 'azan' | 'topic' | 'language' | 'quran' | null>(null);
   // Screen and Hadith languages, chosen separately on the TV
@@ -308,13 +308,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
     });
   };
 
-  const cycleTheme = () => {
-    setTvTheme((current) => {
-      const next = nextTvTheme(current);
-      saveTvTheme(next);
-      return next;
-    });
-  };
+  const cycleTheme = () => appTheme.setTheme(nextTheme(appTheme.theme));
 
   const cycleBrightness = () => {
     setBrightness((current) => {
@@ -381,7 +375,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [azanSettings, tvTheme, onClose, openDialog]);
+  }, [azanSettings, appTheme.theme, onClose, openDialog]);
 
   useEffect(() => {
     const syncFullscreen = () => setIsFullscreen(!!document.fullscreenElement);
@@ -552,44 +546,6 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
     return () => window.removeEventListener('resize', fit);
   }, [shownHadith?.text, shownHadith?.narrator, showExcerpt]);
 
-  // Each theme recolours the whole screen: background, pattern, accent colour (in place
-  // of amber) and the tinted panels (--tv-* variables)
-  const themes: Record<TvTheme, { bg: string; patternColor: string; vars: Record<string, string> }> = {
-    obsidian: {
-      bg: 'bg-gradient-to-br from-[#06080e] via-[#090d18] to-[#040508]',
-      patternColor: '#d4af37',
-      vars: tvThemeVariables(null, {
-        panel: 'rgb(12 15 24 / 0.8)', card: 'rgb(15 18 29 / 0.8)', strip: '#0e121c', dialog: '#10131d',
-        'hero-mid': '#1a1f30', 'hero-end': '#101420', 'next-mid': '#22293d', 'next-end': '#151a28'
-      })
-    },
-    emerald: {
-      bg: 'bg-gradient-to-br from-[#03140e] via-[#062016] to-[#020a07]',
-      patternColor: '#10b981',
-      vars: tvThemeVariables('emerald', {
-        panel: 'rgb(6 26 19 / 0.8)', card: 'rgb(8 31 23 / 0.8)', strip: '#072018', dialog: '#06190f',
-        'hero-mid': '#0f2e22', 'hero-end': '#081a13', 'next-mid': '#143a2b', 'next-end': '#0b241a'
-      })
-    },
-    sapphire: {
-      bg: 'bg-gradient-to-br from-[#050e1f] via-[#091630] to-[#030710]',
-      patternColor: '#38bdf8',
-      vars: tvThemeVariables('sky', {
-        panel: 'rgb(8 18 38 / 0.8)', card: 'rgb(10 22 45 / 0.8)', strip: '#0a1830', dialog: '#08142b',
-        'hero-mid': '#12254a', 'hero-end': '#0a1730', 'next-mid': '#183060', 'next-end': '#0e1d3c'
-      })
-    },
-    'royal-gold': {
-      bg: 'bg-gradient-to-br from-[#191206] via-[#241a08] to-[#0d0903]',
-      patternColor: '#fbbf24',
-      vars: tvThemeVariables('yellow', {
-        panel: 'rgb(30 22 8 / 0.8)', card: 'rgb(35 26 10 / 0.8)', strip: '#21180a', dialog: '#1c1407',
-        'hero-mid': '#33260f', 'hero-end': '#1d1508', 'next-mid': '#3d2d12', 'next-end': '#261c0b'
-      })
-    }
-  };
-
-  const currentTheme = themes[tvTheme];
 
   const prayerCards = [
     { name: 'Fajr', arabic: 'الفجر', time: prayerData.fajr, icon: '🌅', iqama: prayerData.iqama.Fajr },
@@ -610,22 +566,20 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
   return (
     <div
       ref={containerRef}
-      style={{
-        ...currentTheme.vars,
-        transform: `translate3d(${driftOffset.x}px, ${driftOffset.y}px, 0)`
-      } as React.CSSProperties}
-      className={`fixed inset-0 z-50 w-full h-full ${currentTheme.bg} text-white flex flex-col px-[72px] py-[44px] select-none overflow-hidden transition-colors duration-700`}
+      style={{ transform: `translate3d(${driftOffset.x}px, ${driftOffset.y}px, 0)` }}
+      className={`fixed inset-0 z-50 w-full h-full app-bg text-white flex flex-col px-[72px] py-[44px] select-none overflow-hidden transition-colors duration-700`}
     >
-      <IslamicPattern opacity={12} color={currentTheme.patternColor} />
-      <IslamicCornerOrnament color={currentTheme.patternColor} className="absolute top-4 left-4 rotate-0 opacity-40 scale-125" />
-      <IslamicCornerOrnament color={currentTheme.patternColor} className="absolute top-4 right-4 rotate-90 opacity-40 scale-125" />
-      <IslamicCornerOrnament color={currentTheme.patternColor} className="absolute bottom-4 left-4 -rotate-90 opacity-40 scale-125" />
-      <IslamicCornerOrnament color={currentTheme.patternColor} className="absolute bottom-4 right-4 rotate-180 opacity-40 scale-125" />
+      <IslamicPattern opacity={12} />
+      <IslamicCornerOrnament className="absolute top-4 left-4 rotate-0 opacity-40 scale-125" />
+      <IslamicCornerOrnament className="absolute top-4 right-4 rotate-90 opacity-40 scale-125" />
+      <IslamicCornerOrnament className="absolute bottom-4 left-4 -rotate-90 opacity-40 scale-125" />
+      <IslamicCornerOrnament className="absolute bottom-4 right-4 rotate-180 opacity-40 scale-125" />
 
       {/* 1. HEADER: brand & mosque | dates | clock */}
       <header className="relative z-20 shrink-0 grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-12 pb-6 border-b border-white/15">
         <div className="flex items-center gap-5 min-w-0">
           <AppLogo size={76} glow={true} />
+          {prayerData.isRamadan && <RamadanAccent size="tv" className="-ms-2" />}
           <div className="min-w-0">
             <div className="flex items-center gap-3">
               <span className="font-serif text-[40px] leading-tight font-extrabold tracking-tight text-white whitespace-nowrap">
@@ -669,7 +623,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
       <main className="relative z-20 flex-1 min-h-0 grid grid-cols-12 gap-8 my-7">
         {/* Featured Hadith */}
         <div className="col-span-7 min-h-0 flex flex-col rounded-[32px] bg-[var(--tv-panel)] border border-amber-500/30 px-12 py-10 shadow-2xl relative overflow-hidden backdrop-blur-md">
-          <IslamicPattern opacity={16} color={currentTheme.patternColor} />
+          <IslamicPattern opacity={16} />
 
           {quran.active && (
             <QuranNowPlaying player={quran} i18n={i18n} showTranslation={hadithLanguage === 'en'} onChoose={() => openDialogOf('quran')} />
@@ -768,7 +722,7 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
         {/* Next prayer & timetable */}
         <div className="col-span-5 min-h-0 flex flex-col gap-5">
           <div className="shrink-0 px-9 py-7 rounded-[32px] bg-gradient-to-r from-amber-600/30 via-[var(--tv-hero-mid)] to-[var(--tv-hero-end)] border border-amber-500/40 shadow-2xl relative overflow-hidden flex items-center justify-between gap-6">
-            <IslamicPattern opacity={14} color={currentTheme.patternColor} />
+            <IslamicPattern opacity={14} />
             <div className="relative z-10 min-w-0">
               <div className="text-[20px] uppercase tracking-widest text-amber-300 font-bold">
                 {t('Next Prayer')}
@@ -942,10 +896,11 @@ export const SmartTvDisplayView: React.FC<SmartTvDisplayViewProps> = ({ onClose 
 
               <button
                 onClick={cycleTheme}
-                className="p-3 rounded-2xl bg-white/10 hover:bg-white/20 text-neutral-200 hover:text-white transition cursor-pointer"
+                className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-neutral-200 hover:text-white transition cursor-pointer text-[20px] font-semibold whitespace-nowrap"
                 title={t('Switch Theme [T]')}
               >
-                <Moon className="w-6 h-6" />
+                <Palette className="w-6 h-6" />
+                <span>{themeLabel}</span>
               </button>
 
               <button

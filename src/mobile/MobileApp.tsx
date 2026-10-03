@@ -7,12 +7,15 @@ import { useDailyReminder } from '../shared/hooks/useDailyReminder';
 import { useDocumentLanguage } from '../shared/i18n';
 import { getHijriDate } from '../shared/utils/hijri';
 import { formatDateKey } from '../shared/utils/dailyEngine';
+import { useAppTheme } from '../shared/theme';
 
 export function MobileApp() {
   const [isScreensaverOpen, setIsScreensaverOpen] = useState(false);
 
   useDailyReminder();
   useDocumentLanguage();
+  // Theme colours for the whole page (time-based themes follow the prayer times)
+  useAppTheme();
 
   // Re-render at midnight, so a screensaver left on overnight moves to the new day's Hadith and Hijri date
   const [, setDayKey] = useState(() => formatDateKey(new Date()));
@@ -28,7 +31,7 @@ export function MobileApp() {
   const today = loaded ?? lastLoaded.current;
 
   return (
-    <div className="w-full h-[100dvh] flex flex-col bg-[#080a0f]">
+    <div className="w-full h-[100dvh] flex flex-col bg-(--s0)">
       <MobileAppShell onOpenScreensaver={() => setIsScreensaverOpen(true)} />
 
       {isScreensaverOpen && today && (

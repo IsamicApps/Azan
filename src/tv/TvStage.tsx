@@ -26,7 +26,7 @@ export const TvStage: React.FC<{ children: React.ReactNode }> = ({ children }) =
   }, []);
 
   return (
-    <div className="fixed inset-0 overflow-hidden bg-[#06080e]">
+    <div className="fixed inset-0 overflow-hidden bg-(--s0)">
       <div
         className="tv-stage absolute left-1/2 top-1/2 overflow-hidden"
         style={{

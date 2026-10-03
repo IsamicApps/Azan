@@ -25,6 +25,13 @@ Both apps share everything in `src/shared/` (components, prayer-time & Azan engi
 - **Audio Recitation**: Serene Web Speech synthesis reading narration and Hadith text.
 - **Social Graphic Card Generator**: Export shareable cards and copy formatted citations.
 
+### 🎨 Themes (phone, screensaver and TV)
+One theme choice for the whole app (palette button in the phone header, the screensaver settings, or the TV's theme button), defined in `src/shared/theme.ts`:
+- **Time of Day**: the background follows the selected mosque's prayer times: dawn blues from Fajr, teal by day, gold from Asr, plum from Maghrib and night after Isha, fading between them.
+- **Day & Night**: light Parchment from sunrise until Maghrib, Obsidian at night.
+- **Obsidian, Emerald, Sapphire, Royal Gold** (dark) and **Parchment** (light, for reading in daylight).
+- **Ramadan**: a crescent and lantern appear in the header during Ramadan, and the time-based themes use a deeper indigo at night.
+
 ### 2. 🕌 Automatic Azan & Prayer Times (Awqat.com.au)
 - **Closest Mosque Locator (GPS)**: One-tap automatic distance calculation to find and select your nearest Australian mosque.
 - **28+ Mosques Directory**: Includes Melbourne, Tarneit, Footscray, Truganina, Fitzroy, Adelaide, Hobart, Sydney, Brisbane, Perth, Canberra, etc.
@@ -50,7 +57,7 @@ Both apps share everything in `src/shared/` (components, prayer-time & Azan engi
 ### 3b. 📺 Google TV App
 - **Remote-control (D-pad) navigation**: arrows move focus, OK selects, Back closes dialogs; Channel +/− browses Hadiths.
 - **Hadith slide speed**: each Hadith stays 10 sec, 15 sec, 25 sec (default), 45 sec, 1 min, 2 min or 5 min, or the slides can be paused (footer button or **S** key). Remembered on the TV.
-- **Themes** (moon button or **T** key): Obsidian, Emerald, Sapphire and Royal Gold recolour the whole screen (background, panels, highlights, buttons and dialogs). Remembered on the TV.
+- **Themes** (theme button or **T** key): the same themes as the phone app (see below), recolouring the whole screen (background, panels, highlights, buttons and dialogs). **Time of Day** suits a screen left on all day.
 - **Screen brightness**: dim the whole screen to 85%, 70%, 55%, 40% or 25% (footer button or **B** key), e.g. for the night. Remembered on the TV.
 - **Quran recitation** (Quran button or **Q** key): any of the 114 surahs from 12 reciters (Alafasy, Sudais, Shuraym, Maher al-Mu'aiqly, Yasser ad-Dussary, Abdul Basit, Husary, Minshawi and others) through the [Quran Foundation](https://api-docs.quran.foundation) Quran.com API. The verse being recited is shown in Uthmani script, with the Saheeh International translation when the Hadith language is English. Plays on to the next surah (optional), and pauses by itself for the Adhan and the prayer. Remote: Play/Pause, Channel +/− for the next/previous surah, Back to stop.
 - **"Press OK to Start" screen** — the one remote press lets the TV play the Azan automatically afterwards.
@@ -58,7 +65,7 @@ Both apps share everything in `src/shared/` (components, prayer-time & Azan engi
 - **Wake Lock & OLED micro-drift** so the screen stays on without burn-in.
 
 ### 4. 🌙 Peaceful Ambient Screensaver
-- **5 Serene Dark Themes**: Midnight Obsidian, Deep Emerald, Royal Navy, Desert Gold, Mystic Amethyst.
+- **Follows the app theme** (below).
 - **Subtle Islamic Geometric Patterns**: 8-pointed star Girih rosettes with ambient shimmer.
 - **OLED Burn-in Micro-Drift**: Periodic repositioning protects OLED screens.
 - **WakeLock Screen Keep-Awake**: Keeps the display active while charging on a desk or nightstand.

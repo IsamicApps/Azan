@@ -122,7 +122,7 @@ const FavoriteCard: React.FC<FavoriteCardProps> = ({ item, onRemoveFavorite, onS
   const info = describeHadith(hadith, language);
 
   return (
-    <div className="p-5 rounded-2xl bg-[#12141c]/80 border border-white/10 hover:border-amber-500/30 transition-all flex flex-col justify-between space-y-3">
+    <div className="p-5 rounded-2xl bg-(--s2)/80 border border-white/10 hover:border-amber-500/30 transition-all flex flex-col justify-between space-y-3">
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1">
           <span className="text-xs font-sans font-semibold text-amber-400">

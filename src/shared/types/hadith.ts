@@ -53,10 +53,7 @@ export interface DailySelection {
   hijriDate: string;
 }
 
-export type ScreensaverTheme = 'obsidian' | 'emerald' | 'navy' | 'desert' | 'amethyst';
-
 export interface ScreensaverConfig {
-  theme: ScreensaverTheme;
   brightness: number; // 20 to 100
   fontSize: 'small' | 'medium' | 'large' | 'huge';
   showClock: boolean;

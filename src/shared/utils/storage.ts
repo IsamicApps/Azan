@@ -6,7 +6,6 @@ const REMINDER_KEY = 'daily_hadith_reminder_v1';
 const THEME_MODE_KEY = 'daily_hadith_app_theme_v1';
 
 export const DEFAULT_SCREENSAVER_CONFIG: ScreensaverConfig = {
-  theme: 'obsidian',
   brightness: 90,
   fontSize: 'medium',
   showClock: true,

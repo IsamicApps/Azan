@@ -29,7 +29,7 @@ export const PrayerRemindersCard: React.FC = () => {
   };
 
   return (
-    <div className="p-5 rounded-3xl bg-[#11131c] border border-white/10 space-y-3">
+    <div className="p-5 rounded-3xl bg-(--s2) border border-white/10 space-y-3">
       <div className="flex items-center gap-2">
         <BellRing className="w-5 h-5 text-amber-400" />
         <h4 className="font-semibold text-sm text-white">{t('Prayer Reminders')}</h4>

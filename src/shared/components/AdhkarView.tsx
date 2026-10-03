@@ -68,8 +68,8 @@ export const AdhkarView: React.FC = () => {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header Banner */}
-      <div className="relative rounded-3xl bg-gradient-to-r from-emerald-950/40 via-[#111924] to-[#0c1018] border border-emerald-500/30 p-6 md:p-8 shadow-2xl overflow-hidden">
-        <IslamicPattern opacity={16} color="#10b981" />
+      <div className="relative rounded-3xl bg-gradient-to-r from-emerald-950/40 via-(--s3) to-(--s1) border border-emerald-500/30 p-6 md:p-8 shadow-2xl overflow-hidden">
+        <IslamicPattern opacity={16} color="var(--color-emerald-500)" />
         <IslamicCornerOrnament className="absolute top-2 left-2 rotate-0 opacity-30" />
         <IslamicCornerOrnament className="absolute top-2 right-2 rotate-90 opacity-30" />
 
@@ -130,7 +130,7 @@ export const AdhkarView: React.FC = () => {
               className={`p-6 rounded-3xl border transition-all duration-300 cursor-pointer relative overflow-hidden select-none ${
                 isCompleted
                   ? 'bg-emerald-950/20 border-emerald-500/40 shadow-lg'
-                  : 'bg-[#11131c] hover:bg-[#151824] border-white/10 hover:border-amber-500/30'
+                  : 'bg-(--s2) hover:bg-(--s3) border-white/10 hover:border-amber-500/30'
               }`}
             >
               <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">

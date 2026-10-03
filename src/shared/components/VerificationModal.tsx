@@ -134,7 +134,7 @@ export const VerificationModal: React.FC<VerificationModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-      <div className="bg-[#12141c] border border-amber-500/30 rounded-3xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden text-neutral-100">
+      <div className="bg-(--s2) border border-amber-500/30 rounded-3xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden text-neutral-100">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-white/10 bg-neutral-900/40">
           <div className="flex items-center space-x-2.5">

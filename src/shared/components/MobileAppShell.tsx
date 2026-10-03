@@ -16,6 +16,8 @@ import {
   calculateMosquePrayerTimes,
   getSelectedMosque
 } from '../utils/prayerTimes';
+import { RamadanAccent } from './RamadanAccent';
+import { ThemePicker } from './ThemePicker';
 import { AppLogo } from './AppLogo';
 import { NamesOfAllahView } from './NamesOfAllahView';
 import { AdhkarView } from './AdhkarView';
@@ -32,6 +34,8 @@ import {
   Calendar,
   Bookmark,
   Moon,
+  Palette,
+  X,
   Bell,
   ShieldCheck,
   ChevronLeft,
@@ -67,6 +71,7 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
   const [reminderConfig, setReminderConfig] = useState<ReminderConfig>(getReminderConfig());
   const [isReminderOpen, setIsReminderOpen] = useState(false);
   const [isVerificationOpen, setIsVerificationOpen] = useState(false);
+  const [isThemeOpen, setIsThemeOpen] = useState(false);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
 
@@ -174,12 +179,12 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
 
   return (
     <div
-      className="w-full h-full flex flex-col bg-[#090b10] text-neutral-100 overflow-hidden select-none"
+      className="w-full h-full flex flex-col app-bg text-neutral-100 overflow-hidden select-none"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
       {/* Mobile Top App Header */}
-      <header className="shrink-0 px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2.5 bg-[#0e111a]/95 border-b border-white/10 backdrop-blur-md flex items-center justify-between z-30">
+      <header className="shrink-0 px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2.5 bg-(--s1)/95 border-b border-white/10 backdrop-blur-md flex items-center justify-between z-30">
         <div
           onClick={() => {
             setDayOffset(0);
@@ -189,6 +194,7 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
           className="flex items-center space-x-2.5 cursor-pointer"
         >
           <AppLogo size={34} glow={false} />
+          {prayerData.isRamadan && <RamadanAccent className="-ms-1.5" />}
           <div>
             <div className="font-serif text-base font-bold text-white leading-tight flex items-center space-x-1.5">
               <span>{t('Daily Hadith')}</span>
@@ -232,6 +238,14 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
             title={t('Screensaver')}
           >
             <Moon className="w-3.5 h-3.5" />
+          </button>
+
+          <button
+            onClick={() => setIsThemeOpen(true)}
+            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-neutral-300"
+            title={t('Theme')}
+          >
+            <Palette className="w-3.5 h-3.5" />
           </button>
 
           <button
@@ -308,7 +322,7 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
                 onOpenScreensaver={onOpenScreensaver}
               />
             ) : (
-              <div className="rounded-3xl border border-amber-500/25 bg-[#0e111a] p-10 text-center text-sm text-neutral-400 animate-pulse">
+              <div className="rounded-3xl border border-amber-500/25 bg-(--s1) p-10 text-center text-sm text-neutral-400 animate-pulse">
                 {t('Loading the Hadith of the Day…')}
               </div>
             )}
@@ -316,7 +330,7 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
             {/* Quick Banner: Prayer Times at Closest Mosque */}
             <div
               onClick={() => setActiveTab('prayer')}
-              className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-neutral-900 to-[#101420] border border-emerald-500/30 hover:border-emerald-400/50 transition cursor-pointer flex items-center justify-between shadow-lg"
+              className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-neutral-900 to-(--s2) border border-emerald-500/30 hover:border-emerald-400/50 transition cursor-pointer flex items-center justify-between shadow-lg"
             >
               <div className="flex items-center space-x-3">
                 <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-300 font-bold">
@@ -324,7 +338,7 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
                 </div>
                 <div>
                   <h4 className="text-xs font-semibold text-neutral-100 flex items-center space-x-1.5">
-                    <span>{t('Prayer Times (Awqat)')}</span>
+                    <span>{prayerData.timesSite ? t('Prayer Times ({site})', { site: prayerData.timesSite }) : t('Prayer Times')}</span>
                     <span className="text-[10px] text-amber-400 font-mono">
                       {i18n.prayer(prayerData.nextPrayer.name)} {i18n.time(prayerData.nextPrayer.time)}
                     </span>
@@ -393,7 +407,7 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
       )}
 
       {/* Native Mobile Bottom Navigation Bar */}
-      <nav className="shrink-0 border-t border-white/10 bg-[#0b0d14]/98 backdrop-blur-xl px-1 py-1 flex items-center justify-around z-30 pb-[max(0.25rem,env(safe-area-inset-bottom))] overflow-x-auto scrollbar-none">
+      <nav className="shrink-0 border-t border-white/10 bg-(--s0)/98 backdrop-blur-xl px-1 py-1 flex items-center justify-around z-30 pb-[max(0.25rem,env(safe-area-inset-bottom))] overflow-x-auto scrollbar-none">
         {[
           { id: 'today', label: t('Today'), icon: BookOpenText },
           { id: 'prayer', label: t('Awqat'), icon: Clock },
@@ -430,6 +444,24 @@ export const MobileAppShell: React.FC<MobileAppShellProps> = ({
         onClose={() => setIsReminderOpen(false)}
         onUpdateConfig={(cfg) => setReminderConfig(cfg)}
       />
+
+      {/* Theme (shared with the screensaver and the TV) */}
+      {isThemeOpen && (
+        <div role="dialog" aria-modal="true" onClick={() => setIsThemeOpen(false)} className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in">
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-(--s2) border border-white/10 p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h3 className="font-serif text-xl font-bold text-white flex items-center gap-2">
+                <Palette className="w-5 h-5 text-amber-400" />
+                {t('Theme')}
+              </h3>
+              <button onClick={() => setIsThemeOpen(false)} className="p-1.5 rounded-full hover:bg-white/10 text-neutral-400" title={t('Close')}>
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <ThemePicker />
+          </div>
+        </div>
+      )}
 
       {/* Verification Suite Modal */}
       <VerificationModal

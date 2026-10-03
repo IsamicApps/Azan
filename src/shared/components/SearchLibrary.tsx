@@ -246,7 +246,7 @@ export const SearchLibrary: React.FC<SearchLibraryProps> = ({ onSelectHadith, on
             <button
               key={i}
               onClick={() => openBook(i)}
-              className="w-full flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-[#11131b]/80 border border-white/5 hover:border-amber-500/30 text-start cursor-pointer"
+              className="w-full flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-(--s2)/80 border border-white/5 hover:border-amber-500/30 text-start cursor-pointer"
             >
               <span className="flex items-center gap-3 min-w-0">
                 <span className="w-8 h-8 shrink-0 rounded-lg bg-amber-500/10 text-amber-300 text-xs font-bold flex items-center justify-center">{i + 1}</span>
@@ -328,7 +328,7 @@ const LibraryHadithCard: React.FC<{ hadith: Hadith; fav: boolean; onView: () => 
   const info = describeHadith(hadith, language);
 
   return (
-    <div className="p-4 rounded-2xl bg-[#11131b]/80 border border-white/5 hover:border-amber-500/30 space-y-2.5">
+    <div className="p-4 rounded-2xl bg-(--s2)/80 border border-white/5 hover:border-amber-500/30 space-y-2.5">
       <div className="flex items-start justify-between gap-2">
         <div className="space-y-1 min-w-0">
           <div className="text-xs font-semibold text-amber-400">{showCollection ? `${info.collection} • ${info.detail}` : info.detail}</div>

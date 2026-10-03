@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Hadith, ScreensaverConfig, ScreensaverTheme } from '../types/hadith';
+import { Hadith, ScreensaverConfig } from '../types/hadith';
 import { getScreensaverConfig, saveScreensaverConfig } from '../utils/storage';
 import { IslamicPattern, IslamicCornerOrnament } from './IslamicPattern';
+import { ThemePicker } from './ThemePicker';
 import { X, Settings2, Sun, Type, Palette, Shield, Info, Volume2, VolumeX } from 'lucide-react';
 import { speakHadith, stopSpeaking, isSpeaking } from '../utils/speech';
 import { describeHadith } from '../utils/hadithLibrary';
@@ -14,39 +15,6 @@ interface ScreensaverViewProps {
   hijriDate?: string;
   onClose: () => void;
 }
-
-const THEME_STYLES: Record<ScreensaverTheme, { bg: string; accent: string; subAccent: string; patternColor: string }> = {
-  obsidian: {
-    bg: 'from-[#08090d] via-[#040507] to-[#020203]',
-    accent: 'text-amber-400',
-    subAccent: 'text-amber-200/70',
-    patternColor: '#d4af37'
-  },
-  emerald: {
-    bg: 'from-[#041d15] via-[#02120d] to-[#010805]',
-    accent: 'text-emerald-300',
-    subAccent: 'text-emerald-200/70',
-    patternColor: '#34d399'
-  },
-  navy: {
-    bg: 'from-[#081426] via-[#040b15] to-[#010408]',
-    accent: 'text-sky-300',
-    subAccent: 'text-sky-200/70',
-    patternColor: '#38bdf8'
-  },
-  desert: {
-    bg: 'from-[#1a130b] via-[#100b06] to-[#060402]',
-    accent: 'text-amber-300',
-    subAccent: 'text-amber-200/70',
-    patternColor: '#f59e0b'
-  },
-  amethyst: {
-    bg: 'from-[#140b1e] via-[#0d0714] to-[#050208]',
-    accent: 'text-purple-300',
-    subAccent: 'text-purple-200/70',
-    patternColor: '#c084fc'
-  }
-};
 
 export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
   hadith: sourceHadith,
@@ -173,7 +141,6 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
     saveScreensaverConfig(updated);
   };
 
-  const currentTheme = THEME_STYLES[config.theme] || THEME_STYLES.obsidian;
 
   const fontClasses = {
     small: 'text-xl md:text-2xl leading-relaxed',
@@ -199,32 +166,32 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 z-50 overflow-hidden select-none bg-gradient-to-b ${currentTheme.bg} flex flex-col justify-between p-6 md:p-12 lg:p-16 transition-colors duration-1000`}
+      className={`fixed inset-0 z-50 overflow-hidden select-none app-bg flex flex-col justify-between p-6 md:p-12 lg:p-16 transition-colors duration-1000`}
       style={{ filter: `brightness(${config.brightness}%)` }}
       onClick={resetHideTimer}
     >
       {/* Background Dynamic Islamic Pattern */}
       <IslamicPattern
         opacity={config.patternOpacity}
-        color={currentTheme.patternColor}
+       
         className="transition-opacity duration-1000"
       />
 
       {/* Decorative Ornaments */}
       <IslamicCornerOrnament
-        color={currentTheme.patternColor}
+       
         className="absolute top-6 left-6 rotate-0 opacity-25"
       />
       <IslamicCornerOrnament
-        color={currentTheme.patternColor}
+       
         className="absolute top-6 right-6 rotate-90 opacity-25"
       />
       <IslamicCornerOrnament
-        color={currentTheme.patternColor}
+       
         className="absolute bottom-6 left-6 -rotate-90 opacity-25"
       />
       <IslamicCornerOrnament
-        color={currentTheme.patternColor}
+       
         className="absolute bottom-6 right-6 rotate-180 opacity-25"
       />
 
@@ -300,7 +267,7 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
                 {config.showHijri && hijriDate && (
                   <>
                     <span>•</span>
-                    <span className={currentTheme.subAccent}>{i18n.hijri(hijriDate)}</span>
+                    <span className="text-amber-200/70">{i18n.hijri(hijriDate)}</span>
                   </>
                 )}
               </div>
@@ -311,7 +278,7 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
         {/* Narrator */}
         {hadith.narrator && (
           <div className="mb-4">
-            <p className={`font-sans font-medium ${currentTheme.subAccent} text-sm md:text-lg tracking-wider uppercase`}>
+            <p className={`font-sans font-medium text-amber-200/70 text-sm md:text-lg tracking-wider uppercase`}>
               {hadith.narrator}
             </p>
           </div>
@@ -329,7 +296,7 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
 
         {/* Hadith Canonical Reference */}
         <div className="mt-8 pt-6 border-t border-white/10 flex flex-col items-center space-y-1.5">
-          <div className={`font-serif text-base md:text-lg ${currentTheme.accent} font-medium`}>
+          <div className={`font-serif text-base md:text-lg text-amber-400 font-medium`}>
             {info.collection} • {info.reference}
           </div>
           <div className="text-xs md:text-sm font-sans text-neutral-400">
@@ -358,7 +325,7 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="bg-[#11131a] border border-white/10 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-6 text-neutral-100 max-h-[90vh] overflow-y-auto">
+          <div className="bg-(--s2) border border-white/10 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-6 text-neutral-100 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-4 border-b border-white/10">
               <div className="flex items-center space-x-2">
                 <Settings2 className="w-5 h-5 text-amber-400" />
@@ -378,28 +345,7 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
                 <Palette className="w-4 h-4 text-amber-400" />
                 <span>{t('Background Theme')}</span>
               </label>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { id: 'obsidian', label: 'Obsidian', color: '#10121a' },
-                  { id: 'emerald', label: 'Emerald', color: '#041d15' },
-                  { id: 'navy', label: 'Navy', color: '#081426' },
-                  { id: 'desert', label: 'Desert Gold', color: '#1a130b' },
-                  { id: 'amethyst', label: 'Amethyst', color: '#140b1e' }
-                ].map((theme) => (
-                  <button
-                    key={theme.id}
-                    onClick={() => updateConfig({ theme: theme.id as ScreensaverTheme })}
-                    className={`py-2 px-3 rounded-xl border text-xs font-medium transition flex items-center space-x-2 ${
-                      config.theme === theme.id
-                        ? 'border-amber-400 bg-white/10 text-white'
-                        : 'border-white/10 bg-white/5 text-neutral-400 hover:text-white'
-                    }`}
-                  >
-                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: theme.color }}></span>
-                    <span className="truncate">{t(theme.label)}</span>
-                  </button>
-                ))}
-              </div>
+              <ThemePicker />
             </div>
 
             {/* Font Size */}
@@ -531,7 +477,7 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="bg-[#11131a] border border-white/10 rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-4 text-neutral-100 max-h-[90vh] overflow-y-auto">
+          <div className="bg-(--s2) border border-white/10 rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-4 text-neutral-100 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-white/10">
               <div className="flex items-center space-x-2">
                 <Shield className="w-5 h-5 text-amber-400" />

@@ -50,7 +50,7 @@ export const MonthlyTimetable: React.FC<MonthlyTimetableProps> = ({ mosque, onCl
 
   return createPortal(
     <div className="timetable-portal fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-start justify-center p-3 overflow-y-auto print:p-0 print:bg-white print:static">
-      <div className="timetable-print w-full max-w-4xl rounded-3xl bg-[#11131c] border border-amber-500/30 p-4 md:p-6 space-y-4 text-neutral-100 print:bg-white print:text-black print:border-0 print:rounded-none">
+      <div className="timetable-print w-full max-w-4xl rounded-3xl bg-(--s2) border border-amber-500/30 p-4 md:p-6 space-y-4 text-neutral-100 print:bg-white print:text-black print:border-0 print:rounded-none">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h3 className="font-serif text-xl md:text-2xl font-bold">{t('Monthly Prayer Timetable')}</h3>

@@ -76,7 +76,7 @@ export const PrayerPhaseOverlay: React.FC<PrayerPhaseOverlayProps> = ({ phase, i
   return (
     <div
       onClick={onDismiss}
-      className="fixed inset-0 z-[80] bg-[#05070c]/95 backdrop-blur-sm flex flex-col items-center justify-center gap-8 text-white cursor-pointer"
+      className="fixed inset-0 z-[80] bg-(--s0)/95 backdrop-blur-sm flex flex-col items-center justify-center gap-8 text-white cursor-pointer"
     >
       <div className="font-serif text-[72px] font-bold text-amber-300">{t('{prayer} Prayer', { prayer: i18n.prayer(phase.prayer) })}</div>
       <div className="text-[44px] text-neutral-300">{t('Iqamah in')}</div>

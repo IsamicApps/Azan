@@ -61,7 +61,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div className="bg-[#12141c] border border-amber-500/20 rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+      <div className="bg-(--s2) border border-amber-500/20 rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
         {/* Modal Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
           <div className="flex items-center space-x-2">
@@ -80,9 +80,9 @@ export const ShareModal: React.FC<ShareModalProps> = ({
         <div className="p-6 overflow-y-auto flex-1 flex flex-col items-center">
           <div
             ref={cardRef}
-            className="relative w-full rounded-2xl bg-gradient-to-b from-[#0e1017] via-[#07090e] to-[#040608] border border-amber-500/30 p-8 shadow-2xl flex flex-col justify-between overflow-hidden text-center select-none"
+            className="relative w-full rounded-2xl bg-gradient-to-b from-(--s1) via-(--s0) to-(--s0) border border-amber-500/30 p-8 shadow-2xl flex flex-col justify-between overflow-hidden text-center select-none"
           >
-            <IslamicPattern opacity={22} color="#d4af37" />
+            <IslamicPattern opacity={22} />
             <IslamicCornerOrnament className="absolute top-2 left-2 rotate-0" />
             <IslamicCornerOrnament className="absolute top-2 right-2 rotate-90" />
             <IslamicCornerOrnament className="absolute bottom-2 left-2 -rotate-90" />
