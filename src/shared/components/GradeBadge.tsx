@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, ShieldAlert, ShieldQuestion } from 'lucide-react';
+import { CircleCheck, CircleAlert, CircleHelp } from 'lucide-react';
 import { Hadith } from '../types/hadith';
 import { describeGrade } from '../utils/hadithLibrary';
 import { useI18n } from '../i18n';
@@ -27,10 +27,10 @@ export const GradeBadge: React.FC<GradeBadgeProps> = ({ hadith, size = 'sm', sho
   const grade = describeGrade(hadith, language);
   const Icon =
     grade.category === 'sahih' || grade.category === 'hasan'
-      ? ShieldCheck
+      ? CircleCheck
       : grade.category === 'none' || grade.category === 'other'
-        ? ShieldQuestion
-        : ShieldAlert;
+        ? CircleHelp
+        : CircleAlert;
   const sizing =
     size === 'tv'
       ? 'gap-2.5 px-4 py-1.5 rounded-xl text-[22px] [&_svg]:w-6 [&_svg]:h-6'
