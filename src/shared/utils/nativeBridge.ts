@@ -107,7 +107,9 @@ export function startWidgetSync(): void {
   window.addEventListener(HIJRI_ADJUST_EVENT, schedule);
   window.addEventListener(HADITH_LANGUAGE_EVENT, schedule);
   window.addEventListener(AZAN_SETTINGS_EVENT, schedule);
-  // Custom mosque times and the Azan schedule run from today: send them again when the app comes back
+  // Custom mosque times and the Azan schedule run from today: send them again when the app comes back,
+  // and every hour for a page that stays open (a phone on a stand with the screensaver on)
   document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && schedule());
+  setInterval(schedule, 60 * 60 * 1000);
   sendAll();
 }

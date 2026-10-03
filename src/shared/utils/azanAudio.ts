@@ -111,7 +111,7 @@ export function saveAzanSettings(settings: AzanSettings): void {
   try {
     localStorage.setItem(AZAN_SETTINGS_KEY, JSON.stringify(rest));
   } catch {}
-  window.dispatchEvent(new Event(AZAN_SETTINGS_EVENT));
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(AZAN_SETTINGS_EVENT));
 }
 
 const LAST_PLAYED_KEY = 'daily_hadith_azan_last_played_v1';

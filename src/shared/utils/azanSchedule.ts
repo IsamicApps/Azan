@@ -54,8 +54,10 @@ export function buildAzanSchedule(
   limit: number = AZAN_NOTIFICATION_LIMIT
 ): AzanNotification[] {
   if (!settings.autoAzanEnabled) return [];
-  // Five a day, plus today's already-passed ones and a spare day
-  const feed = buildTimesFeed(mosque, now, Math.ceil(limit / 5) + 2);
+  // From yesterday: the device's date can be a day ahead of the mosque's (a phone in Melbourne,
+  // a mosque in Perth, just after midnight). Past Adhans are skipped below.
+  const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+  const feed = buildTimesFeed(mosque, yesterday, Math.ceil(limit / 5) + 3);
   const [fy, fm, fd] = feed.from.split('-').map(Number);
   const result: AzanNotification[] = [];
 

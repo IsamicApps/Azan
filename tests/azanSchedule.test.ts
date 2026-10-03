@@ -42,6 +42,17 @@ describe('Azan notifications', () => {
     expect(first.body).toMatch(/^حان وقت صلاة الفجر في /);
   });
 
+  it("include today's Adhans at a mosque whose date is behind the phone's", () => {
+    // 00:01 on 5 January in Melbourne (UTC+11) is 21:01 on the 4th in Perth (UTC+8), before Perth's Isha
+    const perth = INITIAL_MOSQUES.find((m) => m.state === 'WA')!;
+    const now = new Date('2027-01-04T13:01:00Z');
+    const isha = calculateMosquePrayerTimes(perth, now).nextPrayer;
+    expect(isha.name).toBe('Isha');
+    const [first] = buildAzanSchedule(perth, DEFAULT_AZAN_SETTINGS, 'en', now);
+    expect(first.prayer).toBe('Isha');
+    expect(first.at - now.getTime()).toBe(isha.remainingSeconds * 1000);
+  });
+
   it('are empty when the automatic Azan is off', () => {
     expect(buildAzanSchedule(amssa, { ...DEFAULT_AZAN_SETTINGS, autoAzanEnabled: false }, 'en', evening)).toEqual([]);
   });
