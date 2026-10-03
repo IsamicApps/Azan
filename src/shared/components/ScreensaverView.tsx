@@ -508,7 +508,7 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({
                   <strong>{t('Keep it on this screen:')}</strong> {t('iPhone: Settings → Accessibility → Guided Access. Android: Settings → Security → App pinning.')}
                 </li>
                 <li>
-                  <strong>{t('Big screens:')}</strong> {t('Open the TV page (…/Azan/tv/) on Google TV or any browser for a full-screen mosque display.')}
+                  <strong>{t('Big screens:')}</strong> {t('Open the TV app (islamicapplications.github.io/IslamicTvApps) on Google TV or any browser for a full-screen mosque display.')}
                 </li>
               </ul>
             </div>

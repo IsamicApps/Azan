@@ -450,7 +450,7 @@ export const AR: Record<string, string> = {
   'Keep it on this screen:': 'أبقِه على هذه الشاشة:',
   'iPhone: Settings → Accessibility → Guided Access. Android: Settings → Security → App pinning.': 'iPhone: الإعدادات ← تسهيلات الاستخدام ← الوصول الموجّه. Android: الإعدادات ← الأمان ← تثبيت التطبيق على الشاشة.',
   'Big screens:': 'الشاشات الكبيرة:',
-  'Open the TV page (…/Azan/tv/) on Google TV or any browser for a full-screen mosque display.': 'افتح صفحة التلفاز (…/Azan/tv/) على Google TV أو أي متصفح لعرض المسجد بملء الشاشة.',
+  'Open the TV app (islamicapplications.github.io/IslamicTvApps) on Google TV or any browser for a full-screen mosque display.': 'افتح تطبيق التلفاز (islamicapplications.github.io/IslamicTvApps) على Google TV أو أي متصفح لعرض المسجد بملء الشاشة.',
   'Language [L]': 'اللغة [L]',
   'Choose what is shown in Arabic': 'اختر ما يُعرض بالعربية',
   'Screen (menus, prayer times, dates)': 'الشاشة (القوائم والمواقيت والتواريخ)',

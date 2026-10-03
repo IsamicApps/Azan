@@ -19,8 +19,6 @@ export interface AzanSettings {
   prayerMuezzins?: Partial<Record<AzanPrayer, MuezzinId>>;
   volume: number; // 0.1 to 1.0
   notifyBrowser: boolean;
-  /** TV: play the Iqamah when the Iqamah countdown ends (on unless turned off) */
-  iqamahSound?: boolean;
   lastPlayedPrayerKey?: string;
 }
 
@@ -72,13 +70,6 @@ export const MUEZZIN_SOURCES: Record<MuezzinId, { name: string; subtitle: string
     location: 'Acoustic Synthesizer',
     url: ''
   }
-};
-
-/** The Iqamah the TV plays at Iqamah time. */
-export const IQAMAH_SOURCE = {
-  name: 'Iqamah of Masjid al-Haram',
-  location: 'Masjid al-Haram, Makkah',
-  url: `${cleanBase}audio/iqamah_makkah.mp3`
 };
 
 function isMuezzinId(value: unknown): value is MuezzinId {
@@ -134,25 +125,12 @@ export function claimAzanTrigger(triggerKey: string): boolean {
   return true;
 }
 
-const IQAMAH_LAST_PLAYED_KEY = 'daily_hadith_iqamah_last_played_v1';
-
-/** Like claimAzanTrigger, for the Iqamah: each prayer's Iqamah plays once. */
-export function claimIqamahTrigger(triggerKey: string): boolean {
-  try {
-    if (localStorage.getItem(IQAMAH_LAST_PLAYED_KEY) === triggerKey) return false;
-    localStorage.setItem(IQAMAH_LAST_PLAYED_KEY, triggerKey);
-  } catch {}
-  return true;
-}
-
 let activeAudio: HTMLAudioElement | null = null;
 let audioContextInstance: AudioContext | null = null;
 let chimeOscillators: OscillatorNode[] = [];
 let chimeEndTimer: ReturnType<typeof setTimeout> | null = null;
 // Increases with every playAzan() call, so a caller can tell whether its own Azan is still the one playing
 let playCount = 0;
-// The playCount of the last Iqamah, so closing the Azan popup doesn't cut it off
-let iqamahPlay = -1;
 
 export function getAzanPlayCount(): number {
   return playCount;
@@ -254,38 +232,6 @@ export function playAzan(
   }
 }
 
-/**
- * Plays the Iqamah on the same (already unlocked) player as the Azan, so it counts
- * as an Azan for isAzanPlaying() and stopAzan(). No chime stands in if it can't play.
- */
-export function playIqamah(onEnd?: () => void): void {
-  stopAzan();
-  playCount += 1;
-  const thisPlay = playCount;
-  iqamahPlay = thisPlay;
-  const audio = getAzanElement();
-  const isCurrent = () => playCount === thisPlay && activeAudio === audio;
-  const finish = () => {
-    if (!isCurrent()) return;
-    activeAudio = null;
-    if (onEnd) onEnd();
-  };
-  try {
-    audio.muted = false;
-    audio.src = IQAMAH_SOURCE.url;
-    audio.volume = Math.max(0.1, Math.min(1.0, getAzanSettings().volume));
-    audio.onplay = null;
-    audio.onended = finish;
-    audio.onerror = finish;
-    activeAudio = audio;
-    audio.play()?.catch((err) => {
-      if (err?.name !== 'AbortError') finish();
-    });
-  } catch {
-    finish();
-  }
-}
-
 export function stopAzan(): void {
   if (activeAudio) {
     try {
@@ -295,12 +241,6 @@ export function stopAzan(): void {
     activeAudio = null;
   }
   stopChime();
-}
-
-/** Stops the Azan, but not an Iqamah that has started since (the Azan popup can still be open then). */
-export function stopAdhan(): void {
-  if (iqamahPlay === playCount && activeAudio) return;
-  stopAzan();
 }
 
 function stopChime(): void {

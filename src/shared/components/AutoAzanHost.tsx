@@ -9,7 +9,7 @@ import {
 import {
   MuezzinId,
   playAzan,
-  stopAdhan,
+  stopAzan,
   getAzanSettings,
   getMuezzinForPrayer,
   claimAzanTrigger,
@@ -81,7 +81,7 @@ export const AutoAzanHost: React.FC = () => {
       onClose={() => {
         setActivePrayer(null);
         setSoundBlocked(false);
-        stopAdhan();
+        stopAzan();
       }}
     />
   );

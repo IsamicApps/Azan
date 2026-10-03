@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#06070a" />
+    <title>Daily Hadith & Azan TV has moved</title>
+    <!-- Without JavaScript: plain redirect -->
+    <noscript><meta http-equiv="refresh" content="0; url=https://islamicapplications.github.io/IslamicTvApps/" /></noscript>
+    <style>
+      body { margin: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; background: #080a0f; color: #e5e7eb; font-family: system-ui, -apple-system, sans-serif; text-align: center; padding: 0 16px; }
+      h1 { margin: 0; font-size: 28px; color: #fbbf24; font-weight: 600; }
+      a { color: #fbbf24; }
+    </style>
+  </head>
+  <body>
+    <h1>The TV app has moved</h1>
+    <p>Opening <a id="link" href="https://islamicapplications.github.io/IslamicTvApps/">islamicapplications.github.io/IslamicTvApps</a>…</p>
+    <script>
+      // The TV app now lives at its own address. The first time, the TV's settings (mosque,
+      // Azan voices, theme, Quran position…) go along in the link, as the new address can't
+      // read this site's storage; after that it's a plain redirect.
+      (function () {
+        var target = 'https://islamicapplications.github.io/IslamicTvApps/';
+        try {
+          if (!localStorage.getItem('daily_hadith_tv_moved_v1')) {
+            var settings = {};
+            for (var i = 0; i < localStorage.length; i++) {
+              var key = localStorage.key(i);
+              if (key && key.indexOf('daily_hadith_') === 0) settings[key] = localStorage.getItem(key);
+            }
+            if (Object.keys(settings).length) {
+              var bytes = new TextEncoder().encode(JSON.stringify(settings));
+              var binary = '';
+              for (var j = 0; j < bytes.length; j++) binary += String.fromCharCode(bytes[j]);
+              target += '#import=' + btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+            }
+            localStorage.setItem('daily_hadith_tv_moved_v1', '1');
+          }
+        } catch (e) {}
+        document.getElementById('link').href = target;
+        location.replace(target);
+      })();
+    </script>
+  </body>
+</html>
