@@ -1,0 +1,7 @@
+{
+  "name": "home-widgets",
+  "version": "1.0.0",
+  "description": "Android home-screen widgets (Daily Hadith, Prayer Times) and the storage the app writes their settings to",
+  "main": "index.ts",
+  "private": true
+}

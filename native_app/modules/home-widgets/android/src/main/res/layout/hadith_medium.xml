@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  android:id="@+id/widget_root"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  android:background="@drawable/widget_background"
+  android:padding="14dp">
+
+  <LinearLayout android:id="@+id/content" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+      <TextView android:id="@+id/header_left" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="10sp" android:textStyle="bold" android:textAllCaps="true" android:textColor="@color/widget_gold" android:text="Daily Hadith" />
+      <TextView android:id="@+id/collection" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:gravity="end" android:textSize="10sp" android:textColor="@color/widget_muted" android:maxLines="1" android:ellipsize="end" android:text="Sahih al-Bukhari" />
+    </LinearLayout>
+    <TextView android:id="@+id/narrator" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="11sp" android:textColor="@color/widget_gold" android:textAlignment="viewStart" android:text="Narrated 'Umar bin Al-Khattab" android:layout_marginTop="4dp" android:maxLines="1" android:ellipsize="end"/>
+    <TextView android:id="@+id/hadith_text" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:layout_marginTop="2dp" android:textSize="13.5sp" android:fontFamily="serif" android:lineSpacingExtra="2dp" android:textColor="@color/widget_text" android:textAlignment="textStart" android:ellipsize="end" android:maxLines="4" android:text="The reward of deeds depends upon the intentions and every person will get the reward according to what he has intended." />
+    <TextView android:id="@+id/reference" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="10sp" android:textColor="@color/widget_muted" android:textAlignment="viewStart" android:text="In-book reference: Book 1, Hadith 1" android:maxLines="1" android:ellipsize="end"/>
+  </LinearLayout>
+
+  <TextView android:id="@+id/message" android:layout_width="match_parent" android:layout_height="match_parent" android:gravity="center" android:textSize="13sp" android:textColor="@color/widget_muted" android:visibility="gone" />
+</FrameLayout>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="prayer_widget_name">مواقيت الصلاة</string>
+  <string name="prayer_widget_description">الصلاة القادمة مع العد التنازلي، ومواعيد الأذان والإقامة اليوم في مسجدك</string>
+  <string name="hadith_widget_name">حديث اليوم</string>
+  <string name="hadith_widget_description">حديث اليوم من sunnah.com بالعربية أو الإنجليزية</string>
+</resources>
